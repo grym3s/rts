@@ -1,0 +1,19 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; but this file is text so it merges cleanly.
+
+config_version=5
+
+[application]
+
+config/name="RTS"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+
+[dotnet]
+
+project/assembly_name="Rts.Game"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"

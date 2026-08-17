@@ -1,0 +1,39 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  sim:
+    name: sim build + test + structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: true }
+      - uses: actions/setup-dotnet@v4
+        with: { global-json-file: global.json }
+      - run: dotnet restore RTS.sln
+      - run: dotnet build RTS.sln --no-restore -warnaserror
+      - run: dotnet test sim/tests/Sim.Tests.csproj --no-build --nologo
+      - run: dotnet run --project tools/scenario/Scenario.csproj --no-build -- content/scenarios/smoke.json
+      - run: dotnet format RTS.sln --verify-no-changes
+      - run: _scripts/check.sh
+
+  godot:
+    name: godot headless import + build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: true }
+      - uses: actions/setup-dotnet@v4
+        with: { global-json-file: global.json }
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.1
+          use-dotnet: true
+          include-templates: false
+      - run: dotnet build game/Game.csproj
+      - run: godot --path game --headless --import --quit || true
+      - run: godot --path game --headless --quit

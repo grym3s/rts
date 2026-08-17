@@ -1,0 +1,1 @@
+{ "schemaVersion": 1, "id": "scout", "name": "Scout", "speed": 4.0, "hp": 40, "range": 3.0, "damage": 6, "cooldownTicks": 10 }

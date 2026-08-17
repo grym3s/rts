@@ -1,0 +1,15 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+# Godot
+.godot/
+*.import
+mono_crash.*.json
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+# local agent settings
+.claude/settings.local.json
