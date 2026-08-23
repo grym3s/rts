@@ -12,7 +12,9 @@ cp CLAUDE.md AGENTS.md
   echo
   echo "| ADR | Status | Date | Title |"
   echo "|---|---|---|---|"
-  for f in decisions/[0-9][0-9][0-9][0-9]-*.md; do
+  # NNNN-kebab-title.md only: the trailing [a-z] stops date-named files
+  # (e.g. 2026-08-17-foundation-ultra-review.md) being indexed as ADR "2026".
+  for f in decisions/[0-9][0-9][0-9][0-9]-[a-z]*.md; do
     id=$(basename "$f" .md | cut -d- -f1)
     status=$(sed -n 's/^status: *//p' "$f" | head -1)
     date=$(sed -n 's/^date: *//p' "$f" | head -1)
