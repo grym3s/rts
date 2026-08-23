@@ -10,6 +10,12 @@ mono_crash.*.json
 # OS / editors
 .DS_Store
 .idea/
-.vscode/
+# VS Code: share the workspace config (tasks/launch/settings/extensions),
+# keep personal state (history, chat, per-user overrides) local.
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/extensions.json
 # local agent settings
 .claude/settings.local.json

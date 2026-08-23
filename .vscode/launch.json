@@ -1,0 +1,41 @@
+{
+  // Godot path is NOT hardcoded: it reads godotTools.editorPath.godot4 from
+  // .vscode/settings.json, so each machine sets it once and this file stays shared.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Play (Godot, C# debug)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build: game",
+      "program": "${config:godotTools.editorPath.godot4}",
+      "args": ["--path", "${workspaceFolder}/game"],
+      "cwd": "${workspaceFolder}/game",
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    },
+    {
+      "name": "Play (Godot, headless)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build: game",
+      "program": "${config:godotTools.editorPath.godot4}",
+      "args": ["--path", "${workspaceFolder}/game", "--headless"],
+      "cwd": "${workspaceFolder}/game",
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    },
+    {
+      "name": "Scenario: smoke (headless sim)",
+      "detail": "Debug the deterministic sim with no engine in the loop",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build: scenario",
+      "program": "${workspaceFolder}/tools/scenario/bin/Debug/net10.0/Scenario",
+      "args": ["content/scenarios/smoke.json"],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    }
+  ]
+}
