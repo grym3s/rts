@@ -1,0 +1,39 @@
+{
+  // Verified Aug 2026. `code --install-extension <id>` to add manually.
+  "recommendations": [
+    // --- C# / .NET -------------------------------------------------------
+    "ms-dotnettools.csharp",            // Roslyn + the coreclr debug adapter. MIT. The one that actually debugs Godot C# and xUnit.
+    "ms-dotnettools.csdevkit",          // Solution + Test Explorer. Proprietary: free commercial use up to 5 devs, then needs a VS Pro sub.
+
+    // --- Godot 4 ---------------------------------------------------------
+    "geequlim.godot-tools",             // .tscn/.tres syntax, Godot LSP, scene preview. NOTE: its own debugger is GDScript-only —
+                                        // C# debugging comes from ms-dotnettools.csharp via launch.json. Do NOT install
+                                        // neikeq.godot-csharp-vscode; it does not support Godot 4.x.
+
+    // --- Markdown / the ICM map ------------------------------------------
+    "foam.foam-vscode",                 // [[wikilink]] autocomplete, backlinks, graph view over map/ and decisions/.
+    "yzhang.markdown-all-in-one",       // Table formatting (Alt+Shift+F) — the contracts are almost all tables.
+    "davidanson.vscode-markdownlint",   // Consistent headings/spacing across 10+ CONTEXT.md files.
+    "redhat.vscode-yaml",               // Validates ADR frontmatter and the CI workflow.
+    "streetsidesoftware.code-spell-checker",
+
+    // --- Readability / appearance ----------------------------------------
+    "usernamehw.errorlens",             // Inlines diagnostics at end-of-line — Roslyn, markdownlint and YAML errors where they happen.
+    "pkief.material-icon-theme",        // Distinct icons for .cs / .tscn / .md / Makefile in a mixed-type repo.
+    "catppuccin.catppuccin-vsc",        // Theme. Taste — swap freely.
+
+    // --- Workflow --------------------------------------------------------
+    "github.vscode-github-actions",     // Schema validation + run history for ci.yml.
+    "github.vscode-pull-request-github", // ADRs land by PR; review in-editor.
+    "eamodio.gitlens",
+    "ms-vscode.makefile-tools",         // make check / test / scenario / godot-test from the palette.
+    "editorconfig.editorconfig",        // .editorconfig also carries .NET analyzer severities.
+    "timonwong.shellcheck",             // CI depends on _scripts/*.sh — lint them.
+    "fanaticpythoner.better-todo-tree"  // Maintained fork; Gruntfuggly.todo-tree is ~1 commit in 3 years.
+  ],
+  "unwantedRecommendations": [
+    "neikeq.godot-csharp-vscode",       // Does not support Godot 4.x.
+    "dendron.dendron",                  // Abandoned by its maintainer.
+    "svsool.markdown-memo"              // Discontinued.
+  ]
+}
