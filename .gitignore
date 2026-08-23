@@ -17,5 +17,8 @@ mono_crash.*.json
 !.vscode/launch.json
 !.vscode/settings.json
 !.vscode/extensions.json
-# local agent settings
+# local agent / tooling state — machine-specific, never shared
 .claude/settings.local.json
+.claude/proven-config.json
+.claude/.proven-config-version
+.claude-flow/
