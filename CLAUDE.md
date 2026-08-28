@@ -15,6 +15,7 @@ Built on ICM: folders carry architecture, each working folder has a `CONTEXT.md`
 | `decisions/` | ADRs — accepted decisions; superseded ones marked; index generated |
 | `docs/` | design pillars, conventions, workflow |
 | `_scripts/` | regenerate indexes, structure checks (used by CI) |
+| `_templates/` | starter `CONTEXT.md` to copy when a new working folder is created |
 
 ## Route by task
 
@@ -25,6 +26,7 @@ Built on ICM: folders carry architecture, each working folder has a `CONTEXT.md`
 | add or tune a unit type | `content/CONTEXT.md`, then `sim/units/CONTEXT.md` | data first; code only for new behaviour |
 | change how it looks or controls | `game/CONTEXT.md` | `make godot-test` + manual check |
 | answer "what does changing X hit" | `map/effects/CONTEXT.md` | open the named contracts/cards |
+| create a new sim system or game area | `_templates/folder-CONTEXT.md`, the parent `CONTEXT.md` | copy the template, fill every line, `make check` |
 | record a decision | `decisions/CONTEXT.md` | new ADR by PR |
 | status of a task | GitHub Issues / PRs | not stored in this tree |
 | understand why things are this way | `decisions/2026-08-17-foundation-ultra-review.md` | read only the section you need |
