@@ -23,7 +23,7 @@ Standard harvest (Refinery + Miner), cheapest unit costs in the game, plus **Con
 
 ## Owned verb — Conscription
 
-Any Hegemony infantry can be **conscripted** — sacrificed at a Conscription Hall or in the field — for an instant burst of credits or to power a faction effect (e.g. the Sapper's self-destruct, an emergency repair, a defense overcharge). This makes cheap infantry a *currency*, not just a body, and is the reason the Hegemony can spam without going broke. It is a mechanic, not just flavor (reference Part 5.5).
+Any Hegemony infantry can be **conscripted** — sacrificed at a Conscription Hall or in the field — for an instant burst of credits or to power a faction effect (e.g. the Sapper's self-destruct, an emergency repair, a defense overcharge). This makes cheap infantry a *currency*, not just a body, and is the reason the Hegemony can spam without going broke. It is a mechanic, not just flavor (reference Part 5.5). **Buildable rules (refund %, radius, Sapper blast, deniability): `owned-verbs.md`.**
 
 ## Buildings
 

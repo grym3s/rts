@@ -21,7 +21,7 @@ Standard harvest (Refinery + Collector) plus **Intel**, a secondary meter that f
 
 ## Owned verb — Marking
 
-A unit spotted by any Coalition sensor (Comms Rig, Spotter Drone, Marksman, Sensor Command radius) is **marked**: it takes bonus damage from *all* Coalition sources until it breaks line of sight. This is why the whole faction is built around vision — the payoff for spotting is damage, not just information. Killing the enemy's counter-recon is the Coalition's core skill.
+A unit spotted by any Coalition sensor (Comms Rig, Spotter Drone, Marksman, Sensor Command radius) is **marked**: it takes bonus damage from *all* Coalition sources until it breaks line of sight. This is why the whole faction is built around vision — the payoff for spotting is damage, not just information. Killing the enemy's counter-recon is the Coalition's core skill. **Buildable rules (radius, magnitude, linger, deniability): `owned-verbs.md`.**
 
 ## Buildings
 
