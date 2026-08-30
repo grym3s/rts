@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "singularity",
+  "name": "Singularity",
+  "faction": "ascendant",
+  "role": "bomber",
+  "tier": 3,
+  "builtFrom": "aerie",
+  "cost": 1925,
+  "buildTimeSeconds": 34,
+  "armor": "air",
+  "stats": {
+    "hp": 148,
+    "speed": 6.0,
+    "sight": 9.0
+  },
+  "weapon": {
+    "damageType": "explosive",
+    "damage": 60,
+    "range": 8.0,
+    "cooldownTicks": 100,
+    "targets": [
+      "ground"
+    ]
+  }
+}

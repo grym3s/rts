@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "id": "oracle",
+  "name": "Oracle",
+  "faction": "ascendant",
+  "role": "commando",
+  "tier": 3,
+  "builtFrom": "manifold",
+  "cost": 1800,
+  "buildTimeSeconds": 38,
+  "armor": "infantry",
+  "stats": {
+    "hp": 122,
+    "speed": 2.0,
+    "sight": 9.0
+  },
+  "weapon": {
+    "damageType": "energy",
+    "damage": 30,
+    "range": 5.0,
+    "cooldownTicks": 30,
+    "targets": [
+      "ground"
+    ]
+  },
+  "verbs": {
+    "phases": true
+  }
+}

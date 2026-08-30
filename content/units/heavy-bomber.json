@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "heavy-bomber",
+  "name": "Heavy Bomber",
+  "faction": "hegemony",
+  "role": "bomber",
+  "tier": 3,
+  "builtFrom": "helipad",
+  "cost": 1275,
+  "buildTimeSeconds": 44,
+  "armor": "air",
+  "stats": {
+    "hp": 222,
+    "speed": 6.0,
+    "sight": 9.0
+  },
+  "weapon": {
+    "damageType": "explosive",
+    "damage": 60,
+    "range": 8.0,
+    "cooldownTicks": 100,
+    "targets": [
+      "ground"
+    ]
+  }
+}

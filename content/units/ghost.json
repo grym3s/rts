@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "ghost",
+  "name": "Ghost",
+  "faction": "coalition",
+  "role": "commando",
+  "tier": 3,
+  "builtFrom": "barracks",
+  "cost": 1750,
+  "buildTimeSeconds": 45,
+  "armor": "infantry",
+  "stats": {
+    "hp": 162,
+    "speed": 2.0,
+    "sight": 9.0
+  },
+  "weapon": {
+    "damageType": "small-arms",
+    "damage": 30,
+    "range": 5.0,
+    "cooldownTicks": 30,
+    "targets": [
+      "ground"
+    ]
+  }
+}
