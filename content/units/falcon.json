@@ -5,7 +5,7 @@
   "faction": "coalition",
   "role": "interceptor",
   "tier": 2,
-  "builtFrom": "airbase",
+  "builtFrom": "coalition-airbase",
   "cost": 1150,
   "buildTimeSeconds": 24,
   "armor": "air",

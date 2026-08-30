@@ -5,7 +5,7 @@
   "faction": "ascendant",
   "role": "support",
   "tier": 2,
-  "builtFrom": "forge",
+  "builtFrom": "ascendant-forge",
   "cost": 1075,
   "buildTimeSeconds": 19,
   "armor": "light",

@@ -5,7 +5,7 @@
   "faction": "ascendant",
   "role": "aoe-infantry",
   "tier": 2,
-  "builtFrom": "manifold",
+  "builtFrom": "ascendant-manifold",
   "cost": 425,
   "buildTimeSeconds": 9,
   "armor": "infantry",

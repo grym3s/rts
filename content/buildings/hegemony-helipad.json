@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "hegemony-helipad",
+  "name": "Helipad",
+  "faction": "hegemony",
+  "category": "air",
+  "tier": 2,
+  "prereq": "hegemony-industrial-works",
+  "cost": 800,
+  "buildTimeSeconds": 44,
+  "power": -20,
+  "produces": [
+    "aircraft"
+  ],
+  "stats": {
+    "hp": 1800
+  }
+}

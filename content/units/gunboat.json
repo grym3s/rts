@@ -5,7 +5,7 @@
   "faction": "hegemony",
   "role": "corvette",
   "tier": 1,
-  "builtFrom": "shipyard",
+  "builtFrom": "hegemony-shipyard",
   "cost": 475,
   "buildTimeSeconds": 22,
   "armor": "light-naval",

@@ -5,7 +5,7 @@
   "faction": "hegemony",
   "role": "superheavy",
   "tier": 3,
-  "builtFrom": "war-factory",
+  "builtFrom": "hegemony-war-factory",
   "cost": 2000,
   "buildTimeSeconds": 60,
   "armor": "heavy",

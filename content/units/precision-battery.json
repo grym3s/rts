@@ -5,7 +5,7 @@
   "faction": "coalition",
   "role": "artillery",
   "tier": 3,
-  "builtFrom": "vehicle-bay",
+  "builtFrom": "coalition-vehicle-bay",
   "cost": 1150,
   "buildTimeSeconds": 30,
   "armor": "light",

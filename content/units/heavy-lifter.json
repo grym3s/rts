@@ -5,7 +5,7 @@
   "faction": "hegemony",
   "role": "air-transport",
   "tier": 2,
-  "builtFrom": "helipad",
+  "builtFrom": "hegemony-helipad",
   "cost": 650,
   "buildTimeSeconds": 24,
   "armor": "air",

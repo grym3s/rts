@@ -5,7 +5,7 @@
   "faction": "ascendant",
   "role": "destroyer",
   "tier": 2,
-  "builtFrom": "tidal-forge",
+  "builtFrom": "ascendant-tidal-forge",
   "cost": 1450,
   "buildTimeSeconds": 34,
   "armor": "light-naval",

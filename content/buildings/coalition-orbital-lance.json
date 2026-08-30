@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "coalition-orbital-lance",
+  "name": "Orbital Lance",
+  "faction": "coalition",
+  "category": "superweapon",
+  "tier": 3,
+  "prereq": "coalition-aerospace-command",
+  "cost": 3000,
+  "buildTimeSeconds": 120,
+  "power": -150,
+  "produces": [
+    "orbital-strike"
+  ],
+  "stats": {
+    "hp": 1800
+  }
+}

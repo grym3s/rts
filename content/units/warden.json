@@ -5,7 +5,7 @@
   "faction": "ascendant",
   "role": "aa-cruiser",
   "tier": 2,
-  "builtFrom": "tidal-forge",
+  "builtFrom": "ascendant-tidal-forge",
   "cost": 1325,
   "buildTimeSeconds": 32,
   "armor": "heavy-naval",

@@ -5,7 +5,7 @@
   "faction": "hegemony",
   "role": "artillery",
   "tier": 2,
-  "builtFrom": "war-factory",
+  "builtFrom": "hegemony-war-factory",
   "cost": 800,
   "buildTimeSeconds": 33,
   "armor": "light",

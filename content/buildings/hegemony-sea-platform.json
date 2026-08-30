@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "hegemony-sea-platform",
+  "name": "Sea Platform",
+  "faction": "hegemony",
+  "category": "offshore",
+  "tier": 2,
+  "prereq": "hegemony-shipyard",
+  "cost": 800,
+  "buildTimeSeconds": 27,
+  "power": -20,
+  "produces": [
+    "offshore"
+  ],
+  "stats": {
+    "hp": 1800
+  },
+  "requiresShore": true
+}

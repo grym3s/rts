@@ -5,7 +5,7 @@
   "faction": "ascendant",
   "role": "gunship",
   "tier": 2,
-  "builtFrom": "aerie",
+  "builtFrom": "ascendant-aerie",
   "cost": 1450,
   "buildTimeSeconds": 24,
   "armor": "air",

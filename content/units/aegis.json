@@ -5,7 +5,7 @@
   "faction": "coalition",
   "role": "aa-cruiser",
   "tier": 2,
-  "builtFrom": "shipyard",
+  "builtFrom": "coalition-shipyard",
   "cost": 1275,
   "buildTimeSeconds": 38,
   "armor": "heavy-naval",

@@ -5,7 +5,7 @@
   "faction": "hegemony",
   "role": "sea-transport",
   "tier": 2,
-  "builtFrom": "shipyard",
+  "builtFrom": "hegemony-shipyard",
   "cost": 725,
   "buildTimeSeconds": 33,
   "armor": "heavy-naval",

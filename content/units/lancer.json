@@ -5,7 +5,7 @@
   "faction": "coalition",
   "role": "anti-armor",
   "tier": 2,
-  "builtFrom": "barracks",
+  "builtFrom": "coalition-barracks",
   "cost": 350,
   "buildTimeSeconds": 9,
   "armor": "infantry",

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "coalition-airbase",
+  "name": "Airbase",
+  "faction": "coalition",
+  "category": "air",
+  "tier": 2,
+  "prereq": "coalition-sensor-command",
+  "cost": 800,
+  "buildTimeSeconds": 40,
+  "power": -20,
+  "produces": [
+    "aircraft"
+  ],
+  "stats": {
+    "hp": 1000
+  }
+}

@@ -5,7 +5,7 @@
   "faction": "coalition",
   "role": "air-transport",
   "tier": 2,
-  "builtFrom": "airbase",
+  "builtFrom": "coalition-airbase",
   "cost": 925,
   "buildTimeSeconds": 22,
   "armor": "air",

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "coalition-aerospace-command",
+  "name": "Aerospace Command",
+  "faction": "coalition",
+  "category": "tech",
+  "tier": 3,
+  "prereq": "coalition-sensor-command",
+  "cost": 2500,
+  "buildTimeSeconds": 75,
+  "power": -50,
+  "produces": [
+    "t3",
+    "superweapon"
+  ],
+  "stats": {
+    "hp": 1800
+  }
+}

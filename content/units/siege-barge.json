@@ -5,7 +5,7 @@
   "faction": "hegemony",
   "role": "bombardment",
   "tier": 3,
-  "builtFrom": "shipyard",
+  "builtFrom": "hegemony-shipyard",
   "cost": 1450,
   "buildTimeSeconds": 55,
   "armor": "heavy-naval",

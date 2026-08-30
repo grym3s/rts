@@ -5,10 +5,22 @@
   "faction": "hegemony",
   "role": "scout",
   "tier": 1,
-  "builtFrom": "war-factory",
+  "builtFrom": "hegemony-war-factory",
   "cost": 400,
   "buildTimeSeconds": 12,
   "armor": "light",
-  "stats": { "hp": 110, "speed": 4.0, "sight": 11.0 },
-  "weapon": { "damageType": "autocannon", "damage": 6, "range": 5.0, "cooldownTicks": 10, "targets": ["ground"] }
+  "stats": {
+    "hp": 110,
+    "speed": 4.0,
+    "sight": 11.0
+  },
+  "weapon": {
+    "damageType": "autocannon",
+    "damage": 6,
+    "range": 5.0,
+    "cooldownTicks": 10,
+    "targets": [
+      "ground"
+    ]
+  }
 }

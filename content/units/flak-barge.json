@@ -5,7 +5,7 @@
   "faction": "hegemony",
   "role": "aa-cruiser",
   "tier": 2,
-  "builtFrom": "shipyard",
+  "builtFrom": "hegemony-shipyard",
   "cost": 875,
   "buildTimeSeconds": 40,
   "armor": "heavy-naval",

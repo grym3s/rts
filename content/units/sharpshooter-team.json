@@ -5,7 +5,7 @@
   "faction": "hegemony",
   "role": "sniper",
   "tier": 2,
-  "builtFrom": "conscription-hall",
+  "builtFrom": "hegemony-conscription-hall",
   "cost": 475,
   "buildTimeSeconds": 16,
   "armor": "infantry",

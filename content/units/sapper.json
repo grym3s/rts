@@ -5,10 +5,16 @@
   "faction": "hegemony",
   "role": "engineer",
   "tier": 1,
-  "builtFrom": "conscription-hall",
+  "builtFrom": "hegemony-conscription-hall",
   "cost": 400,
   "buildTimeSeconds": 14,
   "armor": "infantry",
-  "stats": { "hp": 60, "speed": 1.5, "sight": 6.0 },
-  "verbs": { "conscriptable": true }
+  "stats": {
+    "hp": 60,
+    "speed": 1.5,
+    "sight": 6.0
+  },
+  "verbs": {
+    "conscriptable": true
+  }
 }

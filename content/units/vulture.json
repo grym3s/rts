@@ -5,7 +5,7 @@
   "faction": "coalition",
   "role": "bomber",
   "tier": 3,
-  "builtFrom": "airbase",
+  "builtFrom": "coalition-airbase",
   "cost": 1850,
   "buildTimeSeconds": 40,
   "armor": "air",

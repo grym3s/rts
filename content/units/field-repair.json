@@ -5,7 +5,7 @@
   "faction": "hegemony",
   "role": "support",
   "tier": 2,
-  "builtFrom": "war-factory",
+  "builtFrom": "hegemony-war-factory",
   "cost": 725,
   "buildTimeSeconds": 24,
   "armor": "heavy",

@@ -5,7 +5,7 @@
   "faction": "coalition",
   "role": "corvette",
   "tier": 1,
-  "builtFrom": "shipyard",
+  "builtFrom": "coalition-shipyard",
   "cost": 700,
   "buildTimeSeconds": 20,
   "armor": "light-naval",

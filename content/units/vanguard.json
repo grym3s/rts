@@ -5,7 +5,7 @@
   "faction": "coalition",
   "role": "carrier",
   "tier": 3,
-  "builtFrom": "shipyard",
+  "builtFrom": "coalition-shipyard",
   "cost": 2550,
   "buildTimeSeconds": 70,
   "armor": "heavy-naval",

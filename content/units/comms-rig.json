@@ -5,7 +5,7 @@
   "faction": "coalition",
   "role": "support",
   "tier": 2,
-  "builtFrom": "vehicle-bay",
+  "builtFrom": "coalition-vehicle-bay",
   "cost": 1050,
   "buildTimeSeconds": 22,
   "armor": "light",

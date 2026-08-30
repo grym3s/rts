@@ -5,9 +5,13 @@
   "faction": "coalition",
   "role": "engineer",
   "tier": 1,
-  "builtFrom": "barracks",
+  "builtFrom": "coalition-barracks",
   "cost": 575,
   "buildTimeSeconds": 14,
   "armor": "infantry",
-  "stats": { "hp": 50, "speed": 1.6, "sight": 6.0 }
+  "stats": {
+    "hp": 50,
+    "speed": 1.6,
+    "sight": 6.0
+  }
 }

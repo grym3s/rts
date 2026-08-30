@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "ascendant-phase-turret",
+  "name": "Phase Turret",
+  "faction": "ascendant",
+  "category": "defense",
+  "tier": 1,
+  "prereq": "ascendant-manifold",
+  "cost": 500,
+  "buildTimeSeconds": 11,
+  "power": -20,
+  "produces": [
+    "static-defense"
+  ],
+  "stats": {
+    "hp": 500
+  }
+}

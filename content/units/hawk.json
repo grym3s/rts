@@ -5,7 +5,7 @@
   "faction": "coalition",
   "role": "gunship",
   "tier": 2,
-  "builtFrom": "airbase",
+  "builtFrom": "coalition-airbase",
   "cost": 1400,
   "buildTimeSeconds": 28,
   "armor": "air",

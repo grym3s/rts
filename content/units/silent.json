@@ -5,7 +5,7 @@
   "faction": "coalition",
   "role": "submarine",
   "tier": 2,
-  "builtFrom": "shipyard",
+  "builtFrom": "coalition-shipyard",
   "cost": 1050,
   "buildTimeSeconds": 30,
   "armor": "submerged",

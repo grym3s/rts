@@ -5,7 +5,7 @@
   "faction": "hegemony",
   "role": "gunship",
   "tier": 2,
-  "builtFrom": "helipad",
+  "builtFrom": "hegemony-helipad",
   "cost": 950,
   "buildTimeSeconds": 31,
   "armor": "air",

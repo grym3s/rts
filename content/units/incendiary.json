@@ -5,7 +5,7 @@
   "faction": "hegemony",
   "role": "aoe-infantry",
   "tier": 2,
-  "builtFrom": "conscription-hall",
+  "builtFrom": "hegemony-conscription-hall",
   "cost": 275,
   "buildTimeSeconds": 11,
   "armor": "infantry",

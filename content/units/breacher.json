@@ -5,7 +5,7 @@
   "faction": "coalition",
   "role": "heavy-infantry",
   "tier": 2,
-  "builtFrom": "barracks",
+  "builtFrom": "coalition-barracks",
   "cost": 450,
   "buildTimeSeconds": 11,
   "armor": "infantry",

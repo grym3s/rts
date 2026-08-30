@@ -5,7 +5,7 @@
   "faction": "hegemony",
   "role": "destroyer",
   "tier": 2,
-  "builtFrom": "shipyard",
+  "builtFrom": "hegemony-shipyard",
   "cost": 950,
   "buildTimeSeconds": 44,
   "armor": "heavy-naval",

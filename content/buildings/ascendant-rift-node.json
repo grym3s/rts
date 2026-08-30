@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "ascendant-rift-node",
+  "name": "Rift Node",
+  "faction": "ascendant",
+  "category": "defense",
+  "tier": 2,
+  "prereq": "ascendant-nexus",
+  "cost": 1000,
+  "buildTimeSeconds": 21,
+  "power": -50,
+  "produces": [
+    "long-range-defense",
+    "line-damage"
+  ],
+  "stats": {
+    "hp": 500
+  }
+}

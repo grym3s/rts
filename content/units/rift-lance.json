@@ -5,7 +5,7 @@
   "faction": "ascendant",
   "role": "artillery",
   "tier": 3,
-  "builtFrom": "forge",
+  "builtFrom": "ascendant-forge",
   "cost": 1200,
   "buildTimeSeconds": 26,
   "armor": "light",

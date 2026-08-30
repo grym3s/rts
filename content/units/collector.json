@@ -5,9 +5,13 @@
   "faction": "coalition",
   "role": "harvester",
   "tier": 1,
-  "builtFrom": "refinery",
+  "builtFrom": "coalition-refinery",
   "cost": 800,
   "buildTimeSeconds": 12,
   "armor": "light",
-  "stats": { "hp": 120, "speed": 3.0, "sight": 6.0 }
+  "stats": {
+    "hp": 120,
+    "speed": 3.0,
+    "sight": 6.0
+  }
 }
