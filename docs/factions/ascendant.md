@@ -2,7 +2,7 @@
 
 > Rewrites the rules of the fight.
 
-The Ascendant trade durability for movement and trickery. Everything phases in fast, dies fast, and repositions faster than either rival can respond. Its owned verb — **Phase** — lets units blink out of targetability. Its holes are **transports (it teleports), the interceptor, the heavy infantry, and the true submarine** (it cloaks surface hulls instead). Its whole logistics model is different: a **Teleport Network** replaces every transport in the game (reference Part 7).
+The Ascendant trade durability for movement and trickery. Everything phases in fast, dies fast, and repositions faster than either rival can respond. Its owned verb — **Phase** — lets units blink out of targetability. It answers every job, several through mechanics no one else has: a **Teleport Network** for logistics, the **Glaive + Skyward** for air, **phase-kiting** instead of a frontline soak, and **cloaked hulls** for naval ambush. These are distinctive answers, not missing ones — and each is deniable (contest the nodes, force the stand-up fight, bring detection).
 
 ## Global modifier (applied to the base ladders in `CONTEXT.md`)
 
@@ -24,9 +24,9 @@ Slower per-trip harvest, but the **Cultivator's fields never deplete** — Ascen
 
 Ascendant units can briefly enter an **untargetable** state — dodging a volley, crossing a kill-zone, escaping a lost fight. Phase is on a cooldown and costs the unit its own actions while active, so it is an escape/timing tool, not a permanent shield. Combined with the faction's speed, it means the Ascendant chooses every engagement. The power budget: Phase units carry **less HP/DPS** than the mirror slot to pay for the trick (reference Part 5, "cool ability = reduced stats").
 
-## Logistics — the Teleport Network (replaces all transports)
+## Logistics — the Teleport Network (the Ascendant's transport answer)
 
-The Ascendant builds **Teleport Nodes** instead of transports. Any friendly unit can move between nodes instantly. This is why the roster has *no air or sea transport* in any domain — the network is the whole logistics model, and its counter is destroying or contesting the nodes rather than shooting a transport out of the sky.
+The Ascendant builds **Teleport Nodes** as its transport answer. Any friendly unit moves between nodes instantly — so it fields no air or sea transport; the network *is* its logistics, and one of the game's best distinctive answers. Its counter is contesting or destroying the nodes rather than shooting a transport out of the sky: powerful, but deniable.
 
 ## Buildings (all phase in — fast, fragile)
 
@@ -61,7 +61,7 @@ The Ascendant builds **Teleport Nodes** instead of transports. Any friendly unit
 | Weaver | Engineer | T1 | 12s | 600 | Infantry / — | rebuilds structures; **cannot capture** |
 | Resonator | AoE / garrison-clear | T2 | 9s | 425 | Infantry / Explosive | resonance burst |
 
-*No heavy infantry* — the Ascendant has no frontline soak; it phases and kites instead.
+*Frontline answer — phase, not soak.* The Ascendant fields no heavy-infantry tank; it holds ground by phasing and kiting (plus the Anchor's shields) rather than standing still. A real weakness in a forced stand-up fight, never an inability to contest ground.
 
 ## Units — Vehicles (from Forge)
 
@@ -75,7 +75,7 @@ The Ascendant builds **Teleport Nodes** instead of transports. Any friendly unit
 | Anchor | Support | T2 | 19s | 1075 | Light / — | **shields allies** in radius |
 | **Monolith** | Superheavy | T3 | 47s | 3000 | Heavy / Energy | the statement piece; slow exception to the fast rule |
 
-*No dedicated mobile AA (the Glaive covers air) and no APC (teleport instead).*
+*AA answer — the Glaive (its MBT also shoots air) + Skyward, so no dedicated mobile-AA vehicle. Transport answer — the Teleport Network, so no APC.*
 
 ## Units — Aircraft (from Aerie, T2+)
 
@@ -85,7 +85,7 @@ The Ascendant builds **Teleport Nodes** instead of transports. Any friendly unit
 | Wraith | Gunship | T2 | 24s | 1450 | Air / Energy | anti-ground; phases |
 | Singularity | Bomber (AoE) | T3 | 34s | 1925 | Air / Explosive | area implosion, base-breaker |
 
-*No interceptor* — the Glaive and Skyward carry the air-defense load; there is no dedicated air-superiority fighter, and no air transport (teleport).
+*Air-superiority answer — Glaive + Skyward.* The Ascendant fields no dedicated interceptor, so it downs aircraft with its MBT and AA infantry — less cost-efficient against committed mass air, never unable to answer it. (Air transport: the Teleport Network.)
 
 ## Units — Specialists
 
@@ -97,7 +97,7 @@ The Ascendant builds **Teleport Nodes** instead of transports. Any friendly unit
 
 The Ascendant sniper is the Seer: an energy marksman that phases out of retaliation, doubling as a detector — precision *and* concealment in one exotic package.
 
-## Units — Naval (post-slice; from Tidal Forge; no submarine, no transport)
+## Units — Naval (post-slice; from Tidal Forge)
 
 | Unit | Role | Tier | Time | Cost | Armor / Attack | Notes |
 |---|---|---|---|---|---|---|
@@ -107,18 +107,19 @@ The Ascendant sniper is the Seer: an energy marksman that phases out of retaliat
 | Rift Hull | Bombardment | T3 | 43s | 2150 | Heavy naval / Energy | line damage; range 22 via spotters |
 | Nest | Carrier | T3 | 60s | 2650 | Heavy naval / — | **spawns drones, no rearm needed** — a different carrier verb |
 
-*No submarine* — the Ascendant **cloaks surface hulls** instead (same job, faction verb). *No sea transport* — teleport network.
+*Naval-ambush answer — cloaked surface hulls* (the Ascendant's take on the submarine; countered by detection like any sub). *Naval logistics — the Teleport Network* (so no sea transport).
 
-## The four universal capabilities
+## Capability profile — the exotic versions
 
-The Ascendant does all four the *exotic* way — nothing is a conventional unit, everything phases or cloaks.
+The Ascendant answers every job (full matrix in `capability-coverage.md`); nothing is a conventional unit — everything phases or cloaks.
 
-| Capability | Ascendant version | Delivery |
+| Job | Ascendant answer | Delivery |
 |---|---|---|
 | **Detection** | Eye (phasing recon drone) + Seer | mobile, blinks in and out of danger |
 | **Stealth** | Phase (temporary untargetability) + Mindbender **area cloak** + cloaked surface hulls | not lone infiltrators but *fields* of concealment, and units that dodge targeting entirely |
 | **Sniper** | Seer | phasing energy marksman, also a detector |
-| **Carrier** | Nest | spawns its own drones, **no rearm loop** — a self-sufficient carrier |
+| **Air projection** | Nest carrier | spawns its own drones, **no rearm loop** — a self-sufficient carrier |
+| **Objective capture** | Mindbender (subversion) | the Weaver rebuilds but can't capture; the Mindbender takes structures by mind-control instead |
 
 ## Build orders
 
@@ -126,7 +127,8 @@ The Ascendant does all four the *exotic* way — nothing is a conventional unit,
 
 **Standard opening:** Conduit → Wellspring → Manifold → Forge → Teleport Node (establish mobility early) → Nexus → Glaives + Anchor; use Phase and the network to strike where the enemy isn't.
 
-## Holes & compensation
+## Where it's strong and weak (never absent)
 
-- **No transports / no interceptor / no heavy / no sub** → each is solved by a faction verb in a different currency: Teleport Network for logistics, Glaive+Skyward for air, phase-kiting instead of soak, cloaked hulls instead of subs (reference Part 5.4).
-- **Glass and expensive** → punished in any straight fight; loses sustained engagements. Wins only by choosing the fight, escaping the ones it's losing (Phase), and out-scaling on never-depleting economy.
+- **Strong:** mobility, repositioning, tech, burst, and distinctive answers no one else has — Teleport Network, Phase, area cloak, never-depleting economy.
+- **Weak (but present):** durability, sustain, and cost-efficiency. It loses attritional stand-up fights and every unit is a commitment. Its distinctive answers are all *deniable* — contest the teleport nodes, force it to hold ground, bring detection against cloak, mass air past its Glaive/Skyward.
+- **Owned verb is deniable:** Phase is a cooldown escape that costs the unit its own actions — wait it out, trap it, or reveal it. Not a permanent shield.

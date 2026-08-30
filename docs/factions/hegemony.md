@@ -2,7 +2,7 @@
 
 > Buries you under more than you can kill.
 
-The Hegemony is the blunt instrument: the cheapest units in the game, the toughest structures, and the willingness to spend lives as a resource. Its owned verb — **Conscription** — turns its own infantry into fuel. Its holes are the **light-AT tank destroyer** and the **air scout drone** — slots where absence is a strategic weakness with counterplay, not an auto-loss. It still fields all four universal capabilities (detection, stealth, sniper, carrier), but its versions are deliberately **clumsy and positional** — dug in, slow, and brute-armored rather than mobile and precise — and it remains bad against artillery (reference Part 7, refined per the universal-capabilities rule in `CONTEXT.md`).
+The Hegemony is the blunt instrument: the cheapest units in the game, the toughest structures, and the willingness to spend lives as a resource. Its owned verb — **Conscription** — turns its own infantry into fuel, and its **Tunnel Network** is a distinctive mobility-and-concealment answer (a GLA-style tool opponents beat by watching the exits). It answers every job in the game, but its tools are deliberately **slow, positional, and brute** — dug in and armored rather than mobile and precise — and it stays weak against artillery and tempo (see `CONTEXT.md`, *Answers, not holes*).
 
 ## Global modifier (applied to the base ladders in `CONTEXT.md`)
 
@@ -73,7 +73,7 @@ Any Hegemony infantry can be **conscripted** — sacrificed at a Conscription Ha
 | Field Repair | Support | T2 | 24s | 725 | Heavy / — | area heal/repair |
 | **Colossus** | Superheavy | T3 | 60s | 2000 | Heavy / AP | the statement piece; dies to massed AT (reference Part 4 rule 1) |
 
-*No light-AT tank destroyer* — the AT Squad and Bulwark cover armor; Hegemony trades finesse for the Colossus.
+*Anti-armor answer — mass, not a glass cannon.* The AT Squad and the Bulwark's own AP kill armor; the Hegemony fields no fast tank-destroyer, so it answers tanks by durability and numbers — slower, never helpless.
 
 ## Units — Aircraft (from Helipad, T2+; land-based only)
 
@@ -84,7 +84,7 @@ Any Hegemony infantry can be **conscripted** — sacrificed at a Conscription Ha
 | Heavy Bomber | Bomber | T3 | 44s | 1275 | Air / Explosive | base-breaker, rearm loop |
 | Heavy Lifter | Air transport | T2 | 24s | 650 | Air / — | bulk airlift |
 
-*No air scout drone* — a real *air-recon* hole (the Hegemony scouts the map slower, on the ground). Stealth-detection itself is covered on the ground by the Spotlight Bunker and the T2 Scout Halftrack.
+*Recon answer — ground, not air.* The Hegemony fields no air scout drone, so it scouts the map slower with ground units; stealth-detection is covered by the Spotlight Bunker and the T2 Scout Halftrack. It sees later, never blind.
 
 ## Units — Specialists
 
@@ -110,16 +110,16 @@ The Hegemony sniper trades mobility for durability: the Sharpshooter Team roots 
 
 The Bastion Carrier is the differentiated Hegemony carrier: where Coalition's Vanguard *extends* air range strategically, the Bastion just parks and launches. The fleet is still short-legged — the carrier is armor, not reach — so the Hegemony must fight closer to shore (reference Part 7).
 
-## The four universal capabilities
+## Capability profile — the slow, positional, brute versions
 
-The Hegemony has all four, each done the *slow, positional, brute* way — it plants them and digs in rather than fielding a mobile, precise version.
+The Hegemony answers every job (full matrix in `capability-coverage.md`); the info-cluster answers below are deliberately planted-and-dug-in rather than mobile.
 
-| Capability | Hegemony version | Delivery |
+| Job | Hegemony answer | Delivery |
 |---|---|---|
 | **Detection** | Spotlight Bunker + T2 Scout Halftrack | **static/positional** — it detects where it has fortified, not everywhere at once |
 | **Stealth** | Tunnel Network | **mass concealment** — the whole army vanishes underground and re-emerges elsewhere; countered by watching the tunnel mouths |
 | **Sniper** | Sharpshooter Team | dug-in, deploy-to-fire, high-HP anti-materiel team — short range but survivable |
-| **Carrier** | Bastion Carrier | armored brute, no range bonus — floats planes forward and soaks hits |
+| **Air projection** | Bastion Carrier | armored brute, no range bonus — floats planes forward and soaks hits |
 
 ## Build orders
 
@@ -127,8 +127,8 @@ The Hegemony has all four, each done the *slow, positional, brute* way — it pl
 
 **Standard opening:** Furnace → Refinery → Conscription Hall (spam Conscripts as a floor) → War Factory → Industrial Works → mass Bulwarks + AT/Flak Squads; convert dying infantry to credits via Conscription. Add a Spotlight Bunker on the main and a Tunnel Network for a surprise flank.
 
-## Holes & compensation
+## Where it's strong and weak (never absent)
 
-- **No light-AT tank destroyer, no air scout drone** → these are the real holes: the AT Squad + Bulwark cover armor slowly, and ground scouting is the price of no air recon. Both are strategic weaknesses with counterplay, not auto-losses.
-- **Every universal capability is clumsy, not absent** → detection is positional (blind where it hasn't dug in), the sniper is immobile, stealth telegraphs at the tunnel mouths, the carrier has no reach. Opponents beat the Hegemony by moving faster than it can re-fortify, not by holding a capability it lacks.
-- **Slow army, bad vs artillery** → strong defensively, weak when forced to chase. The Colossus is the only ground finisher and it must be escorted against massed AT.
+- **Strong:** durability, mass, static defense, siege (Shore Gun, Siege Cannon), attrition, the ground superheavy (Colossus).
+- **Weak (but present):** tempo and precision. Every answer it has is slow or positional — detection where it dug in, an immobile sniper, tunnels that telegraph at the mouths, a carrier with no reach, mass-AT instead of a tank-destroyer, ground-only scouting. Opponents beat it by out-maneuvering, not by holding a capability it lacks.
+- **Owned verb is deniable:** Conscription spends the Hegemony's own bodies — the enemy sees the units vanish and the tempo swing — and the army it forms is slow, so artillery outranges the blob it wants to build.

@@ -7,6 +7,7 @@ Each faction is fully identified here: **its buildings, its units, what each bui
 | `coalition.md` | **Coalition** | Precision & information | **Marking** — spotted units take bonus damage |
 | `hegemony.md` | **Hegemony** | Mass & attrition | **Conscription** — infantry sacrificed for resources/effects |
 | `ascendant.md` | **Ascendant** | Exotic tech & mobility | **Phase** — units briefly untargetable |
+| `capability-coverage.md` | — | the job-by-job matrix proving every faction answers every strategy | — |
 
 Identity, roster grid, counter rules and the naval design all live in `../rts-unit-roster-design-reference.md` (Parts 4–7). These files do **not** restate that reasoning — they instantiate it into concrete build orders and timings. Read the reference for *why*; read these for *what*.
 
@@ -16,7 +17,7 @@ Identity, roster grid, counter rules and the naval design all live in `../rts-un
 
 ## The shared spine (all three factions have equivalents)
 
-Factions differ by *profile and holes*, not by having entirely different building sets (reference Part 5). Every faction names these differently and tunes them per its axis, but the graph is shared:
+Factions differ by *profile and distinctive answers* — never by lacking an answer — and not by having entirely different building sets (reference Part 5). Every faction names these differently and tunes them per its axis, but the graph is shared:
 
 | # | Structure (generic) | Tier | Produces / unlocks |
 |---|---|---|---|
@@ -32,18 +33,23 @@ Factions differ by *profile and holes*, not by having entirely different buildin
 | — | **Defenses** (basic / AA / advanced) | T1–T2 | static defense |
 | — | **Shipyard / Coastal Battery / Sea Platform** | T1–T3 | naval (post-slice; see reference Part 6) |
 
-## Universal capabilities (no faction may lack these)
+## Answers, not holes
 
-Four capabilities are **counterplay-critical** — remove one and a matchup breaks rather than tilts. **Every faction must field its own version of each, differentiated by profile and delivery, never absent:**
+**Every faction can answer every strategy in the game.** No faction lacks a way to detect stealth, kill air, kill armor, kill infantry, break a turtle, reposition across the map, capture an objective, or threaten a base. A missing *answer* is a broken matchup — a coin flip decided at the faction-select screen — which is what makes hard rock-paper-scissors pointless to play. This rule **supersedes** the hole-heavy roster in `../rts-unit-roster-design-reference.md` Part 7; the decision is recorded in ADR `../../decisions/0005-answers-not-holes.md`.
 
-| Capability | Why it can't be a hole | How factions differ |
-|---|---|---|
-| **Detection** | A faction that can't reveal stealth *auto-loses* to a single cloaked unit (reference Part 5.4). | Coalition: mobile network (drones + marking). Hegemony: static/positional (fortified detector). Ascendant: phasing recon. |
-| **Stealth** | If only some factions can hide, the ones that can't are permanently on the back foot in the info game — a whole strategic layer they can't play. | Coalition: individual stealth units. Hegemony: mass concealment (tunnels). Ascendant: phase + area cloak. |
-| **Sniper** | The long-range infantry-killer / detector is the answer to garrisons and mass infantry; lacking it leaves a faction helpless to a spam it can't approach. | Coalition: mobile assassin. Hegemony: dug-in anti-materiel team. Ascendant: phasing energy marksman. |
-| **Carrier-equivalent** | Mobile air infrastructure gates air projection on water maps; no version means naval maps are a coin flip. | Coalition: range-extending station. Hegemony: armored brute (no range bonus). Ascendant: drone-spawning, self-rearming. |
+Evidence: the best-balanced asymmetric RTS give every faction every essential capability and differ only in *how* — StarCraft's races all detect, all answer air, all cloak, and its matchups tune to ~even. Removing capabilities to balance (Company of Heroes' faction-specific missing mortars/MG teams) is a documented anti-pattern that *reduces* tactical diversity.
 
-Holes remain the strongest identity tool (reference Part 5.4) — but they go in slots where absence is a *strategic* weakness with counterplay: superheavy, transport, interceptor, heavy infantry, true submarine. **Not** in the four above. Each faction file has a **"The four universal capabilities"** subsection making its version of each explicit.
+Factions differ in **how well** and **how** they answer each job, three ways:
+
+- **Rating** — strong / standard / weak at a job, never absent. Weak means *worse or clumsier*, never *can't*. The same role carries a different profile per faction: e.g. basic infantry is the dirt-cheap spammable **Conscript** (Hegemony), the premium marks-on-hit **Rifleman** (Coalition), or the expensive phasing **Adept** (Ascendant) — one job, three cost/quality profiles.
+- **Distinctive answers** — the tool can be a unique faction mechanic (Hegemony's **Tunnel Network**, the Ascendant's **Teleport Network**, Coalition's **Marking**). These are *encouraged* — they are the good kind of asymmetry.
+- **Additive verbs** — one owned verb per faction (Marking / Conscription / Phase). Identity comes from *adding* and *re-profiling*, never from *subtracting* an answer.
+
+**The one hard constraint on every distinctive answer and owned verb: it must be deniable.** GLA Tunnels and Zerg Creep are fair because the opponent can contest them; Marking dies with its sensors, the Teleport Network with its nodes, Phase on its cooldown. An answer the opponent *cannot* interact with is the same failure as a hole, seen from the other side.
+
+*Options may still differ.* A pure **option** that is not an answer to any strategy — a ground superheavy, a specific superweapon — may exist on one faction and not another, as long as its absence removes no answer (Coalition has no ground superheavy but still has a top-end finisher via air/naval).
+
+The full job-by-job coverage matrix — proving no empty cells — is `capability-coverage.md`. Each faction file has a **"Where it's strong and weak (never absent)"** section.
 
 ## Tiers
 
@@ -91,7 +97,7 @@ Sim runs at **20 ticks/second** (`SimWorld.TicksPerSecond`). Times below are sec
 
 ## How to read a faction file
 
-Each file has: **one-line pitch → global modifier → economy → building table → unit tables (by domain) → build orders → holes & compensation**. The building table's "Produces" column is the production graph. The unit tables give tier, built-from, production time, cost, and counter-class; exact combat HP/damage is left to the balance pass (reference Part 8).
+Each file has: **one-line pitch → global modifier → economy → building table → unit tables (by domain) → capability profile → build orders → where it's strong and weak**. The building table's "Produces" column is the production graph. The unit tables give tier, built-from, production time, cost, and counter-class; exact combat HP/damage is left to the balance pass (reference Part 8).
 
 ## Scope note
 
