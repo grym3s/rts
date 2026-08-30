@@ -19,7 +19,7 @@ Tables show the Hegemony-adjusted numbers directly (costs rounded to 25).
 
 ## Economy
 
-Standard harvest (Refinery + Miner), cheapest unit costs in the game, plus **Conscription income** — infantry can be spent for an instant credit refund or to fuel effects. A Hegemony that is losing bodies anyway can convert that loss into tempo. Single credit currency (reference Part 6.7).
+Standard harvest (Refinery + Miner), cheapest unit costs in the game, plus **Conscription income** — infantry can be spent for an instant credit refund or to fuel effects. A Hegemony that is losing bodies anyway can convert that loss into tempo. Single credit currency (reference Part 6.7). **Numbers (harvest loop, power, the armored Miner): `economy.md`; the refund rules: `owned-verbs.md`.**
 
 ## Owned verb — Conscription
 

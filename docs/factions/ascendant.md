@@ -18,7 +18,7 @@ Tables show the Ascendant-adjusted numbers directly (costs rounded to 25).
 
 ## Economy
 
-Slower per-trip harvest, but the **Cultivator's fields never deplete** — Ascendant income is lower early and *infinite* late. It never has to relocate its economy, so a defended Ascendant base out-scales on time. Single credit currency (reference Part 6.7).
+Slower per-trip harvest, but the **Cultivator's fields never deplete** — Ascendant income is lower early and *infinite* late. It never has to relocate its economy, so a defended Ascendant base out-scales on time. Single credit currency (reference Part 6.7). **Numbers (harvest loop, power, the never-deplete field): `economy.md`.**
 
 ## Owned verb — Phase
 
