@@ -2,7 +2,7 @@
 
 > Sees you first, kills you from range.
 
-The Coalition wins the information war. Everything it fields is expensive, fragile, and long-ranged, and its owned verb — **Marking** — punishes any enemy its network has spotted. Its hole is the **superheavy slot**: it has no ground finisher, compensated by owning the air and naval domains and the longest sightlines in the game (reference Part 7).
+The Coalition wins the information war. Everything it fields is expensive, fragile, and long-ranged, and its owned verb — **Marking** — punishes any enemy its network has spotted. It answers every job in the game; its **top-end finisher arrives from the air and sea** (Vulture bomber, Vanguard carrier) rather than a ground superheavy — a distinctive delivery, not a missing answer.
 
 ## Global modifier (applied to the base ladders in `CONTEXT.md`)
 
@@ -68,7 +68,7 @@ A unit spotted by any Coalition sensor (Comms Rig, Spotter Drone, Marksman, Sens
 | Precision Battery | Artillery | T3 | 30s | 1150 | Light / Explosive | deploys to fire, range 16 |
 | Comms Rig | Support | T2 | 22s | 1050 | Light / — | **marks all enemies in radius** — the marking anchor |
 
-*No superheavy* — Coalition's T3 ground ceiling is the Precision Battery; its finisher is air/naval.
+*Top-end answer — air/naval, not a ground superheavy.* Coalition's T3 ground ceiling is the Precision Battery; its finisher is the Vulture bomber and Vanguard carrier. It has a late-game answer — it just delivers it from above, not across the field.
 
 ## Units — Aircraft (from Airbase, T2+)
 
@@ -100,16 +100,16 @@ A unit spotted by any Coalition sensor (Comms Rig, Spotter Drone, Marksman, Sens
 | Vanguard-class | Carrier | T3 | 70s | 2550 | Heavy naval / — | **mobile air station** (Coalition owns this) |
 | Landing Ship | Sea transport | T2 | 30s | 1050 | Light naval / — | 8–12 capacity, any shoreline |
 
-## The four universal capabilities
+## Capability profile — strongest at the information jobs
 
-Coalition is the *strongest* faction in all four (fitting the information axis), but strong is not the same as free — each still costs supply and dies when caught.
+Coalition answers every job (full matrix in `capability-coverage.md`); it is *strongest* at the information cluster, but strong is not free — each tool costs supply and dies when caught.
 
-| Capability | Coalition version | Delivery |
+| Job | Coalition answer | Delivery |
 |---|---|---|
 | **Detection** | Spotter Drone, Marksman, Comms Rig, Sensor Command radius | pervasive **mobile network** — sees the whole map dynamically, and marks what it sees |
 | **Stealth** | Vulture (stealth bomber), Operative (cloaked infiltrator) | individual stealthed units |
 | **Sniper** | Marksman | mobile long-range assassin, also a detector |
-| **Carrier** | Vanguard-class | mobile air **station** that extends operational radius |
+| **Air projection** | Vanguard-class carrier | mobile air **station** that extends operational radius |
 
 ## Build orders
 
@@ -117,7 +117,8 @@ Coalition is the *strongest* faction in all four (fitting the information axis),
 
 **Standard opening:** Reactor → Refinery → Barracks → Vehicle Bay → Sensor Command (opens marking + air) → Comms Rig for the marking anchor, then MBTs behind it.
 
-## Holes & compensation
+## Where it's strong and weak (never absent)
 
-- **No superheavy** → compensated by owning the carrier, the spotting chain, and +2 range everywhere. Coalition wins by never being in a fair fight.
-- **Fragile, expensive** → punished hard when it loses vision or gets caught. The Marking payoff only exists while its sensors live; kill the Comms Rig / drones and the faction's damage collapses.
+- **Strong:** detection, range, precision, air, naval — the whole information game.
+- **Weak (but present):** mass and sustained trades. Its army is expensive and fragile, so it loses even-cost brawls and must fight at range; its ground top-end is a Precision Battery, not a superheavy. Weak here means *worse*, never *can't*.
+- **Owned verb is deniable:** Marking only works while its sensors live — break line of sight or kill the Comms Rig / drones and the bonus damage stops. That's the counterplay.
