@@ -7,6 +7,9 @@ Each faction is fully identified here: **its buildings, its units, what each bui
 | `coalition.md` | **Coalition** | Precision & information | **Marking** — spotted units take bonus damage |
 | `hegemony.md` | **Hegemony** | Mass & attrition | **Conscription** — infantry sacrificed for resources/effects |
 | `ascendant.md` | **Ascendant** | Exotic tech & mobility | **Phase** — units briefly untargetable |
+| `holes-and-matchups.md` | — | per-faction hole audit + the intended non-transitive matchup triangle | — |
+
+The rule that detection/stealth/sniper/carrier are never holes is recorded as ADR `../../decisions/0005-universal-capabilities-and-permitted-holes.md`.
 
 Identity, roster grid, counter rules and the naval design all live in `../rts-unit-roster-design-reference.md` (Parts 4–7). These files do **not** restate that reasoning — they instantiate it into concrete build orders and timings. Read the reference for *why*; read these for *what*.
 
