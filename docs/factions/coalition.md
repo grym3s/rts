@@ -100,6 +100,17 @@ A unit spotted by any Coalition sensor (Comms Rig, Spotter Drone, Marksman, Sens
 | Vanguard-class | Carrier | T3 | 70s | 2550 | Heavy naval / — | **mobile air station** (Coalition owns this) |
 | Landing Ship | Sea transport | T2 | 30s | 1050 | Light naval / — | 8–12 capacity, any shoreline |
 
+## The four universal capabilities
+
+Coalition is the *strongest* faction in all four (fitting the information axis), but strong is not the same as free — each still costs supply and dies when caught.
+
+| Capability | Coalition version | Delivery |
+|---|---|---|
+| **Detection** | Spotter Drone, Marksman, Comms Rig, Sensor Command radius | pervasive **mobile network** — sees the whole map dynamically, and marks what it sees |
+| **Stealth** | Vulture (stealth bomber), Operative (cloaked infiltrator) | individual stealthed units |
+| **Sniper** | Marksman | mobile long-range assassin, also a detector |
+| **Carrier** | Vanguard-class | mobile air **station** that extends operational radius |
+
 ## Build orders
 
 **Slice (ground T1):** Reactor → Refinery → Barracks → Vehicle Bay → Rifleman ×N + Recon Buggy → Lancer MBT. This is the whole vertical-slice arsenal.

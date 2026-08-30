@@ -32,6 +32,19 @@ Factions differ by *profile and holes*, not by having entirely different buildin
 | — | **Defenses** (basic / AA / advanced) | T1–T2 | static defense |
 | — | **Shipyard / Coastal Battery / Sea Platform** | T1–T3 | naval (post-slice; see reference Part 6) |
 
+## Universal capabilities (no faction may lack these)
+
+Four capabilities are **counterplay-critical** — remove one and a matchup breaks rather than tilts. **Every faction must field its own version of each, differentiated by profile and delivery, never absent:**
+
+| Capability | Why it can't be a hole | How factions differ |
+|---|---|---|
+| **Detection** | A faction that can't reveal stealth *auto-loses* to a single cloaked unit (reference Part 5.4). | Coalition: mobile network (drones + marking). Hegemony: static/positional (fortified detector). Ascendant: phasing recon. |
+| **Stealth** | If only some factions can hide, the ones that can't are permanently on the back foot in the info game — a whole strategic layer they can't play. | Coalition: individual stealth units. Hegemony: mass concealment (tunnels). Ascendant: phase + area cloak. |
+| **Sniper** | The long-range infantry-killer / detector is the answer to garrisons and mass infantry; lacking it leaves a faction helpless to a spam it can't approach. | Coalition: mobile assassin. Hegemony: dug-in anti-materiel team. Ascendant: phasing energy marksman. |
+| **Carrier-equivalent** | Mobile air infrastructure gates air projection on water maps; no version means naval maps are a coin flip. | Coalition: range-extending station. Hegemony: armored brute (no range bonus). Ascendant: drone-spawning, self-rearming. |
+
+Holes remain the strongest identity tool (reference Part 5.4) — but they go in slots where absence is a *strategic* weakness with counterplay: superheavy, transport, interceptor, heavy infantry, true submarine. **Not** in the four above. Each faction file has a **"The four universal capabilities"** subsection making its version of each explicit.
+
 ## Tiers
 
 | Tier | Gate | Contains |

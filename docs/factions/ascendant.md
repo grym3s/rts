@@ -91,10 +91,11 @@ The Ascendant builds **Teleport Nodes** instead of transports. Any friendly unit
 
 | Unit | Role | Tier | Time | Cost | Built from | Notes |
 |---|---|---|---|---|---|---|
+| Seer | Sniper (+ detector) | T2 | 14s | 725 | Manifold | phasing energy marksman — long range, low HP, blinks out after firing; also reveals stealth |
 | Oracle | Commando | T3 | 38s | 1800 | Manifold | pop-capped high-value unit; phases |
-| Mindbender | Infiltrator | T2 | 14s | 950 | Manifold | mind-control / subversion |
+| Mindbender | Infiltrator (+ area cloak) | T2 | 14s | 950 | Manifold | mind-control / subversion; **cloaks nearby friendly units** |
 
-*No sniper.*
+The Ascendant sniper is the Seer: an energy marksman that phases out of retaliation, doubling as a detector — precision *and* concealment in one exotic package.
 
 ## Units — Naval (post-slice; from Tidal Forge; no submarine, no transport)
 
@@ -107,6 +108,17 @@ The Ascendant builds **Teleport Nodes** instead of transports. Any friendly unit
 | Nest | Carrier | T3 | 60s | 2650 | Heavy naval / — | **spawns drones, no rearm needed** — a different carrier verb |
 
 *No submarine* — the Ascendant **cloaks surface hulls** instead (same job, faction verb). *No sea transport* — teleport network.
+
+## The four universal capabilities
+
+The Ascendant does all four the *exotic* way — nothing is a conventional unit, everything phases or cloaks.
+
+| Capability | Ascendant version | Delivery |
+|---|---|---|
+| **Detection** | Eye (phasing recon drone) + Seer | mobile, blinks in and out of danger |
+| **Stealth** | Phase (temporary untargetability) + Mindbender **area cloak** + cloaked surface hulls | not lone infiltrators but *fields* of concealment, and units that dodge targeting entirely |
+| **Sniper** | Seer | phasing energy marksman, also a detector |
+| **Carrier** | Nest | spawns its own drones, **no rearm loop** — a self-sufficient carrier |
 
 ## Build orders
 
