@@ -7,3 +7,5 @@ Short files, one topic each. This is *knowledge* (what is true for this project)
 | `game-design-pillars.md` | the feel criteria the vertical slice is judged against |
 | `conventions.md` | code style, naming, commits, PR shape |
 | `workflow.md` | branches, review, CI, agents, tool versions |
+| `rts-unit-roster-design-reference.md` | the genre research: why 3 factions, roster grid, counter matrix, naval design |
+| `factions/` | the three working factions fully identified — buildings, units, what each building produces, construction/production timings (design canon for `content/`) |
