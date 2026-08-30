@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "id": "bastion-carrier",
+  "name": "Bastion Carrier",
+  "faction": "hegemony",
+  "role": "carrier",
+  "tier": 3,
+  "builtFrom": "shipyard",
+  "cost": 1750,
+  "buildTimeSeconds": 60,
+  "armor": "heavy-naval",
+  "stats": {
+    "hp": 1080,
+    "speed": 2.0,
+    "sight": 12.0
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "id": "warden",
+  "name": "Warden",
+  "faction": "ascendant",
+  "role": "aa-cruiser",
+  "tier": 2,
+  "builtFrom": "tidal-forge",
+  "cost": 1325,
+  "buildTimeSeconds": 32,
+  "armor": "heavy-naval",
+  "stats": {
+    "hp": 400,
+    "speed": 3.0,
+    "sight": 12.0
+  }
+}

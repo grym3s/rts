@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "pike",
+  "name": "Pike-class",
+  "faction": "hegemony",
+  "role": "submarine",
+  "tier": 2,
+  "builtFrom": "shipyard",
+  "cost": 725,
+  "buildTimeSeconds": 30,
+  "armor": "submerged",
+  "stats": {
+    "hp": 420,
+    "speed": 3.5,
+    "sight": 9.0
+  },
+  "weapon": {
+    "damageType": "torpedo",
+    "damage": 45,
+    "range": 9.0,
+    "cooldownTicks": 50,
+    "targets": [
+      "sea",
+      "ground"
+    ]
+  }
+}

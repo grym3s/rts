@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "rift-hull",
+  "name": "Rift Hull",
+  "faction": "ascendant",
+  "role": "bombardment",
+  "tier": 3,
+  "builtFrom": "tidal-forge",
+  "cost": 2150,
+  "buildTimeSeconds": 43,
+  "armor": "heavy-naval",
+  "stats": {
+    "hp": 360,
+    "speed": 2.0,
+    "sight": 10.0
+  },
+  "weapon": {
+    "damageType": "energy",
+    "damage": 60,
+    "range": 22.0,
+    "cooldownTicks": 120,
+    "targets": [
+      "ground",
+      "sea"
+    ]
+  }
+}

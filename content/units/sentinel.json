@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "sentinel",
+  "name": "Sentinel-class",
+  "faction": "coalition",
+  "role": "destroyer",
+  "tier": 2,
+  "builtFrom": "shipyard",
+  "cost": 1400,
+  "buildTimeSeconds": 40,
+  "armor": "heavy-naval",
+  "stats": {
+    "hp": 540,
+    "speed": 3.0,
+    "sight": 11.0
+  },
+  "weapon": {
+    "damageType": "naval-gun",
+    "damage": 30,
+    "range": 12.0,
+    "cooldownTicks": 40,
+    "targets": [
+      "sea"
+    ]
+  }
+}

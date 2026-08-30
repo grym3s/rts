@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "id": "vanguard",
+  "name": "Vanguard-class",
+  "faction": "coalition",
+  "role": "carrier",
+  "tier": 3,
+  "builtFrom": "shipyard",
+  "cost": 2550,
+  "buildTimeSeconds": 70,
+  "armor": "heavy-naval",
+  "stats": {
+    "hp": 810,
+    "speed": 2.0,
+    "sight": 12.0
+  }
+}

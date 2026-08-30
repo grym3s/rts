@@ -26,7 +26,7 @@ A unit file has three parts, and the split is the point: **identity is canon** (
 | `builtFrom` | string | building table | producing building id (`vehicle-bay`, `barracks`, …) — the prerequisite |
 | `cost` | int | unit table | credits (faction-adjusted value as written in the faction file) |
 | `buildTimeSeconds` | number | unit table | ×20 = ticks at 20 t/s |
-| `armor` | enum | `Armor / Attack` | `infantry` \| `light` \| `heavy` \| `air` \| `structure` (`counter-matrix.md`) |
+| `armor` | enum | `Armor / Attack` | `infantry` \| `light` \| `heavy` \| `air` \| `structure`; naval extension `light-naval` \| `heavy-naval` \| `submerged` (`counter-matrix.md`) |
 
 ### `stats` — required object, **provisional values**
 
@@ -40,7 +40,7 @@ A unit file has three parts, and the split is the point: **identity is canon** (
 
 | Field | Type | From canon | Notes |
 |---|---|---|---|
-| `damageType` | enum | `Armor / Attack` | `small-arms` \| `autocannon` \| `ap` \| `explosive` \| `missile` \| `energy` |
+| `damageType` | enum | `Armor / Attack` | `small-arms` \| `autocannon` \| `ap` \| `explosive` \| `missile` \| `energy`; naval extension `naval-gun` (shares the AP column) \| `torpedo` (`counter-matrix.md`) |
 | `damage` | number | — | **base** damage, pre-matrix; final = `damage × matrix_cell` (`counter-matrix.md`). Provisional |
 | `range` | number | unit table where stated | cells (e.g. Coalition MBT 12); provisional otherwise |
 | `cooldownTicks` | int | — | ticks between shots; provisional |

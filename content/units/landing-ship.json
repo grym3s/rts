@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "id": "landing-ship",
+  "name": "Landing Ship",
+  "faction": "coalition",
+  "role": "sea-transport",
+  "tier": 2,
+  "builtFrom": "shipyard",
+  "cost": 1050,
+  "buildTimeSeconds": 30,
+  "armor": "light-naval",
+  "stats": {
+    "hp": 360,
+    "speed": 3.5,
+    "sight": 8.0
+  }
+}
