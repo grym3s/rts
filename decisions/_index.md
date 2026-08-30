@@ -6,4 +6,5 @@
 | [0002](0002-engine-godot4-csharp.md) | accepted | 2026-08-17 | Presentation engine: Godot 4.x with C#/.NET |
 | [0003](0003-fixed-point-deterministic-sim.md) | accepted | 2026-08-17 | The sim uses fixed-point math and is deterministic from day one |
 | [0004](0004-repo-is-icm-system-map-subject.md) | accepted | 2026-08-17 | The repository is an ICM System Map subject with a thin factory |
+| [0005](0005-universal-capabilities-and-permitted-holes.md) | proposed | 2026-08-30 | Universal capabilities and where faction holes are permitted |
 | [2026](2026-08-17-foundation-ultra-review.md) |  |  | RTS Project Foundation — Ultra Review |
