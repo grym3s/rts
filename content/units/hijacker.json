@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "id": "hijacker",
+  "name": "Hijacker",
+  "faction": "hegemony",
+  "role": "infiltrator",
+  "tier": 2,
+  "builtFrom": "conscription-hall",
+  "cost": 650,
+  "buildTimeSeconds": 16,
+  "armor": "infantry",
+  "stats": {
+    "hp": 66,
+    "speed": 2.2,
+    "sight": 8.0
+  },
+  "verbs": {
+    "conscriptable": true
+  }
+}

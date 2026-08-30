@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "id": "field-repair",
+  "name": "Field Repair",
+  "faction": "hegemony",
+  "role": "support",
+  "tier": 2,
+  "builtFrom": "war-factory",
+  "cost": 725,
+  "buildTimeSeconds": 24,
+  "armor": "heavy",
+  "stats": {
+    "hp": 156,
+    "speed": 2.6,
+    "sight": 9.0
+  }
+}

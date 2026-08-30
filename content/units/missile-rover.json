@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "missile-rover",
+  "name": "Missile Rover",
+  "faction": "coalition",
+  "role": "light-at",
+  "tier": 2,
+  "builtFrom": "vehicle-bay",
+  "cost": 700,
+  "buildTimeSeconds": 16,
+  "armor": "light",
+  "stats": {
+    "hp": 76,
+    "speed": 3.6,
+    "sight": 9.0
+  },
+  "weapon": {
+    "damageType": "missile",
+    "damage": 30,
+    "range": 7.0,
+    "cooldownTicks": 40,
+    "targets": [
+      "ground"
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "id": "shock-trooper",
+  "name": "Shock Trooper",
+  "faction": "hegemony",
+  "role": "heavy-infantry",
+  "tier": 2,
+  "builtFrom": "conscription-hall",
+  "cost": 325,
+  "buildTimeSeconds": 11,
+  "armor": "infantry",
+  "stats": {
+    "hp": 132,
+    "speed": 1.4,
+    "sight": 8.0
+  },
+  "weapon": {
+    "damageType": "small-arms",
+    "damage": 8,
+    "range": 4.0,
+    "cooldownTicks": 12,
+    "targets": [
+      "ground"
+    ]
+  },
+  "verbs": {
+    "conscriptable": true
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "id": "comms-rig",
+  "name": "Comms Rig",
+  "faction": "coalition",
+  "role": "support",
+  "tier": 2,
+  "builtFrom": "vehicle-bay",
+  "cost": 1050,
+  "buildTimeSeconds": 22,
+  "armor": "light",
+  "stats": {
+    "hp": 117,
+    "speed": 2.6,
+    "sight": 9.0
+  },
+  "verbs": {
+    "marksAura": true
+  }
+}

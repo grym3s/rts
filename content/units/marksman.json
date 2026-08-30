@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "marksman",
+  "name": "Marksman",
+  "faction": "coalition",
+  "role": "sniper",
+  "tier": 2,
+  "builtFrom": "barracks",
+  "cost": 700,
+  "buildTimeSeconds": 16,
+  "armor": "infantry",
+  "stats": {
+    "hp": 43,
+    "speed": 1.6,
+    "sight": 13.0
+  },
+  "weapon": {
+    "damageType": "small-arms",
+    "damage": 50,
+    "range": 14.0,
+    "cooldownTicks": 60,
+    "targets": [
+      "ground"
+    ]
+  }
+}

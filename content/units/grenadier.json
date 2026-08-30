@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "grenadier",
+  "name": "Grenadier",
+  "faction": "coalition",
+  "role": "aoe-infantry",
+  "tier": 2,
+  "builtFrom": "barracks",
+  "cost": 400,
+  "buildTimeSeconds": 11,
+  "armor": "infantry",
+  "stats": {
+    "hp": 52,
+    "speed": 1.6,
+    "sight": 7.0
+  },
+  "weapon": {
+    "damageType": "explosive",
+    "damage": 14,
+    "range": 5.0,
+    "cooldownTicks": 30,
+    "targets": [
+      "ground"
+    ]
+  }
+}

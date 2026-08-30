@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "id": "heavy-lifter",
+  "name": "Heavy Lifter",
+  "faction": "hegemony",
+  "role": "air-transport",
+  "tier": 2,
+  "builtFrom": "helipad",
+  "cost": 650,
+  "buildTimeSeconds": 24,
+  "armor": "air",
+  "stats": {
+    "hp": 180,
+    "speed": 6.0,
+    "sight": 8.0
+  }
+}

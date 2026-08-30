@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "id": "wraith",
+  "name": "Wraith",
+  "faction": "ascendant",
+  "role": "gunship",
+  "tier": 2,
+  "builtFrom": "aerie",
+  "cost": 1450,
+  "buildTimeSeconds": 24,
+  "armor": "air",
+  "stats": {
+    "hp": 143,
+    "speed": 6.0,
+    "sight": 10.0
+  },
+  "weapon": {
+    "damageType": "energy",
+    "damage": 26,
+    "range": 9.0,
+    "cooldownTicks": 24,
+    "targets": [
+      "ground"
+    ]
+  },
+  "verbs": {
+    "phases": true
+  }
+}

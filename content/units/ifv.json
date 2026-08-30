@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "ifv",
+  "name": "IFV",
+  "faction": "coalition",
+  "role": "apc",
+  "tier": 2,
+  "builtFrom": "vehicle-bay",
+  "cost": 800,
+  "buildTimeSeconds": 18,
+  "armor": "light",
+  "stats": {
+    "hp": 153,
+    "speed": 3.0,
+    "sight": 8.0
+  },
+  "weapon": {
+    "damageType": "missile",
+    "damage": 30,
+    "range": 7.0,
+    "cooldownTicks": 40,
+    "targets": [
+      "ground",
+      "air"
+    ]
+  }
+}

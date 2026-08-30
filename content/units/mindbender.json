@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "id": "mindbender",
+  "name": "Mindbender",
+  "faction": "ascendant",
+  "role": "infiltrator",
+  "tier": 2,
+  "builtFrom": "manifold",
+  "cost": 950,
+  "buildTimeSeconds": 14,
+  "armor": "infantry",
+  "stats": {
+    "hp": 44,
+    "speed": 2.2,
+    "sight": 8.0
+  }
+}

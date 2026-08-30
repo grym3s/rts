@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "rocket-barrage",
+  "name": "Rocket Barrage",
+  "faction": "hegemony",
+  "role": "artillery",
+  "tier": 2,
+  "builtFrom": "war-factory",
+  "cost": 800,
+  "buildTimeSeconds": 33,
+  "armor": "light",
+  "stats": {
+    "hp": 114,
+    "speed": 2.0,
+    "sight": 8.0
+  },
+  "weapon": {
+    "damageType": "explosive",
+    "damage": 40,
+    "range": 15.0,
+    "cooldownTicks": 80,
+    "targets": [
+      "ground"
+    ]
+  }
+}

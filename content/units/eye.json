@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "id": "eye",
+  "name": "Eye",
+  "faction": "ascendant",
+  "role": "scout",
+  "tier": 2,
+  "builtFrom": "aerie",
+  "cost": 475,
+  "buildTimeSeconds": 13,
+  "armor": "air",
+  "stats": {
+    "hp": 60,
+    "speed": 7.0,
+    "sight": 13.0
+  }
+}

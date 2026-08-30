@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "id": "sharpshooter-team",
+  "name": "Sharpshooter Team",
+  "faction": "hegemony",
+  "role": "sniper",
+  "tier": 2,
+  "builtFrom": "conscription-hall",
+  "cost": 475,
+  "buildTimeSeconds": 16,
+  "armor": "infantry",
+  "stats": {
+    "hp": 58,
+    "speed": 1.6,
+    "sight": 13.0
+  },
+  "weapon": {
+    "damageType": "small-arms",
+    "damage": 50,
+    "range": 11.0,
+    "cooldownTicks": 60,
+    "targets": [
+      "ground"
+    ]
+  },
+  "verbs": {
+    "conscriptable": true
+  }
+}
