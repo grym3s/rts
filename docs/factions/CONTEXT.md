@@ -8,8 +8,9 @@ Each faction is fully identified here: **its buildings, its units, what each bui
 | `hegemony.md` | **Hegemony** | Mass & attrition | **Conscription** — infantry sacrificed for resources/effects |
 | `ascendant.md` | **Ascendant** | Exotic tech & mobility | **Phase** — units briefly untargetable |
 | `capability-coverage.md` | — | the job-by-job matrix proving every faction answers every strategy | — |
+| `counter-matrix.md` | — | the armor × damage-type table every unit's `Armor / Attack` pair resolves against | — |
 
-Identity, roster grid, counter rules and the naval design all live in `../rts-unit-roster-design-reference.md` (Parts 4–7). These files do **not** restate that reasoning — they instantiate it into concrete build orders and timings. Read the reference for *why*; read these for *what*.
+Identity, roster grid and the naval design live in `../rts-unit-roster-design-reference.md` (genre *why*, Parts 5–7; ADR 0005 overrides its holes). The **counter rules are now project canon in `counter-matrix.md`** — that is what the `Armor / Attack` columns in each faction file resolve against. These files do **not** restate the reference's reasoning — they instantiate it into concrete build orders and timings. Read the reference for *why*; read these for *what*.
 
 ## Status of the numbers
 
