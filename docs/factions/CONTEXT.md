@@ -10,6 +10,7 @@ Each faction is fully identified here: **its buildings, its units, what each bui
 | `capability-coverage.md` | — | the job-by-job matrix proving every faction answers every strategy | — |
 | `counter-matrix.md` | — | the armor × damage-type table every unit's `Armor / Attack` pair resolves against | — |
 | `owned-verbs.md` | — | buildable rules for Marking / Conscription / Phase — radius, duration, cooldown, magnitude, power-budget tax | — |
+| `economy.md` | — | credits, harvest loop, power, tier gates, and the per-faction economy mechanics (Intel / Conscription income / never-deplete fields) | — |
 
 Identity, roster grid and the naval design live in `../rts-unit-roster-design-reference.md` (genre *why*, Parts 5–7; ADR 0005 overrides its holes). The **counter rules are now project canon in `counter-matrix.md`** — that is what the `Armor / Attack` columns in each faction file resolve against. These files do **not** restate the reference's reasoning — they instantiate it into concrete build orders and timings. Read the reference for *why*; read these for *what*.
 

@@ -30,7 +30,7 @@ One owned verb per faction is the strongest identity tool we use (ADR 0005: iden
 
 **Sim state & tick order.** One int per enemy unit, `MarkedUntilTick`. Marking must resolve **before** the damage sub-step even though sensing is conceptually a visibility concern (visibility is step 5 in `../../sim/CONTEXT.md`, *after* combat) — so the combat step runs **acquire → refresh marks → fire → damage → death**, and the refresh reads this tick's post-movement positions (movement is step 3, already done). Each mark-source with LOS sets `MarkedUntilTick = tick + lingerTicks`; the damage sub-step applies ×1.25 when `tick ≤ MarkedUntilTick`. Integer-only, deterministic. *This is a refinement the combat issue must honor — note it in `sim/combat/CONTEXT.md` when that folder is created.*
 
-**Interacts with Intel** (the Coalition economy meter) — fuelling and gating the network. The Intel spec lives in the economy doc (`economy.md`, when written); this file owns the combat effect only.
+**Interacts with Intel** (the Coalition economy meter) — fuelling and gating the network. The Intel spec lives in `economy.md` (accrual, the T3 gate, network upkeep); this file owns the combat effect only.
 
 ---
 

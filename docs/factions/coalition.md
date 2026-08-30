@@ -17,7 +17,7 @@ Tables below show the Coalition-adjusted numbers directly (costs rounded to 25).
 
 ## Economy
 
-Standard harvest (Refinery + Collector) plus **Intel**, a secondary meter that fills as Coalition units deal and take damage in combat. Intel gates the T3 tech and fuels the Marking network — a Coalition that never fights never reaches its late game. Single credit currency otherwise (reference Part 6.7).
+Standard harvest (Refinery + Collector) plus **Intel**, a secondary meter that fills as Coalition units deal and take damage in combat. Intel gates the T3 tech and fuels the Marking network — a Coalition that never fights never reaches its late game. Single credit currency otherwise (reference Part 6.7). **Numbers (harvest loop, power, Intel accrual/gate): `economy.md`.**
 
 ## Owned verb — Marking
 

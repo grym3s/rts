@@ -10,6 +10,7 @@ First-order only. If a row and a folder contract disagree, fix the contract and 
 | unit stats | `content/CONTEXT.md` | balance scenarios | code (unless a new field) |
 | the counter matrix (armor × damage) | `docs/factions/counter-matrix.md`, ADR 0005 | **all** combat balance + every golden replay (once combat reads it); the in-game armor/damage table | navigation, presentation |
 | an owned verb (Marking / Conscription / Phase) | `docs/factions/owned-verbs.md`, ADR 0005 | that faction's combat/economy balance; the matchup scenario covering it; golden replays (once live) | the other factions' verbs; presentation |
+| economy / power / tier gates | `docs/factions/economy.md` | build orders, opening timings, every balance scenario; the economy system (tick step 2) | the counter matrix; navigation; presentation |
 | navigation (when created) | `sim/navigation/CONTEXT.md` | movement scenarios, bench | combat, presentation |
 | combat (when created) | `sim/combat/CONTEXT.md` | balance scenarios | navigation, presentation |
 | how things look/control | `game/CONTEXT.md` | nothing in `sim/` | sim |
