@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "ascendant-wellspring",
+  "name": "Wellspring",
+  "faction": "ascendant",
+  "category": "economy",
+  "tier": 1,
+  "prereq": "ascendant-construction-yard",
+  "cost": 1500,
+  "buildTimeSeconds": 21,
+  "power": -20,
+  "produces": [
+    "credits",
+    "cultivator",
+    "never-deplete"
+  ],
+  "stats": {
+    "hp": 500
+  }
+}

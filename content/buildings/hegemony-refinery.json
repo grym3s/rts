@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "hegemony-refinery",
+  "name": "Refinery",
+  "faction": "hegemony",
+  "category": "economy",
+  "tier": 1,
+  "prereq": "hegemony-construction-yard",
+  "cost": 1500,
+  "buildTimeSeconds": 33,
+  "power": -20,
+  "produces": [
+    "credits",
+    "miner"
+  ],
+  "stats": {
+    "hp": 1800
+  }
+}

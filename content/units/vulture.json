@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "vulture",
+  "name": "Vulture",
+  "faction": "coalition",
+  "role": "bomber",
+  "tier": 3,
+  "builtFrom": "coalition-airbase",
+  "cost": 1850,
+  "buildTimeSeconds": 40,
+  "armor": "air",
+  "stats": {
+    "hp": 166,
+    "speed": 6.0,
+    "sight": 9.0
+  },
+  "weapon": {
+    "damageType": "explosive",
+    "damage": 60,
+    "range": 8.0,
+    "cooldownTicks": 100,
+    "targets": [
+      "ground"
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "id": "conscript",
+  "name": "Conscript",
+  "faction": "hegemony",
+  "role": "basic-infantry",
+  "tier": 1,
+  "builtFrom": "hegemony-conscription-hall",
+  "cost": 75,
+  "buildTimeSeconds": 5,
+  "armor": "infantry",
+  "stats": {
+    "hp": 55,
+    "speed": 1.5,
+    "sight": 7.0
+  },
+  "weapon": {
+    "damageType": "small-arms",
+    "damage": 7,
+    "range": 4.0,
+    "cooldownTicks": 12,
+    "targets": [
+      "ground"
+    ]
+  },
+  "verbs": {
+    "conscriptable": true
+  }
+}

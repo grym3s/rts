@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "id": "anchor",
+  "name": "Anchor",
+  "faction": "ascendant",
+  "role": "support",
+  "tier": 2,
+  "builtFrom": "ascendant-forge",
+  "cost": 1075,
+  "buildTimeSeconds": 19,
+  "armor": "light",
+  "stats": {
+    "hp": 104,
+    "speed": 2.6,
+    "sight": 9.0
+  }
+}

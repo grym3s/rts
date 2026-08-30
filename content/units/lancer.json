@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "lancer",
+  "name": "Lancer",
+  "faction": "coalition",
+  "role": "anti-armor",
+  "tier": 2,
+  "builtFrom": "coalition-barracks",
+  "cost": 350,
+  "buildTimeSeconds": 9,
+  "armor": "infantry",
+  "stats": {
+    "hp": 54,
+    "speed": 1.6,
+    "sight": 8.0
+  },
+  "weapon": {
+    "damageType": "missile",
+    "damage": 30,
+    "range": 7.0,
+    "cooldownTicks": 40,
+    "targets": [
+      "ground",
+      "air"
+    ]
+  }
+}

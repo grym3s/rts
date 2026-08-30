@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "sever",
+  "name": "Sever-class",
+  "faction": "ascendant",
+  "role": "destroyer",
+  "tier": 2,
+  "builtFrom": "ascendant-tidal-forge",
+  "cost": 1450,
+  "buildTimeSeconds": 34,
+  "armor": "light-naval",
+  "stats": {
+    "hp": 480,
+    "speed": 3.0,
+    "sight": 11.0
+  },
+  "weapon": {
+    "damageType": "naval-gun",
+    "damage": 30,
+    "range": 12.0,
+    "cooldownTicks": 40,
+    "targets": [
+      "ground",
+      "sea"
+    ]
+  }
+}

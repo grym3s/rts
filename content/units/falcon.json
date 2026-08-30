@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "falcon",
+  "name": "Falcon",
+  "faction": "coalition",
+  "role": "interceptor",
+  "tier": 2,
+  "builtFrom": "coalition-airbase",
+  "cost": 1150,
+  "buildTimeSeconds": 24,
+  "armor": "air",
+  "stats": {
+    "hp": 117,
+    "speed": 8.0,
+    "sight": 10.0
+  },
+  "weapon": {
+    "damageType": "autocannon",
+    "damage": 12,
+    "range": 9.0,
+    "cooldownTicks": 8,
+    "targets": [
+      "air"
+    ]
+  }
+}

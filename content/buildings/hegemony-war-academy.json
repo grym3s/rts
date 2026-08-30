@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "hegemony-war-academy",
+  "name": "War Academy",
+  "faction": "hegemony",
+  "category": "tech",
+  "tier": 3,
+  "prereq": "hegemony-industrial-works",
+  "cost": 2500,
+  "buildTimeSeconds": 85,
+  "power": -50,
+  "produces": [
+    "t3",
+    "superweapon"
+  ],
+  "stats": {
+    "hp": 3000
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "rift-lance",
+  "name": "Rift Lance",
+  "faction": "ascendant",
+  "role": "artillery",
+  "tier": 3,
+  "builtFrom": "ascendant-forge",
+  "cost": 1200,
+  "buildTimeSeconds": 26,
+  "armor": "light",
+  "stats": {
+    "hp": 76,
+    "speed": 2.0,
+    "sight": 8.0
+  },
+  "weapon": {
+    "damageType": "energy",
+    "damage": 40,
+    "range": 14.0,
+    "cooldownTicks": 80,
+    "targets": [
+      "ground"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "coalition-shipyard",
+  "name": "Shipyard",
+  "faction": "coalition",
+  "category": "naval",
+  "tier": 1,
+  "prereq": "coalition-construction-yard",
+  "cost": 1000,
+  "buildTimeSeconds": 45,
+  "power": -20,
+  "produces": [
+    "naval"
+  ],
+  "stats": {
+    "hp": 1000
+  },
+  "requiresShore": true
+}

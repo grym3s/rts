@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "id": "miner",
+  "name": "Miner",
+  "faction": "hegemony",
+  "role": "harvester",
+  "tier": 1,
+  "builtFrom": "hegemony-refinery",
+  "cost": 550,
+  "buildTimeSeconds": 12,
+  "armor": "heavy",
+  "stats": {
+    "hp": 220,
+    "speed": 2.5,
+    "sight": 6.0
+  }
+}

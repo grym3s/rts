@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "ascendant-tidal-forge",
+  "name": "Tidal Forge",
+  "faction": "ascendant",
+  "category": "naval",
+  "tier": 1,
+  "prereq": "ascendant-construction-yard",
+  "cost": 1000,
+  "buildTimeSeconds": 32,
+  "power": -20,
+  "produces": [
+    "naval"
+  ],
+  "stats": {
+    "hp": 500
+  },
+  "requiresShore": true
+}

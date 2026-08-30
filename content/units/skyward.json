@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "skyward",
+  "name": "Skyward",
+  "faction": "ascendant",
+  "role": "anti-air",
+  "tier": 2,
+  "builtFrom": "ascendant-manifold",
+  "cost": 350,
+  "buildTimeSeconds": 8,
+  "armor": "infantry",
+  "stats": {
+    "hp": 48,
+    "speed": 1.6,
+    "sight": 10.0
+  },
+  "weapon": {
+    "damageType": "autocannon",
+    "damage": 10,
+    "range": 8.0,
+    "cooldownTicks": 8,
+    "targets": [
+      "ground",
+      "air"
+    ]
+  }
+}

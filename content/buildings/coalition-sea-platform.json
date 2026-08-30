@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "coalition-sea-platform",
+  "name": "Sea Platform",
+  "faction": "coalition",
+  "category": "offshore",
+  "tier": 2,
+  "prereq": "coalition-shipyard",
+  "cost": 800,
+  "buildTimeSeconds": 25,
+  "power": -20,
+  "produces": [
+    "offshore"
+  ],
+  "stats": {
+    "hp": 1000
+  },
+  "requiresShore": true
+}

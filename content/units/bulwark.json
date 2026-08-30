@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "bulwark",
+  "name": "Bulwark",
+  "faction": "hegemony",
+  "role": "mbt",
+  "tier": 1,
+  "builtFrom": "hegemony-war-factory",
+  "cost": 725,
+  "buildTimeSeconds": 22,
+  "armor": "heavy",
+  "stats": {
+    "hp": 230,
+    "speed": 2.0,
+    "sight": 9.0
+  },
+  "weapon": {
+    "damageType": "ap",
+    "damage": 24,
+    "range": 6.0,
+    "cooldownTicks": 34,
+    "targets": [
+      "ground"
+    ]
+  }
+}

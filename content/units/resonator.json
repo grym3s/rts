@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "resonator",
+  "name": "Resonator",
+  "faction": "ascendant",
+  "role": "aoe-infantry",
+  "tier": 2,
+  "builtFrom": "ascendant-manifold",
+  "cost": 425,
+  "buildTimeSeconds": 9,
+  "armor": "infantry",
+  "stats": {
+    "hp": 46,
+    "speed": 1.6,
+    "sight": 7.0
+  },
+  "weapon": {
+    "damageType": "explosive",
+    "damage": 14,
+    "range": 5.0,
+    "cooldownTicks": 30,
+    "targets": [
+      "ground"
+    ]
+  }
+}

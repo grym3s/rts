@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "siege-barge",
+  "name": "Siege Barge",
+  "faction": "hegemony",
+  "role": "bombardment",
+  "tier": 3,
+  "builtFrom": "hegemony-shipyard",
+  "cost": 1450,
+  "buildTimeSeconds": 55,
+  "armor": "heavy-naval",
+  "stats": {
+    "hp": 540,
+    "speed": 2.0,
+    "sight": 10.0
+  },
+  "weapon": {
+    "damageType": "naval-gun",
+    "damage": 60,
+    "range": 22.0,
+    "cooldownTicks": 120,
+    "targets": [
+      "ground",
+      "sea"
+    ]
+  }
+}

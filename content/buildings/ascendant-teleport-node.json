@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "ascendant-teleport-node",
+  "name": "Teleport Node",
+  "faction": "ascendant",
+  "category": "logistics",
+  "tier": 1,
+  "prereq": "ascendant-construction-yard",
+  "cost": 600,
+  "buildTimeSeconds": 14,
+  "power": -20,
+  "produces": [
+    "instant-travel"
+  ],
+  "stats": {
+    "hp": 250
+  }
+}

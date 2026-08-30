@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "hegemony-industrial-works",
+  "name": "Industrial Works",
+  "faction": "hegemony",
+  "category": "tech",
+  "tier": 2,
+  "prereq": "hegemony-war-factory",
+  "cost": 1500,
+  "buildTimeSeconds": 55,
+  "power": -50,
+  "produces": [
+    "t2",
+    "helipad"
+  ],
+  "stats": {
+    "hp": 1800
+  }
+}
