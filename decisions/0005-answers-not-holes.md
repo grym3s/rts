@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 date: 2026-08-30
 ---
 # 0005 — Answers, not holes: every faction can answer every strategy

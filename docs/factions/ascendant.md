@@ -22,7 +22,7 @@ Slower per-trip harvest, but the **Cultivator's fields never deplete** — Ascen
 
 ## Owned verb — Phase
 
-Ascendant units can briefly enter an **untargetable** state — dodging a volley, crossing a kill-zone, escaping a lost fight. Phase is on a cooldown and costs the unit its own actions while active, so it is an escape/timing tool, not a permanent shield. Combined with the faction's speed, it means the Ascendant chooses every engagement. The power budget: Phase units carry **less HP/DPS** than the mirror slot to pay for the trick (reference Part 5, "cool ability = reduced stats").
+Ascendant units can briefly enter an **untargetable** state — dodging a volley, crossing a kill-zone, escaping a lost fight. Phase is on a cooldown and costs the unit its own actions while active, so it is an escape/timing tool, not a permanent shield. Combined with the faction's speed, it means the Ascendant chooses every engagement. The power budget: Phase units carry **less HP/DPS** than the mirror slot to pay for the trick (reference Part 5, "cool ability = reduced stats"). **Buildable rules (duration, cooldown, action-cost, stat tax, deniability): `owned-verbs.md`.**
 
 ## Logistics — the Teleport Network (the Ascendant's transport answer)
 
