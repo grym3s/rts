@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 2,
+  "id": "adept",
+  "name": "Adept",
+  "faction": "ascendant",
+  "role": "basic-infantry",
+  "tier": 1,
+  "builtFrom": "manifold",
+  "cost": 125,
+  "buildTimeSeconds": 5,
+  "armor": "infantry",
+  "stats": { "hp": 50, "speed": 2.0, "sight": 8.0 },
+  "weapon": { "damageType": "energy", "damage": 8, "range": 3.0, "cooldownTicks": 12, "targets": ["ground"] },
+  "verbs": { "phases": true }
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 2,
+  "id": "skimmer",
+  "name": "Skimmer",
+  "faction": "ascendant",
+  "role": "scout",
+  "tier": 1,
+  "builtFrom": "forge",
+  "cost": 600,
+  "buildTimeSeconds": 10,
+  "armor": "light",
+  "stats": { "hp": 70, "speed": 6.0, "sight": 12.0 },
+  "weapon": { "damageType": "autocannon", "damage": 6, "range": 5.0, "cooldownTicks": 10, "targets": ["ground"] }
+}

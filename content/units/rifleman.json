@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 2,
+  "id": "rifleman",
+  "name": "Rifleman",
+  "faction": "coalition",
+  "role": "basic-infantry",
+  "tier": 1,
+  "builtFrom": "barracks",
+  "cost": 125,
+  "buildTimeSeconds": 6,
+  "armor": "infantry",
+  "stats": { "hp": 60, "speed": 1.8, "sight": 8.0 },
+  "weapon": { "damageType": "small-arms", "damage": 8, "range": 4.0, "cooldownTicks": 12, "targets": ["ground"] },
+  "verbs": { "marksOnHit": true }
+}

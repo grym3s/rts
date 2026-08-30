@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 2,
+  "id": "collector",
+  "name": "Collector",
+  "faction": "coalition",
+  "role": "harvester",
+  "tier": 1,
+  "builtFrom": "refinery",
+  "cost": 800,
+  "buildTimeSeconds": 12,
+  "armor": "light",
+  "stats": { "hp": 120, "speed": 3.0, "sight": 6.0 }
+}

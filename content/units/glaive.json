@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 2,
+  "id": "glaive",
+  "name": "Glaive",
+  "faction": "ascendant",
+  "role": "mbt",
+  "tier": 1,
+  "builtFrom": "forge",
+  "cost": 1075,
+  "buildTimeSeconds": 17,
+  "armor": "light",
+  "stats": { "hp": 110, "speed": 4.5, "sight": 10.0 },
+  "weapon": { "damageType": "energy", "damage": 18, "range": 6.0, "cooldownTicks": 30, "targets": ["ground", "air"] },
+  "verbs": { "phases": true }
+}

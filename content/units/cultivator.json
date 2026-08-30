@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 2,
+  "id": "cultivator",
+  "name": "Cultivator",
+  "faction": "ascendant",
+  "role": "harvester",
+  "tier": 1,
+  "builtFrom": "wellspring",
+  "cost": 850,
+  "buildTimeSeconds": 10,
+  "armor": "light",
+  "stats": { "hp": 110, "speed": 2.5, "sight": 6.0 }
+}
