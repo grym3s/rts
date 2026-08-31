@@ -22,7 +22,10 @@ jobs:
 
   godot:
     name: godot headless import + build
-    if: github.event_name == 'pull_request'
+    # Runs on push to main too, not just PRs. The pull_request-only guard let a
+    # compile error in game/Main.cs reach main in the bootstrap commit and sit
+    # there undetected. Actions is free on this public repo, so there is no
+    # longer a minutes argument for skipping it.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
