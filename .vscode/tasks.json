@@ -1,0 +1,83 @@
+{
+  // Wired to the Makefile so the palette and CI run the SAME commands.
+  // Cmd+Shift+B = "check + test", the gate CLAUDE.md rule 5 requires before reporting done.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "check + test",
+      "detail": "Structure checks + sim tests — the pre-done gate",
+      "type": "shell",
+      "command": "make check test",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$msCompile"],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "sim: test",
+      "type": "shell",
+      "command": "make test",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": ["$msCompile"]
+    },
+    {
+      "label": "structure: check",
+      "detail": "_scripts/check.sh — engine isolation, floats, contracts, stale indexes",
+      "type": "shell",
+      "command": "make check",
+      "problemMatcher": []
+    },
+    {
+      "label": "indexes: regenerate",
+      "detail": "make gen — rewrites AGENTS.md and decisions/_index.md. Never hand-edit those.",
+      "type": "shell",
+      "command": "make gen",
+      "problemMatcher": []
+    },
+    {
+      "label": "format",
+      "type": "shell",
+      "command": "make fmt",
+      "problemMatcher": []
+    },
+    {
+      "label": "scenario: smoke",
+      "detail": "Headless deterministic run — prints the state hash",
+      "type": "shell",
+      "command": "make scenario S=content/scenarios/smoke.json",
+      "problemMatcher": ["$msCompile"]
+    },
+    {
+      "label": "scenario: pick…",
+      "type": "shell",
+      "command": "make scenario S=${input:scenarioFile}",
+      "problemMatcher": ["$msCompile"]
+    },
+    {
+      "label": "godot: headless import + run",
+      "detail": "Requires Godot 4.7.1 (.NET build) on PATH",
+      "type": "shell",
+      "command": "make godot-test",
+      "problemMatcher": []
+    },
+    {
+      "label": "build: scenario",
+      "type": "shell",
+      "command": "dotnet build tools/scenario/Scenario.csproj",
+      "problemMatcher": ["$msCompile"]
+    },
+    {
+      "label": "build: game",
+      "type": "shell",
+      "command": "dotnet build game/Game.csproj",
+      "problemMatcher": ["$msCompile"]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "scenarioFile",
+      "type": "promptString",
+      "description": "Scenario JSON path",
+      "default": "content/scenarios/smoke.json"
+    }
+  ]
+}
