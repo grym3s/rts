@@ -4,6 +4,7 @@ Short files, one topic each. This is *knowledge* (what is true for this project)
 
 | File | Holds |
 |---|---|
+| `mechanics-playbook.md` | what we take from the reference games and what we refuse, with the reasoning; source-verified |
 | `game-design-pillars.md` | the feel criteria the vertical slice is judged against |
 | `conventions.md` | code style, naming, commits, PR shape |
 | `workflow.md` | branches, review, CI, agents, tool versions |
