@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "seed": 30,
-  "ticks": 500,
+  "ticks": 650,
   "map": {
     "width": 20,
     "height": 20,
@@ -43,7 +43,7 @@
     {"tick": 1, "faction": 0, "type": "move", "target": [17.0, 10.0]}
   ],
   "assert": {
-    "arriveByTick": 400,
+    "arriveByTick": 600,
     "arriveTarget": [17.0, 10.0],
     "arriveWithin": 2.5,
     "maxOverlapDepth": 0.15

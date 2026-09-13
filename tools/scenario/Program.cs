@@ -38,13 +38,13 @@ var catalog = UnitCatalog.LoadFromDirectory(Path.Combine(repoRoot, "content", "u
 var world = new SimWorld(seed);
 var units = new UnitStore();
 if (doc.TryGetProperty("units", out var unitEls))
-foreach (var u in unitEls.EnumerateArray())
-{
-    var p = catalog.Get(u.GetProperty("unit").GetString()!);
-    units.Spawn(world.Ids.Next(),
-        new FixVec2(Fix64.FromDouble(u.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(u.GetProperty("at")[1].GetDouble())),
-        p.Speed, p.Radius);
-}
+    foreach (var u in unitEls.EnumerateArray())
+    {
+        var p = catalog.Get(u.GetProperty("unit").GetString()!);
+        units.Spawn(world.Ids.Next(),
+            new FixVec2(Fix64.FromDouble(u.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(u.GetProperty("at")[1].GetDouble())),
+            p.Speed, p.Radius);
+    }
 
 // --- orders + navigation wired to the tick (steps 1 and 3 of sim/CONTEXT.md) ---
 var orders = new Dictionary<EntityId, MoveOrder>();

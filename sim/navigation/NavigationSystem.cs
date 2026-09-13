@@ -1,6 +1,6 @@
 using Rts.Sim.Core;
-using Rts.Sim.World;
 using Rts.Sim.Orders;
+using Rts.Sim.World;
 
 namespace Rts.Sim.Navigation;
 
@@ -162,6 +162,7 @@ public static class NavigationSystem
         {
             u.Velocity = FixVec2.Zero;
             if (!orders.TryGetValue(u.Id, out var o)) continue;
+            if (o.Path.Count == 0) continue; // awaiting path (plan budget); not an arrival
             var wp = o.CurrentWaypoint;
             if (wp == null) { orders.Remove(u.Id); continue; }
 
