@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "ascendant-aerie",
+  "name": "Aerie",
+  "faction": "ascendant",
+  "category": "air",
+  "tier": 2,
+  "prereq": "ascendant-nexus",
+  "cost": 800,
+  "buildTimeSeconds": 28,
+  "power": -20,
+  "produces": [
+    "aircraft"
+  ],
+  "stats": {
+    "hp": 500
+  }
+}

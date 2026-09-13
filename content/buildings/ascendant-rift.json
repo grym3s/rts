@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "ascendant-rift",
+  "name": "Rift",
+  "faction": "ascendant",
+  "category": "superweapon",
+  "tier": 3,
+  "prereq": "ascendant-ascendancy",
+  "cost": 3000,
+  "buildTimeSeconds": 84,
+  "power": -150,
+  "produces": [
+    "singularity-strike"
+  ],
+  "stats": {
+    "hp": 1000
+  }
+}

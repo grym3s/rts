@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "longbow",
+  "name": "Longbow-class",
+  "faction": "coalition",
+  "role": "bombardment",
+  "tier": 3,
+  "builtFrom": "coalition-shipyard",
+  "cost": 2075,
+  "buildTimeSeconds": 50,
+  "armor": "heavy-naval",
+  "stats": {
+    "hp": 405,
+    "speed": 2.0,
+    "sight": 10.0
+  },
+  "weapon": {
+    "damageType": "naval-gun",
+    "damage": 60,
+    "range": 22.0,
+    "cooldownTicks": 120,
+    "targets": [
+      "ground",
+      "sea"
+    ]
+  }
+}

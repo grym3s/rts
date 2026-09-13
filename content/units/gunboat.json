@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "gunboat",
+  "name": "Gunboat",
+  "faction": "hegemony",
+  "role": "corvette",
+  "tier": 1,
+  "builtFrom": "hegemony-shipyard",
+  "cost": 475,
+  "buildTimeSeconds": 22,
+  "armor": "light-naval",
+  "stats": {
+    "hp": 360,
+    "speed": 4.0,
+    "sight": 10.0
+  },
+  "weapon": {
+    "damageType": "autocannon",
+    "damage": 10,
+    "range": 8.0,
+    "cooldownTicks": 8,
+    "targets": [
+      "sea"
+    ]
+  }
+}

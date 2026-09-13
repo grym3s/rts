@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "hegemony-siege-cannon",
+  "name": "Siege Cannon",
+  "faction": "hegemony",
+  "category": "superweapon",
+  "tier": 3,
+  "prereq": "hegemony-war-academy",
+  "cost": 3000,
+  "buildTimeSeconds": 130,
+  "power": -150,
+  "produces": [
+    "static-bombardment"
+  ],
+  "stats": {
+    "hp": 3000
+  }
+}

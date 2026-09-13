@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "coalition-barracks",
+  "name": "Barracks",
+  "faction": "coalition",
+  "category": "production",
+  "tier": 1,
+  "prereq": "coalition-construction-yard",
+  "cost": 400,
+  "buildTimeSeconds": 20,
+  "power": -20,
+  "produces": [
+    "infantry"
+  ],
+  "stats": {
+    "hp": 1000
+  }
+}

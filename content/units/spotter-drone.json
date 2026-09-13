@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "id": "spotter-drone",
+  "name": "Spotter Drone",
+  "faction": "coalition",
+  "role": "scout",
+  "tier": 2,
+  "builtFrom": "coalition-airbase",
+  "cost": 450,
+  "buildTimeSeconds": 15,
+  "armor": "air",
+  "stats": {
+    "hp": 68,
+    "speed": 7.0,
+    "sight": 13.0
+  },
+  "verbs": {
+    "marksAura": true
+  }
+}

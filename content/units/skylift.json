@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "id": "skylift",
+  "name": "Skylift",
+  "faction": "coalition",
+  "role": "air-transport",
+  "tier": 2,
+  "builtFrom": "coalition-airbase",
+  "cost": 925,
+  "buildTimeSeconds": 22,
+  "armor": "air",
+  "stats": {
+    "hp": 135,
+    "speed": 6.0,
+    "sight": 8.0
+  }
+}

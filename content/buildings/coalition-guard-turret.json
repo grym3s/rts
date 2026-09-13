@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "coalition-guard-turret",
+  "name": "Guard Turret",
+  "faction": "coalition",
+  "category": "defense",
+  "tier": 1,
+  "prereq": "coalition-barracks",
+  "cost": 500,
+  "buildTimeSeconds": 15,
+  "power": -20,
+  "produces": [
+    "static-defense-ap"
+  ],
+  "stats": {
+    "hp": 1000
+  }
+}
