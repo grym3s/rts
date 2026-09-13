@@ -1,1 +1,1 @@
-{ "schemaVersion": 1, "seed": 1, "ticks": 200 }
+{ "schemaVersion": 2, "seed": 1, "ticks": 20, "map": { "width": 4, "height": 4, "blocked": [] } }

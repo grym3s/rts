@@ -17,6 +17,13 @@ public sealed class SimWorld
     /// <summary>Events emitted during the current tick; systems write via Emit, cleanup flushes at tick end.</summary>
     public IReadOnlyList<SimEvent> Events => _events;
 
+    /// <summary>Tick-step 2+ systems, registered by the composition layer (tools/scenario, game).
+    /// Each receives the commands due this tick. Order matters (see sim/CONTEXT.md); registration order is the tick order.</summary>
+    public List<Action<SimWorld, IReadOnlyList<Command>>> Systems { get; } = new();
+
+    /// <summary>Hasher hooks (same determinism rules as Fix64): one per state owner, e.g. UnitStore.Hash.</summary>
+    public List<Func<ulong, ulong>> HashMixers { get; } = new();
+
     public SimWorld(ulong seed)
     {
         Rng = new Rng(seed);
@@ -31,9 +38,10 @@ public sealed class SimWorld
     {
         _events.Clear(); // drop the previous tick's events; consumers had one full frame to read them
         foreach (var c in commands) PendingCommands.Add(c);
-        // 1. apply commands → orders (ghost until sim/orders exists)
+        // 1. due commands (tick step 1: orders)
+        var due = PendingCommands.FindAll(c => c.Tick <= Tick);
         PendingCommands.RemoveAll(c => c.Tick <= Tick);
-        // 2–6. systems are added by the issues that create their folders.
+        foreach (var system in Systems) system(this, due);
         Tick++;
     }
 
@@ -43,6 +51,7 @@ public sealed class SimWorld
         ulong h = 1469598103934665603UL;
         h = (h ^ (ulong)Tick) * 1099511628211UL;
         h = (h ^ (ulong)Ids.Count) * 1099511628211UL;
+        foreach (var mixer in HashMixers) h = mixer(h);
         return h;
     }
 }
