@@ -1,0 +1,63 @@
+{
+  // ---- .NET ----------------------------------------------------------------
+  "dotnet.defaultSolution": "RTS.sln",
+  "dotnet.server.useOmnisharp": false,
+  "omnisharp.enableEditorConfigSupport": true,
+
+  // ---- Godot ---------------------------------------------------------------
+  // SET THIS PER MACHINE. Must be the .NET/Mono build of Godot 4.7.1 (C# needs it).
+  // macOS default once installed:
+  //   /Applications/Godot_mono.app/Contents/MacOS/Godot
+  "godotTools.editorPath.godot4": "/Applications/Godot_mono.app/Contents/MacOS/Godot",
+  "godotTools.lsp.headless": true,
+
+  // ---- Noise control -------------------------------------------------------
+  // bin/obj are gitignored but still clutter search and the explorer.
+  "files.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    "**/.godot": true
+  },
+  "search.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    "**/.godot": true,
+    "**/*.dll": true
+  },
+  "files.watcherExclude": {
+    "**/bin/**": true,
+    "**/obj/**": true,
+    "**/.godot/**": true
+  },
+
+  // ---- ICM: make the contracts easy to see and hard to break ---------------
+  // CONTEXT.md is the contract for its folder; keep it first-class in the explorer.
+  "explorer.sortOrder": "type",
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "CLAUDE.md": "AGENTS.md, CONTEXT.md, README.md",
+    "*.csproj": "*.sln, packages.lock.json"
+  },
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": { "comments": "off", "strings": "off", "other": "on" },
+    "editor.rulers": [100]
+  },
+  "markdown.validate.enabled": true,
+  "markdown.validate.fileLinks.enabled": "error",
+  "markdown.validate.fragmentLinks.enabled": "error",
+
+  // ---- C# style ------------------------------------------------------------
+  "[csharp]": {
+    "editor.formatOnSave": true,
+    "editor.rulers": [120]
+  },
+  "files.associations": {
+    "*.tscn": "ini",
+    "*.tres": "ini",
+    "project.godot": "ini"
+  },
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true
+}
