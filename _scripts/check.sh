@@ -29,13 +29,19 @@ if grep -rnE '\b(float|double)\b' sim --include='*.cs' | grep -v '/obj/' | grep 
   err "float/double used inside sim/ (ADR 0003) — mark deliberate render-boundary conversions with // float-ok"
 fi
 
-# 3. generated files are fresh
+# 3. generated files are fresh.
+# check must be READ-ONLY: gen-indexes.sh rewrites in place, so snapshot first,
+# compare, then restore — otherwise `make check` silently mutates tracked files
+# and the reported staleness cannot be reproduced on a second run.
 tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
 cp AGENTS.md "$tmp/AGENTS.md" 2>/dev/null || true
 cp decisions/_index.md "$tmp/dindex.md" 2>/dev/null || true
 _scripts/gen-indexes.sh >/dev/null
 cmp -s AGENTS.md "$tmp/AGENTS.md" || err "AGENTS.md is stale — run make gen"
 cmp -s decisions/_index.md "$tmp/dindex.md" || err "decisions/_index.md is stale — run make gen"
+cp "$tmp/AGENTS.md" AGENTS.md 2>/dev/null || true
+cp "$tmp/dindex.md" decisions/_index.md 2>/dev/null || true
 
 # 4. CLAUDE.md stays small
 lines=$(wc -l < CLAUDE.md); [ "$lines" -le 70 ] || err "CLAUDE.md is $lines lines (limit 70) — move payload to a shelf"
