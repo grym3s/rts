@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "hegemony-conscription-hall",
+  "name": "Conscription Hall",
+  "faction": "hegemony",
+  "category": "production",
+  "tier": 1,
+  "prereq": "hegemony-construction-yard",
+  "cost": 400,
+  "buildTimeSeconds": 22,
+  "power": -20,
+  "produces": [
+    "infantry",
+    "conscription-site"
+  ],
+  "stats": {
+    "hp": 1800
+  }
+}

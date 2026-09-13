@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "coalition-refinery",
+  "name": "Refinery",
+  "faction": "coalition",
+  "category": "economy",
+  "tier": 1,
+  "prereq": "coalition-construction-yard",
+  "cost": 1500,
+  "buildTimeSeconds": 30,
+  "power": -20,
+  "produces": [
+    "credits",
+    "collector"
+  ],
+  "stats": {
+    "hp": 1000
+  }
+}

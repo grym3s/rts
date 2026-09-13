@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "coalition-sensor-command",
+  "name": "Sensor Command",
+  "faction": "coalition",
+  "category": "tech",
+  "tier": 2,
+  "prereq": "coalition-vehicle-bay",
+  "cost": 1500,
+  "buildTimeSeconds": 50,
+  "power": -50,
+  "produces": [
+    "t2",
+    "airbase",
+    "marking-network"
+  ],
+  "stats": {
+    "hp": 1000
+  }
+}

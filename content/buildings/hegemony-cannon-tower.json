@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "hegemony-cannon-tower",
+  "name": "Cannon Tower",
+  "faction": "hegemony",
+  "category": "defense",
+  "tier": 2,
+  "prereq": "hegemony-industrial-works",
+  "cost": 1000,
+  "buildTimeSeconds": 30,
+  "power": -50,
+  "produces": [
+    "heavy-defense-ap"
+  ],
+  "stats": {
+    "hp": 3000
+  }
+}

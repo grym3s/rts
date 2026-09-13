@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "id": "at-squad",
+  "name": "AT Squad",
+  "faction": "hegemony",
+  "role": "anti-armor",
+  "tier": 2,
+  "builtFrom": "hegemony-conscription-hall",
+  "cost": 250,
+  "buildTimeSeconds": 9,
+  "armor": "infantry",
+  "stats": {
+    "hp": 72,
+    "speed": 1.6,
+    "sight": 8.0
+  },
+  "weapon": {
+    "damageType": "missile",
+    "damage": 30,
+    "range": 7.0,
+    "cooldownTicks": 40,
+    "targets": [
+      "ground"
+    ]
+  },
+  "verbs": {
+    "conscriptable": true
+  }
+}

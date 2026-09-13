@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "id": "seer",
+  "name": "Seer",
+  "faction": "ascendant",
+  "role": "sniper",
+  "tier": 2,
+  "builtFrom": "ascendant-manifold",
+  "cost": 725,
+  "buildTimeSeconds": 14,
+  "armor": "infantry",
+  "stats": {
+    "hp": 32,
+    "speed": 1.6,
+    "sight": 13.0
+  },
+  "weapon": {
+    "damageType": "energy",
+    "damage": 50,
+    "range": 12.0,
+    "cooldownTicks": 60,
+    "targets": [
+      "ground"
+    ]
+  },
+  "verbs": {
+    "phases": true
+  }
+}

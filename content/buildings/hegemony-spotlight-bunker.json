@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "hegemony-spotlight-bunker",
+  "name": "Spotlight Bunker",
+  "faction": "hegemony",
+  "category": "defense",
+  "tier": 2,
+  "prereq": "hegemony-industrial-works",
+  "cost": 800,
+  "buildTimeSeconds": 30,
+  "power": -20,
+  "produces": [
+    "static-detector"
+  ],
+  "stats": {
+    "hp": 3000
+  },
+  "garrisonable": true
+}

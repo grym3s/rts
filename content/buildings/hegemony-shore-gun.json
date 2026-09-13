@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "hegemony-shore-gun",
+  "name": "Shore Gun",
+  "faction": "hegemony",
+  "category": "defense",
+  "tier": 3,
+  "prereq": "hegemony-shipyard",
+  "cost": 1200,
+  "buildTimeSeconds": 44,
+  "power": -50,
+  "produces": [
+    "coastal-battery",
+    "range-30"
+  ],
+  "stats": {
+    "hp": 3000
+  },
+  "requiresShore": true
+}

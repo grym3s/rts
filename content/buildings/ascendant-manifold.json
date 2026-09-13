@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "ascendant-manifold",
+  "name": "Manifold",
+  "faction": "ascendant",
+  "category": "production",
+  "tier": 1,
+  "prereq": "ascendant-construction-yard",
+  "cost": 400,
+  "buildTimeSeconds": 14,
+  "power": -20,
+  "produces": [
+    "infantry"
+  ],
+  "stats": {
+    "hp": 500
+  }
+}

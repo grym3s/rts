@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "hegemony-construction-yard",
+  "name": "Construction Yard",
+  "faction": "hegemony",
+  "category": "construction-yard",
+  "tier": 1,
+  "prereq": null,
+  "cost": 2500,
+  "buildTimeSeconds": 10,
+  "power": 0,
+  "produces": [
+    "all-structures",
+    "build-radius"
+  ],
+  "stats": {
+    "hp": 3000
+  }
+}

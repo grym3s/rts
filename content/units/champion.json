@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "id": "champion",
+  "name": "Champion",
+  "faction": "hegemony",
+  "role": "commando",
+  "tier": 3,
+  "builtFrom": "hegemony-conscription-hall",
+  "cost": 1200,
+  "buildTimeSeconds": 45,
+  "armor": "infantry",
+  "stats": {
+    "hp": 216,
+    "speed": 2.0,
+    "sight": 9.0
+  },
+  "weapon": {
+    "damageType": "small-arms",
+    "damage": 30,
+    "range": 5.0,
+    "cooldownTicks": 30,
+    "targets": [
+      "ground"
+    ]
+  },
+  "verbs": {
+    "conscriptable": true
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "hegemony-war-factory",
+  "name": "War Factory",
+  "faction": "hegemony",
+  "category": "production",
+  "tier": 1,
+  "prereq": "hegemony-construction-yard",
+  "cost": 1500,
+  "buildTimeSeconds": 40,
+  "power": -20,
+  "produces": [
+    "ground-vehicles"
+  ],
+  "stats": {
+    "hp": 1800
+  }
+}
