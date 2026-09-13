@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "id": "nest",
+  "name": "Nest",
+  "faction": "ascendant",
+  "role": "carrier",
+  "tier": 3,
+  "builtFrom": "ascendant-tidal-forge",
+  "cost": 2650,
+  "buildTimeSeconds": 60,
+  "armor": "heavy-naval",
+  "stats": {
+    "hp": 720,
+    "speed": 2.0,
+    "sight": 12.0
+  }
+}

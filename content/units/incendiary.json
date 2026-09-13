@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "id": "incendiary",
+  "name": "Incendiary",
+  "faction": "hegemony",
+  "role": "aoe-infantry",
+  "tier": 2,
+  "builtFrom": "hegemony-conscription-hall",
+  "cost": 275,
+  "buildTimeSeconds": 11,
+  "armor": "infantry",
+  "stats": {
+    "hp": 70,
+    "speed": 1.6,
+    "sight": 7.0
+  },
+  "weapon": {
+    "damageType": "explosive",
+    "damage": 14,
+    "range": 5.0,
+    "cooldownTicks": 30,
+    "targets": [
+      "ground"
+    ]
+  },
+  "verbs": {
+    "conscriptable": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "ripple",
+  "name": "Ripple",
+  "faction": "ascendant",
+  "role": "corvette",
+  "tier": 1,
+  "builtFrom": "ascendant-tidal-forge",
+  "cost": 725,
+  "buildTimeSeconds": 17,
+  "armor": "light-naval",
+  "stats": {
+    "hp": 240,
+    "speed": 4.0,
+    "sight": 10.0
+  },
+  "weapon": {
+    "damageType": "autocannon",
+    "damage": 10,
+    "range": 8.0,
+    "cooldownTicks": 8,
+    "targets": [
+      "sea"
+    ]
+  }
+}

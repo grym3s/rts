@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "precision-battery",
+  "name": "Precision Battery",
+  "faction": "coalition",
+  "role": "artillery",
+  "tier": 3,
+  "builtFrom": "coalition-vehicle-bay",
+  "cost": 1150,
+  "buildTimeSeconds": 30,
+  "armor": "light",
+  "stats": {
+    "hp": 86,
+    "speed": 2.0,
+    "sight": 8.0
+  },
+  "weapon": {
+    "damageType": "explosive",
+    "damage": 40,
+    "range": 16.0,
+    "cooldownTicks": 80,
+    "targets": [
+      "ground"
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "ascendant-forge",
+  "name": "Forge",
+  "faction": "ascendant",
+  "category": "production",
+  "tier": 1,
+  "prereq": "ascendant-construction-yard",
+  "cost": 1500,
+  "buildTimeSeconds": 25,
+  "power": -20,
+  "produces": [
+    "ground-vehicles"
+  ],
+  "stats": {
+    "hp": 500
+  }
+}

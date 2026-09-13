@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "aegis",
+  "name": "Aegis-class",
+  "faction": "coalition",
+  "role": "aa-cruiser",
+  "tier": 2,
+  "builtFrom": "coalition-shipyard",
+  "cost": 1275,
+  "buildTimeSeconds": 38,
+  "armor": "heavy-naval",
+  "stats": {
+    "hp": 450,
+    "speed": 3.0,
+    "sight": 12.0
+  },
+  "weapon": {
+    "damageType": "missile",
+    "damage": 12,
+    "range": 12.0,
+    "cooldownTicks": 8,
+    "targets": [
+      "air"
+    ]
+  }
+}

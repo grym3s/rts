@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "ascendant-drift-platform",
+  "name": "Drift Platform",
+  "faction": "ascendant",
+  "category": "offshore",
+  "tier": 2,
+  "prereq": "ascendant-tidal-forge",
+  "cost": 800,
+  "buildTimeSeconds": 18,
+  "power": -20,
+  "produces": [
+    "offshore"
+  ],
+  "stats": {
+    "hp": 500
+  },
+  "requiresShore": true
+}

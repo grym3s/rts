@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "troop-carrier",
+  "name": "Troop Carrier",
+  "faction": "hegemony",
+  "role": "apc",
+  "tier": 2,
+  "builtFrom": "hegemony-war-factory",
+  "cost": 550,
+  "buildTimeSeconds": 20,
+  "armor": "heavy",
+  "stats": {
+    "hp": 204,
+    "speed": 3.0,
+    "sight": 8.0
+  },
+  "weapon": {
+    "damageType": "small-arms",
+    "damage": 8,
+    "range": 4.0,
+    "cooldownTicks": 12,
+    "targets": [
+      "ground"
+    ]
+  }
+}

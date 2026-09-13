@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "lance-platform",
+  "name": "Lance Platform",
+  "faction": "ascendant",
+  "role": "light-at",
+  "tier": 2,
+  "builtFrom": "ascendant-forge",
+  "cost": 725,
+  "buildTimeSeconds": 14,
+  "armor": "light",
+  "stats": {
+    "hp": 68,
+    "speed": 3.6,
+    "sight": 9.0
+  },
+  "weapon": {
+    "damageType": "energy",
+    "damage": 18,
+    "range": 6.0,
+    "cooldownTicks": 26,
+    "targets": [
+      "ground"
+    ]
+  }
+}

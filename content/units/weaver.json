@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "id": "weaver",
+  "name": "Weaver",
+  "faction": "ascendant",
+  "role": "engineer",
+  "tier": 1,
+  "builtFrom": "ascendant-manifold",
+  "cost": 600,
+  "buildTimeSeconds": 12,
+  "armor": "infantry",
+  "stats": {
+    "hp": 55,
+    "speed": 1.8,
+    "sight": 6.0
+  }
+}

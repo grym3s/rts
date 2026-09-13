@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "hegemony-shipyard",
+  "name": "Shipyard",
+  "faction": "hegemony",
+  "category": "naval",
+  "tier": 1,
+  "prereq": "hegemony-construction-yard",
+  "cost": 1000,
+  "buildTimeSeconds": 50,
+  "power": -20,
+  "produces": [
+    "naval"
+  ],
+  "stats": {
+    "hp": 1800
+  },
+  "requiresShore": true
+}

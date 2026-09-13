@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "coalition-precision-turret",
+  "name": "Precision Turret",
+  "faction": "coalition",
+  "category": "defense",
+  "tier": 2,
+  "prereq": "coalition-sensor-command",
+  "cost": 1000,
+  "buildTimeSeconds": 30,
+  "power": -50,
+  "produces": [
+    "long-range-defense",
+    "marks"
+  ],
+  "stats": {
+    "hp": 1000
+  }
+}

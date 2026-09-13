@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "id": "flak-squad",
+  "name": "Flak Squad",
+  "faction": "hegemony",
+  "role": "anti-air",
+  "tier": 2,
+  "builtFrom": "hegemony-conscription-hall",
+  "cost": 250,
+  "buildTimeSeconds": 9,
+  "armor": "infantry",
+  "stats": {
+    "hp": 72,
+    "speed": 1.6,
+    "sight": 10.0
+  },
+  "weapon": {
+    "damageType": "autocannon",
+    "damage": 10,
+    "range": 8.0,
+    "cooldownTicks": 8,
+    "targets": [
+      "air"
+    ]
+  },
+  "verbs": {
+    "conscriptable": true
+  }
+}

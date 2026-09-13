@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "coalition-coastal-lance",
+  "name": "Coastal Lance",
+  "faction": "coalition",
+  "category": "defense",
+  "tier": 3,
+  "prereq": "coalition-shipyard",
+  "cost": 1200,
+  "buildTimeSeconds": 40,
+  "power": -50,
+  "produces": [
+    "coastal-battery",
+    "range-28"
+  ],
+  "stats": {
+    "hp": 1800
+  },
+  "requiresShore": true
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "coalition-reactor",
+  "name": "Reactor",
+  "faction": "coalition",
+  "category": "power",
+  "tier": 1,
+  "prereq": "coalition-construction-yard",
+  "cost": 400,
+  "buildTimeSeconds": 20,
+  "power": 100,
+  "produces": [
+    "power"
+  ],
+  "stats": {
+    "hp": 500
+  }
+}
