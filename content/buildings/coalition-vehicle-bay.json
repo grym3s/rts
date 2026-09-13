@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "coalition-vehicle-bay",
+  "name": "Vehicle Bay",
+  "faction": "coalition",
+  "category": "production",
+  "tier": 1,
+  "prereq": "coalition-construction-yard",
+  "cost": 1500,
+  "buildTimeSeconds": 35,
+  "power": -20,
+  "produces": [
+    "ground-vehicles"
+  ],
+  "stats": {
+    "hp": 1000
+  }
+}

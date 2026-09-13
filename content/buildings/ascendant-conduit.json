@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "ascendant-conduit",
+  "name": "Conduit",
+  "faction": "ascendant",
+  "category": "power",
+  "tier": 1,
+  "prereq": "ascendant-construction-yard",
+  "cost": 400,
+  "buildTimeSeconds": 14,
+  "power": 100,
+  "produces": [
+    "power"
+  ],
+  "stats": {
+    "hp": 250
+  }
+}

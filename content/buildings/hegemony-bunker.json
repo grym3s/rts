@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "hegemony-bunker",
+  "name": "Bunker",
+  "faction": "hegemony",
+  "category": "defense",
+  "tier": 1,
+  "prereq": "hegemony-conscription-hall",
+  "cost": 500,
+  "buildTimeSeconds": 15,
+  "power": -20,
+  "produces": [
+    "garrisonable-defense"
+  ],
+  "stats": {
+    "hp": 3000
+  },
+  "garrisonable": true
+}

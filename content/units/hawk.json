@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "hawk",
+  "name": "Hawk",
+  "faction": "coalition",
+  "role": "gunship",
+  "tier": 2,
+  "builtFrom": "coalition-airbase",
+  "cost": 1400,
+  "buildTimeSeconds": 28,
+  "armor": "air",
+  "stats": {
+    "hp": 189,
+    "speed": 6.0,
+    "sight": 10.0
+  },
+  "weapon": {
+    "damageType": "ap",
+    "damage": 26,
+    "range": 9.0,
+    "cooldownTicks": 24,
+    "targets": [
+      "ground"
+    ]
+  }
+}

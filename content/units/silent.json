@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "silent",
+  "name": "Silent-class",
+  "faction": "coalition",
+  "role": "submarine",
+  "tier": 2,
+  "builtFrom": "coalition-shipyard",
+  "cost": 1050,
+  "buildTimeSeconds": 30,
+  "armor": "submerged",
+  "stats": {
+    "hp": 315,
+    "speed": 3.5,
+    "sight": 9.0
+  },
+  "weapon": {
+    "damageType": "torpedo",
+    "damage": 45,
+    "range": 9.0,
+    "cooldownTicks": 50,
+    "targets": [
+      "sea",
+      "ground"
+    ]
+  }
+}

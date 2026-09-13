@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "ascendant-nexus",
+  "name": "Nexus",
+  "faction": "ascendant",
+  "category": "tech",
+  "tier": 2,
+  "prereq": "ascendant-forge",
+  "cost": 1500,
+  "buildTimeSeconds": 35,
+  "power": -50,
+  "produces": [
+    "t2",
+    "aerie"
+  ],
+  "stats": {
+    "hp": 500
+  }
+}

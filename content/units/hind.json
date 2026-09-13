@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "hind",
+  "name": "Hind",
+  "faction": "hegemony",
+  "role": "gunship",
+  "tier": 2,
+  "builtFrom": "hegemony-helipad",
+  "cost": 950,
+  "buildTimeSeconds": 31,
+  "armor": "air",
+  "stats": {
+    "hp": 252,
+    "speed": 6.0,
+    "sight": 10.0
+  },
+  "weapon": {
+    "damageType": "ap",
+    "damage": 26,
+    "range": 9.0,
+    "cooldownTicks": 24,
+    "targets": [
+      "ground"
+    ]
+  }
+}

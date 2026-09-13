@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "id": "mig",
+  "name": "MiG",
+  "faction": "hegemony",
+  "role": "interceptor",
+  "tier": 2,
+  "builtFrom": "hegemony-helipad",
+  "cost": 800,
+  "buildTimeSeconds": 26,
+  "armor": "air",
+  "stats": {
+    "hp": 156,
+    "speed": 8.0,
+    "sight": 10.0
+  },
+  "weapon": {
+    "damageType": "autocannon",
+    "damage": 12,
+    "range": 9.0,
+    "cooldownTicks": 8,
+    "targets": [
+      "air"
+    ]
+  }
+}
