@@ -32,12 +32,15 @@ public static class OrderSystem
     /// so multiple worlds can live in one process (tests) without cross-contamination.
     /// Re-issuing Move replaces the old order (no shift-queue until the game layer defines it).</summary>
     public static void ApplyCommands(Dictionary<EntityId, MoveOrder> orders, IReadOnlyList<Command> dueCommands,
-        Func<EntityId, Rts.Sim.World.Unit?>? unitOf = null)
+        Func<EntityId, Rts.Sim.World.Unit?>? unitOf = null, Action<int, int>? spend = null)
     {
         foreach (var c in dueCommands)
         {
             switch (c)
             {
+                case SpendCommand s:
+                    spend?.Invoke(s.Faction, s.Amount); // atomic TrySpend lives in EconomyStore
+                    break;
                 case MoveCommand m:
                     foreach (var unit in m.Units)
                         orders[unit] = new MoveOrder(m.Target, new List<FixVec2>(), m.Tick);

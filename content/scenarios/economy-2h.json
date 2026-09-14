@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 2,
+  "seed": 21,
+  "ticks": 600,
+  "map": { "width": 24, "height": 24, "blocked": [] },
+  "veins": [
+    { "at": [5, 5] },
+    { "at": [5, 18], "pool": 2000 }
+  ],
+  "refineries": [
+    { "faction": 0, "at": [12, 5] }
+  ],
+  "units": [
+    { "unit": "collector", "at": [5, 5] },
+    { "unit": "collector", "at": [5, 18] }
+  ],
+  "commands": [
+    { "tick": 1, "faction": 0, "type": "spend", "amount": 1000 },
+    { "tick": 500, "faction": 0, "type": "spend", "amount": 999999999 }
+  ],
+  "assert": { "creditIs": { "faction": 0, "value": 7500 } }
+}
