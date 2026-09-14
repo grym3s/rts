@@ -45,16 +45,28 @@ if (doc.TryGetProperty("units", out var unitEls))
         units.Spawn(world.Ids.Next(),
             new FixVec2(Fix64.FromDouble(u.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(u.GetProperty("at")[1].GetDouble())),
             p.Speed, p.Radius,
-            new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType));
+            new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest));
     }
 
-// --- orders + navigation wired to the tick (steps 1 and 3 of sim/CONTEXT.md) ---
+// --- orders + economy + navigation wired to the tick (steps 1-4 of sim/CONTEXT.md) ---
 var orders = new Dictionary<EntityId, MoveOrder>();
-world.Systems.Add((w, due) => OrderSystem.ApplyCommands(orders, due, units.Find));
+var econ = new Rts.Sim.Economy.EconomyStore();
+if (doc.TryGetProperty("veins", out var veinsEl))
+    foreach (var v in veinsEl.EnumerateArray())
+        econ.AddVein(new FixVec2(Fix64.FromDouble(v.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(v.GetProperty("at")[1].GetDouble())),
+            v.TryGetProperty("pool", out var pool) ? pool.GetInt32() : Rts.Sim.Economy.EconomyStore.FieldPool);
+if (doc.TryGetProperty("refineries", out var refsEl))
+    foreach (var r in refsEl.EnumerateArray())
+        econ.Refineries.Add(new Rts.Sim.Economy.EconomyStore.Refinery(
+            r.GetProperty("faction").GetInt32(),
+            new FixVec2(Fix64.FromDouble(r.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(r.GetProperty("at")[1].GetDouble()))));
+world.Systems.Add((w, due) => OrderSystem.ApplyCommands(orders, due, units.Find, (f, a) => econ.TrySpend(f, a)));
+world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.Step(econ, units, orders, w.Tick));
 world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
 world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick));
 world.Systems.Add((w, due) => units.DespawnDead());
 world.HashMixers.Add(units.Hash);
+world.HashMixers.Add(econ.Hash);
 
 // --- commands ---
 var commands = new List<Command>();
@@ -66,16 +78,17 @@ if (doc.TryGetProperty("commands", out var cmds))
     {
         var tick = c.GetProperty("tick").GetInt32();
         var faction = c.GetProperty("faction").GetInt32();
-        var target = c.GetProperty("target");
-        var tgt = new FixVec2(Fix64.FromDouble(target[0].GetDouble()), Fix64.FromDouble(target[1].GetDouble()));
         var unitIds = c.TryGetProperty("units", out var sel)
             ? sel.EnumerateArray().Select(i => new EntityId(i.GetInt32())).ToArray()
             : allUnits;
+        var hasTgt = c.TryGetProperty("target", out var target);
+        var tgt = hasTgt ? new FixVec2(Fix64.FromDouble(target[0].GetDouble()), Fix64.FromDouble(target[1].GetDouble())) : FixVec2.Zero;
         commands.Add(c.GetProperty("type").GetString() switch
         {
             "move" => new MoveCommand(tick, faction, unitIds, tgt, false),
             "attack-move" => new AttackMoveCommand(tick, faction, unitIds, tgt, false),
             "stop" => new StopCommand(tick, faction, unitIds),
+            "spend" => new SpendCommand(tick, faction, c.GetProperty("amount").GetInt32()),
             var t => throw new InvalidDataException($"unknown command type '{t}'")
         });
     }
@@ -83,11 +96,19 @@ if (doc.TryGetProperty("commands", out var cmds))
 
 // --- asserts ---
 var assert = doc.TryGetProperty("assert", out var a) ? a : default;
-var arriveBy = assert.ValueKind == JsonValueKind.Undefined ? 0 : assert.GetProperty("arriveByTick").GetInt32();
-var arriveR = assert.ValueKind == JsonValueKind.Undefined ? Fix64.One : Fix64.FromDouble(assert.GetProperty("arriveWithin").GetDouble());
-var arriveTarget = assert.ValueKind == JsonValueKind.Undefined ? FixVec2.Zero
-    : new FixVec2(Fix64.FromDouble(assert.GetProperty("arriveTarget")[0].GetDouble()), Fix64.FromDouble(assert.GetProperty("arriveTarget")[1].GetDouble()));
-var maxOverlapDepth = assert.ValueKind == JsonValueKind.Undefined ? Fix64.MaxValue : Fix64.FromDouble(assert.GetProperty("maxOverlapDepth").GetDouble());
+var arriveBy = assert.ValueKind != JsonValueKind.Undefined && assert.TryGetProperty("arriveByTick", out var abEl) ? abEl.GetInt32() : 0;
+Fix64 arriveR = assert.ValueKind != JsonValueKind.Undefined && assert.TryGetProperty("arriveWithin", out var awEl) ? Fix64.FromDouble(awEl.GetDouble()) : Fix64.One;
+FixVec2 arriveTarget = assert.ValueKind != JsonValueKind.Undefined && assert.TryGetProperty("arriveTarget", out var atEl)
+    ? new FixVec2(Fix64.FromDouble(atEl[0].GetDouble()), Fix64.FromDouble(atEl[1].GetDouble()))
+    : FixVec2.Zero;
+Fix64 maxOverlapDepth = assert.ValueKind != JsonValueKind.Undefined && assert.TryGetProperty("maxOverlapDepth", out var moEl) ? Fix64.FromDouble(moEl.GetDouble()) : Fix64.MaxValue;
+var creditIsFaction = -1;
+var creditIsValue = 0;
+if (assert.ValueKind != JsonValueKind.Undefined && assert.TryGetProperty("creditIs", out var credEl))
+{
+    creditIsFaction = credEl.GetProperty("faction").GetInt32();
+    creditIsValue = credEl.GetProperty("value").GetInt32();
+}
 
 // --- run ---
 var none = Array.Empty<Command>();
@@ -123,6 +144,11 @@ for (var i = 0; i < units.Units.Count; i++)
 if (worst > maxOverlapDepth)
 {
     Console.Error.WriteLine($"ASSERT FAIL: worst overlap {worst} exceeds {maxOverlapDepth}");
+    return 1;
+}
+if (creditIsFaction >= 0 && econ.Credits(creditIsFaction) != creditIsValue)
+{
+    Console.Error.WriteLine($"ASSERT FAIL: faction {creditIsFaction} credits {econ.Credits(creditIsFaction)} != {creditIsValue}");
     return 1;
 }
 

@@ -43,7 +43,8 @@ public sealed class UnitStore
 /// Armor defaults to Infantry, weapon DamageType to SmallArms (only live when Damage > 0).</summary>
 public sealed record UnitProfile(int Faction, Fix64 Hp, Fix64 Sight,
     Fix64 Damage, Fix64 Range, int CooldownTicks,
-    ArmorClass Armor = ArmorClass.Infantry, DamageType DamageType = DamageType.SmallArms);
+    ArmorClass Armor = ArmorClass.Infantry, DamageType DamageType = DamageType.SmallArms,
+    bool Harvest = false);
 
 /// <summary>Mutable unit state owned by the world.</summary>
 public sealed class Unit
@@ -65,6 +66,13 @@ public sealed class Unit
     public int CooldownRemaining { get; set; }
     public ArmorClass Armor { get; }
     public DamageType DamageType { get; }
+    // economy (sim/economy owns mutation; others read)
+    public bool Harvest { get; }
+    /// <summary>Harvest load in whole credits; Carrying = full, trip to refinery.</summary>
+    public int Load { get; set; }
+    public bool Carrying { get; set; }
+    /// <summary>Vein being harvested (return target after deposit); -1 = none.</summary>
+    public int HomeVein { get; set; } = -1;
     /// <summary>Unit being attacked (Attack order / auto-acquired). EntityId.None = no target.</summary>
     public EntityId TargetId { get; set; } = EntityId.None;
     /// <summary>True for units under an AttackMove order: auto-engage enemies along the route.</summary>
@@ -85,5 +93,6 @@ public sealed class Unit
         CooldownTicks = profile?.CooldownTicks ?? 0;
         Armor = profile?.Armor ?? ArmorClass.Infantry;
         DamageType = profile?.DamageType ?? DamageType.SmallArms;
+        Harvest = profile?.Harvest ?? false;
     }
 }
