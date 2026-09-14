@@ -39,9 +39,11 @@ public sealed class UnitStore
     }
 }
 
-/// <summary>Immutable stat block copied from the catalog at spawn. Weapon null = unarmed.</summary>
+/// <summary>Immutable stat block copied from the catalog at spawn. Weapon null = unarmed.
+/// Armor defaults to Infantry, weapon DamageType to SmallArms (only live when Damage > 0).</summary>
 public sealed record UnitProfile(int Faction, Fix64 Hp, Fix64 Sight,
-    Fix64 Damage, Fix64 Range, int CooldownTicks);
+    Fix64 Damage, Fix64 Range, int CooldownTicks,
+    ArmorClass Armor = ArmorClass.Infantry, DamageType DamageType = DamageType.SmallArms);
 
 /// <summary>Mutable unit state owned by the world.</summary>
 public sealed class Unit
@@ -61,6 +63,8 @@ public sealed class Unit
     public Fix64 Range { get; }
     public int CooldownTicks { get; }
     public int CooldownRemaining { get; set; }
+    public ArmorClass Armor { get; }
+    public DamageType DamageType { get; }
     /// <summary>Unit being attacked (Attack order / auto-acquired). EntityId.None = no target.</summary>
     public EntityId TargetId { get; set; } = EntityId.None;
     /// <summary>True for units under an AttackMove order: auto-engage enemies along the route.</summary>
@@ -79,5 +83,7 @@ public sealed class Unit
         Damage = profile?.Damage ?? Fix64.Zero;
         Range = profile?.Range ?? Fix64.Zero;
         CooldownTicks = profile?.CooldownTicks ?? 0;
+        Armor = profile?.Armor ?? ArmorClass.Infantry;
+        DamageType = profile?.DamageType ?? DamageType.SmallArms;
     }
 }

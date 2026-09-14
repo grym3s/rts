@@ -8,8 +8,11 @@ namespace Rts.Tests;
 
 public class CombatTests
 {
+    // Energy is the canon flat multiplier (docs/factions/counter-matrix.md): these tests
+    // exercise order/cooldown choreography, damage math per matrix cell is CounterMatrixTests.
     private static UnitProfile Profile(int faction, int hp = 60, int dmg = 10, int range = 4, int cd = 12, int sight = 8)
-        => new(faction, Fix64.FromInt(hp), Fix64.FromInt(sight), Fix64.FromInt(dmg), Fix64.FromInt(range), cd);
+        => new(faction, Fix64.FromInt(hp), Fix64.FromInt(sight), Fix64.FromInt(dmg), Fix64.FromInt(range), cd,
+            ArmorClass.Infantry, DamageType.Energy);
 
     private static (SimWorld w, UnitStore u, Dictionary<EntityId, MoveOrder> o) World()
     {
