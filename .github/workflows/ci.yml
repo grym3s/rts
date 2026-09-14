@@ -17,7 +17,8 @@ jobs:
       - run: dotnet build RTS.sln --no-restore -warnaserror
       - run: dotnet test sim/tests/Sim.Tests.csproj --no-build --nologo
       - run: dotnet run --project tools/scenario/Scenario.csproj --no-build -- content/scenarios/smoke.json
-      - run: dotnet run --project tools/scenario/Scenario.csproj --no-build -- content/scenarios/chokepoint-30.json --expect d7f1b66ed66d42a0
+      - run: dotnet run --project tools/scenario/Scenario.csproj --no-build -- content/scenarios/chokepoint-30.json --expect 1727e6d2adb5efb8
+      - run: dotnet run --project tools/scenario/Scenario.csproj --no-build -- content/scenarios/skirmish-10v10.json --expect 268b437ce4f27416
       - run: dotnet format RTS.sln --verify-no-changes
       - run: _scripts/check.sh
 

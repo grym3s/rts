@@ -1,3 +1,4 @@
+using System;
 using Rts.Sim.Core;
 
 namespace Rts.Sim.Orders;
@@ -30,13 +31,40 @@ public static class OrderSystem
     /// <summary>Unit id → its current order. Absent = idle. Owned by the composition layer, passed in — never static —
     /// so multiple worlds can live in one process (tests) without cross-contamination.
     /// Re-issuing Move replaces the old order (no shift-queue until the game layer defines it).</summary>
-    public static void ApplyCommands(Dictionary<EntityId, MoveOrder> orders, IReadOnlyList<Command> dueCommands)
+    public static void ApplyCommands(Dictionary<EntityId, MoveOrder> orders, IReadOnlyList<Command> dueCommands,
+        Func<EntityId, Rts.Sim.World.Unit?>? unitOf = null)
     {
         foreach (var c in dueCommands)
-            if (c is MoveCommand m)
-                foreach (var unit in m.Units)
-                    orders[unit] = new MoveOrder(m.Target, new List<FixVec2>(), m.Tick);
-        // AttackMove/Attack/Stop become real orders with their systems; until then they are consumed as no-ops
-        // so a stray combat command cannot leave the inbox unbounded.
+        {
+            switch (c)
+            {
+                case MoveCommand m:
+                    foreach (var unit in m.Units)
+                        orders[unit] = new MoveOrder(m.Target, new List<FixVec2>(), m.Tick);
+                    break;
+                case AttackMoveCommand am:
+                    foreach (var unit in am.Units)
+                    {
+                        orders[unit] = new MoveOrder(am.Target, new List<FixVec2>(), am.Tick);
+                        if (unitOf != null && unitOf(unit) is { } u) u.AttackMoving = true;
+                    }
+                    break;
+                case AttackCommand a:
+                    foreach (var unit in a.Units)
+                        if (unitOf != null && unitOf(unit) is { } u) u.TargetId = a.Target;
+                    break;
+                case StopCommand:
+                    foreach (var unit in ((StopCommand)c).Units)
+                    {
+                        orders.Remove(unit);
+                        if (unitOf != null && unitOf(unit) is { } u)
+                        {
+                            u.TargetId = EntityId.None;
+                            u.AttackMoving = false;
+                        }
+                    }
+                    break;
+            }
+        }
     }
 }

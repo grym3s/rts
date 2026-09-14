@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Rts.Sim.Combat;
 using Rts.Sim.Core;
 using Rts.Sim.Navigation;
 using Rts.Sim.Orders;
@@ -43,13 +44,16 @@ if (doc.TryGetProperty("units", out var unitEls))
         var p = catalog.Get(u.GetProperty("unit").GetString()!);
         units.Spawn(world.Ids.Next(),
             new FixVec2(Fix64.FromDouble(u.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(u.GetProperty("at")[1].GetDouble())),
-            p.Speed, p.Radius);
+            p.Speed, p.Radius,
+            new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks));
     }
 
 // --- orders + navigation wired to the tick (steps 1 and 3 of sim/CONTEXT.md) ---
 var orders = new Dictionary<EntityId, MoveOrder>();
-world.Systems.Add((w, due) => OrderSystem.ApplyCommands(orders, due));
+world.Systems.Add((w, due) => OrderSystem.ApplyCommands(orders, due, units.Find));
 world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
+world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick));
+world.Systems.Add((w, due) => units.DespawnDead());
 world.HashMixers.Add(units.Hash);
 
 // --- commands ---

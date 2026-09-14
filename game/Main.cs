@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using Godot;
 using Rts.Sim.Core;
+using Rts.Sim.Combat;
 using Rts.Sim.Navigation;
 using Rts.Sim.Orders;
 using Rts.Sim.Units;
@@ -40,13 +41,22 @@ public partial class Main : Node2D
         var catalog = UnitCatalog.LoadFromDirectory(ProjectSettings.GlobalizePath("res://../content/units"));
         _units = new UnitStore();
         var rifleman = catalog.Get("rifleman");
-        for (var i = 0; i < 12; i++)
+        var conscript = catalog.Get("conscript");
+        for (var i = 0; i < 6; i++) // local squad
             _units.Spawn(_sim.Ids.Next(),
-                new FixVec2(Fix64.FromInt(4 + i % 4), Fix64.FromInt(10 + i / 4)),
-                rifleman.Speed, rifleman.Radius);
+                new FixVec2(Fix64.FromInt(4 + i % 3), Fix64.FromInt(12 + i / 3)),
+                rifleman.Speed, rifleman.Radius,
+                new UnitProfile(0, rifleman.Hp, rifleman.Sight, rifleman.Damage, rifleman.Range, rifleman.CooldownTicks));
+        for (var i = 0; i < 6; i++) // enemy squad (attack-move them to fight)
+            _units.Spawn(_sim.Ids.Next(),
+                new FixVec2(Fix64.FromInt(38 + i % 3), Fix64.FromInt(12 + i / 3)),
+                conscript.Speed, conscript.Radius,
+                new UnitProfile(1, conscript.Hp, conscript.Sight, conscript.Damage, conscript.Range, conscript.CooldownTicks));
 
-        _sim.Systems.Add((w, due) => OrderSystem.ApplyCommands(_orders, due));
+        _sim.Systems.Add((w, due) => OrderSystem.ApplyCommands(_orders, due, _units.Find));
         _sim.Systems.Add((w, due) => NavigationSystem.Step(_map, _units, _orders));
+        _sim.Systems.Add((w, due) => CombatSystem.Step(_units, _orders, w.Tick));
+        _sim.Systems.Add((w, due) => _units.DespawnDead());
 
         // --- presentation ---
         var camera = new RtsCamera { Position = new Vector2(24 * UnitRenderer.CellSize, 16 * UnitRenderer.CellSize) };
@@ -58,6 +68,11 @@ public partial class Main : Node2D
             Units = _units,
             SelectedIds = () => _selection.Selected,
             DragBox = () => _dragBox,
+            TargetPos = id =>
+            {
+                var t = _units.Find(new EntityId(id));
+                return t == null ? null : UnitRenderer.ToWorld(t.Position.X, t.Position.Y);
+            },
         };
         AddChild(_renderer);
 
@@ -69,6 +84,7 @@ public partial class Main : Node2D
             Units = _units,
             Emit = c => _outbox.Add(c),
             CurrentTick = () => _sim.Tick,
+            EnemiesOf = id => _units.Find(new EntityId(id)) is { } u && u.Faction != 0,
         };
         _input.DragBoxChanged = (a, b) => _dragBox = a == b ? null : (a, b);
         AddChild(_input);
@@ -85,20 +101,21 @@ public partial class Main : Node2D
     /// through the same outbox path OrdersInput uses and asserts the sim reacts.</summary>
     private void RunSmoke()
     {
-        var ids = _units.Units.Select(u => u.Id).ToArray();
-        _outbox.Add(new MoveCommand(_sim.Tick, 0, ids,
+        var mine = _units.Units.Where(u => u.Faction == 0).Select(u => u.Id).ToArray();
+        _outbox.Add(new AttackMoveCommand(_sim.Tick, 0, mine,
             new FixVec2(Fix64.FromInt(40), Fix64.FromInt(16)), false));
         var start = _units.Units[0].Position;
-        for (var i = 0; i < 300; i++)
+        for (var i = 0; i < 900 && _units.Units.Count(u => u.Faction == 1) > 0; i++)
         {
             _sim.Step(_outbox);
             _outbox.Clear();
         }
         var moved = (_units.Units[0].Position - start).Length;
-        if (moved.ToDouble() > 1.0 && ids.Length > 0)
-            GD.Print($"SMOKE PASS unit0 moved {moved.ToDouble():F2} cells");
+        var enemiesLeft = _units.Units.Count(u => u.Faction == 1);
+        if (moved.ToDouble() > 1.0 && enemiesLeft == 0)
+            GD.Print($"SMOKE PASS unit0 moved {moved.ToDouble():F2} cells, enemy squad wiped");
         else
-            GD.PrintErr($"SMOKE FAIL unit0 moved {moved.ToDouble():F2}");
+            GD.PrintErr($"SMOKE FAIL moved {moved.ToDouble():F2}, {enemiesLeft} enemies left");
         GetTree().Quit();
     }
 
@@ -116,6 +133,7 @@ public partial class Main : Node2D
             _renderer.CaptureSnapshot(_sim.Tick);
             _accumulator -= step;
         }
+        _selection.Prune(id => _units.Find(new EntityId(id)) != null);
         sw.Stop();
         _simMs = _simMs * 0.9 + sw.Elapsed.TotalMilliseconds * 0.1;
         DrawAlpha = _accumulator / step;

@@ -148,7 +148,7 @@ public static class NavigationSystem
                 var startCell = (GameMap.CellOf(u.Position.X), GameMap.CellOf(u.Position.Y));
                 var path = Pathfinding.FindPath(map, startCell, goalCell);
                 if (path == null) { Console.Error.WriteLine($"UNREACHABLE u={u.Id.Value}"); orders.Remove(u.Id); continue; }
-                if (path.Count == 0) { Console.Error.WriteLine($"EMPTYPATH u={u.Id.Value}"); orders.Remove(u.Id); continue; }
+                if (path.Count == 0) { orders.Remove(u.Id); continue; } // already at target
                 // goal cell reached means the raw target point, not its centre: append exact target
                 path[path.Count - 1] = o.Target;
                 o.Path = path;

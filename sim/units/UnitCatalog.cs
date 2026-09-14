@@ -6,7 +6,8 @@ namespace Rts.Sim.Units;
 /// <summary>Loads content/units/*.json (schema v2) into spawn parameters. Authoring doubles become Fix64 here only (ADR 0003).</summary>
 public sealed class UnitCatalog
 {
-    public record SpawnParams(string Id, Fix64 Speed, Fix64 Radius, Fix64 Hp);
+    public record SpawnParams(string Id, Fix64 Speed, Fix64 Radius, Fix64 Hp, Fix64 Sight,
+        int Faction, Fix64 Damage, Fix64 Range, int CooldownTicks);
 
     private readonly Dictionary<string, SpawnParams> _byId = new();
     public static readonly Fix64 DefaultRadius = Fix64.Ratio(3, 10); // 0.3 cells: unit radius, tuning value until unit.json grows one
@@ -21,8 +22,18 @@ public sealed class UnitCatalog
             var stats = root.GetProperty("stats");
             var speed = stats.GetProperty("speed").GetDouble();
             var hp = stats.GetProperty("hp").GetDouble();
+            var sight = stats.TryGetProperty("sight", out var sg) ? sg.GetDouble() : 0.0;
+            var faction = root.GetProperty("faction").GetString() == "hegemony" ? 1 : 0;
+            Fix64 dmg = Fix64.Zero, rng = Fix64.Zero; var cd = 0;
+            if (root.TryGetProperty("weapon", out var wp))
+            {
+                dmg = Fix64.FromDouble(wp.GetProperty("damage").GetDouble());
+                rng = Fix64.FromDouble(wp.GetProperty("range").GetDouble());
+                cd = wp.GetProperty("cooldownTicks").GetInt32();
+            }
             cat._byId[root.GetProperty("id").GetString()!] = new(
-                root.GetProperty("id").GetString()!, Fix64.FromDouble(speed), DefaultRadius, Fix64.FromDouble(hp));
+                root.GetProperty("id").GetString()!, Fix64.FromDouble(speed), DefaultRadius,
+                Fix64.FromDouble(hp), Fix64.FromDouble(sight), faction, dmg, rng, cd);
         }
         return cat;
     }
