@@ -73,6 +73,8 @@ public sealed class Unit
     public bool Carrying { get; set; }
     /// <summary>Vein being harvested (return target after deposit); -1 = none.</summary>
     public int HomeVein { get; set; } = -1;
+    // production (sim/production owns mutation): non-null = this unit is a building
+    public Rts.Sim.Production.BuildingState? Building { get; set; }
     /// <summary>Unit being attacked (Attack order / auto-acquired). EntityId.None = no target.</summary>
     public EntityId TargetId { get; set; } = EntityId.None;
     /// <summary>True for units under an AttackMove order: auto-engage enemies along the route.</summary>

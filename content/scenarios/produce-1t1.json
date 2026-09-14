@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 2,
+  "seed": 31,
+  "ticks": 1200,
+  "map": { "width": 24, "height": 24, "blocked": [] },
+  "veins": [
+    { "at": [6, 9], "pool": 5000 }
+  ],
+  "refineries": [
+    { "faction": 0, "at": [5, 9] }
+  ],
+  "commands": [
+    { "tick": 1, "faction": 0, "type": "place", "building": "coalition-construction-yard", "at": [5, 5] },
+    { "tick": 202, "faction": 0, "type": "place", "building": "coalition-refinery", "at": [5, 9] },
+    { "tick": 805, "faction": 0, "type": "train", "building": 1, "unit": "collector" }
+  ],
+  "assert": { "buildingCountIs": { "count": 2 }, "creditIs": { "faction": 0, "value": 200 } }
+}
