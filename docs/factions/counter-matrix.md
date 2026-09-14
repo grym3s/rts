@@ -90,9 +90,13 @@ Naval adds three armor classes and two damage types (reference Part 6.6). Shown 
 
 Submerged is reachable only by **Torpedo** (and Energy) — detection is what lets you *target* it at all (reference 6.3: "detection is a unit, not an upgrade"). Surface guns fire on subs only when a detector reveals them, i.e. the `—` cells are targeting, not multiplier.
 
-## Content encoding (future schema bump)
+## Content encoding
 
-`content/units/*.json` today carries a flat `damage` (`content/CONTEXT.md`). Adopting this matrix is a schema change: add `armor` (one armor class) and `damageType` (one damage type) per unit, bump `schemaVersion`, and update the loader + the combat system to look up the cell — all in one PR, with a balance scenario. Until then this file is design canon the sim does not yet read.
+Implemented: `content/units/*.json` carries `armor` (one armor class) and `weapon.damageType` (one damage
+type); the loader (`sim/units/UnitCatalog`) and combat (`sim/combat/DamageMatrix` + `CombatSystem`) resolve
+the cell — damage applied = `damage × cell`, floored at 1 whole damage (chip, never bounce). Naval armor
+and `naval-gun`/`torpedo` parse; their non-canon cross-cells stay 1.0 until the naval slice tunes them.
+Balance scenarios: `content/scenarios/skirmish-10v10.json`, `counters-6v4.json` (hashes pinned in CI).
 
 ## Expose it in-game (non-negotiable, reference Part 4)
 

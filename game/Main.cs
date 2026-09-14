@@ -46,12 +46,12 @@ public partial class Main : Node2D
             _units.Spawn(_sim.Ids.Next(),
                 new FixVec2(Fix64.FromInt(4 + i % 3), Fix64.FromInt(12 + i / 3)),
                 rifleman.Speed, rifleman.Radius,
-                new UnitProfile(0, rifleman.Hp, rifleman.Sight, rifleman.Damage, rifleman.Range, rifleman.CooldownTicks));
+                new UnitProfile(0, rifleman.Hp, rifleman.Sight, rifleman.Damage, rifleman.Range, rifleman.CooldownTicks, rifleman.Armor, rifleman.DamageType));
         for (var i = 0; i < 6; i++) // enemy squad (attack-move them to fight)
             _units.Spawn(_sim.Ids.Next(),
                 new FixVec2(Fix64.FromInt(38 + i % 3), Fix64.FromInt(12 + i / 3)),
                 conscript.Speed, conscript.Radius,
-                new UnitProfile(1, conscript.Hp, conscript.Sight, conscript.Damage, conscript.Range, conscript.CooldownTicks));
+                new UnitProfile(1, conscript.Hp, conscript.Sight, conscript.Damage, conscript.Range, conscript.CooldownTicks, conscript.Armor, conscript.DamageType));
 
         _sim.Systems.Add((w, due) => OrderSystem.ApplyCommands(_orders, due, _units.Find));
         _sim.Systems.Add((w, due) => NavigationSystem.Step(_map, _units, _orders));
@@ -144,12 +144,28 @@ public partial class Main : Node2D
             var sb = new System.Text.StringBuilder();
             sb.Append($"tick {_sim.Tick}  sim {_simMs:F2} ms/step  sel {sel.Count} [{string.Join(",", sel.Take(8))}]");
             foreach (var id in sel.Take(4))
+            {
+                var u = _units.Find(new EntityId(id));
+                if (u == null) continue;
+                // counter matrix visible to the player (counter-matrix.md: hidden matrices are a complaint engine)
+                if (u.Damage.Raw > 0)
+                {
+                    var t = u.TargetId != EntityId.None ? _units.Find(u.TargetId) : null;
+                    if (t != null)
+                    {
+                        var mult = Rts.Sim.Combat.DamageMatrix.Get(u.DamageType, t.Armor);
+                        sb.Append($"\nu{id} {u.Damage.ToIntFloor()} {u.DamageType} -> u{t.Id.Value} {t.Armor} x{mult.ToDouble():F2} = {u.Damage.ToIntFloor() * mult.ToDouble():F1}");
+                    }
+                    else
+                        sb.Append($"\nu{id} {u.Damage.ToIntFloor()} {u.DamageType} armor {u.Armor}");
+                }
                 if (_orders.TryGetValue(new EntityId(id), out var o) && o.Waypoint < o.Path.Count)
                 {
-                    sb.Append($"\nu{id} path {o.Path.Count - o.Waypoint}: ");
+                    sb.Append($" path {o.Path.Count - o.Waypoint}: ");
                     sb.Append(string.Join(" ", o.Path.Skip(o.Waypoint).Take(4)
                         .Select(p => $"({p.X.ToDouble():F1},{p.Y.ToDouble():F1})")));
                 }
+            }
             _overlay.SetText(sb.ToString());
         }
     }

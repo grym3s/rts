@@ -38,7 +38,12 @@ public static class CombatSystem
             {
                 if (u.CooldownRemaining == 0)
                 {
-                    target.Hp -= u.Damage;
+                    // counter matrix: base damage x canon cell (tools/refmodel_counter_matrix.py).
+                    // Chip floor: a live weapon always does >= 1 whole damage — soft-with-cliffs
+                    // means chip, never bounce (ADR 0005); floor decided in the reference model.
+                    var applied = u.Damage * DamageMatrix.Get(u.DamageType, target.Armor);
+                    if (applied.Raw < Fix64.OneRaw) applied = Fix64.One;
+                    target.Hp -= applied;
                     u.CooldownRemaining = u.CooldownTicks;
                 }
             }
