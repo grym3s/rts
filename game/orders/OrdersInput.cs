@@ -16,7 +16,9 @@ public partial class OrdersInput : Node2D
     public required UnitStore Units;
     public required Action<Command> Emit;
     public required Func<int> CurrentTick;
+    public required Func<int, bool> EnemiesOf; // unit id -> hostile to the local faction
     public const int Faction = 0; // single-player slice: local player
+    private const int SelfFactionId = -1; // HitTest never returns this
 
     private Vector2 _dragStart;
     private bool _dragging;
@@ -89,6 +91,14 @@ public partial class OrdersInput : Node2D
         var units = ids.Select(i => new EntityId(i)).ToArray();
         var target = ToFix(screen);
         var tick = CurrentTick();
+
+        // right-click directly on an enemy unit -> Attack that unit
+        var hit = HitTest(ToWorld(screen));
+        if (hit.HasValue && hit.Value != SelfFactionId && EnemiesOf(hit.Value))
+        {
+            Emit(new AttackCommand(tick, Faction, units, new EntityId(hit.Value), shiftQueue));
+            return;
+        }
 
         var attackMove = Input.IsKeyPressed(Key.A);
         Emit(attackMove

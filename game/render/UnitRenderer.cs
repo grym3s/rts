@@ -17,6 +17,7 @@ public partial class UnitRenderer : Node2D
     public UnitStore Units = null!;
     public System.Func<IReadOnlyCollection<int>>? SelectedIds;
     public System.Func<(Vector2 A, Vector2 B)?>? DragBox; // world-space, while dragging
+    public System.Func<int, Vector2?>? TargetPos; // world pos of a unit id (attack lines)
 
     // double-buffered positions for interpolation: index = completedTick % 2
     private readonly Dictionary<int, Vector2>[] _snap = { new(), new() };
@@ -53,6 +54,22 @@ public partial class UnitRenderer : Node2D
             var r = (float)u.Radius.ToDouble() * 2f * CellSize;
 
             DrawCircle(pos, r, id % 2 == 0 ? Colors.SteelBlue : Colors.CadetBlue);
+
+            // HP bar when hurt
+            if (u.Hp < u.MaxHp)
+            {
+                var frac = (float)(u.Hp.ToDouble() / u.MaxHp.ToDouble());
+                var w = r * 2f;
+                var top = pos - new Vector2(r, r + 5f);
+                DrawRect(new Rect2(top, new Vector2(w, 3f)), new Color(0.1f, 0.1f, 0.1f, 0.8f), true);
+                var barColor = frac > 0.6f ? Colors.Green : frac > 0.3f ? Colors.Yellow : Colors.Red;
+                DrawRect(new Rect2(top, new Vector2(w * frac, 3f)), barColor, true);
+            }
+
+            // attack target line
+            if (u.TargetId.Value >= 0 && TargetPos != null && TargetPos(u.TargetId.Value) is { } tp)
+                DrawLine(pos, tp, new Color(1f, 0.3f, 0.3f, 0.6f), 1f);
+
             if (sel != null && sel.Contains(id))
                 DrawArc(pos, r + 3f, 0, Mathf.Tau, 32, Colors.LimeGreen, 1.5f);
         }

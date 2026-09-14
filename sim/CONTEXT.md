@@ -18,6 +18,7 @@ Never: references Godot or any engine; uses floats; reads wall-clock time.
 |---|---|
 | `core/` | live — Fix64, Rng, EntityId, Command, SimWorld |
 | `tests/` | live — xUnit |
-| `world/`, `units/`, `orders/`, `navigation/`, `combat/` | ghost — create with the issue that implements them, each with its own CONTEXT.md |
+| `world/`, `units/`, `orders/`, `navigation/` | live |
+| `combat/` | live — acquire/fire/damage/death (see `combat/CONTEXT.md`) |
 
 Tests: `make test`. Change impact: `map/effects/CONTEXT.md`.
