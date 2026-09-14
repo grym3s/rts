@@ -21,3 +21,4 @@ run:
 godot-test:
 	godot --path game --headless --import --quit
 	godot --path game --headless --quit
+	godot --path game --headless -- --smoke | grep -q "SMOKE PASS"
