@@ -7,7 +7,7 @@ Never: references Godot or any engine; uses floats; reads wall-clock time.
 
 ## Tick order (the one place this is stated)
 1. apply commands for this tick → orders (`orders/`, ghost)
-2. economy: harvest income, (later) power + production (`economy/`, live slice 1)
+2. economy: harvest income, production queues (`economy/`, `production/`, live)
 3. navigation: path + avoidance + movement (`navigation/`, ghost)
 4. combat: acquire, fire, damage, death (`combat/`, ghost)
 5. (future) visibility
@@ -21,5 +21,6 @@ Never: references Godot or any engine; uses floats; reads wall-clock time.
 | `world/`, `units/`, `orders/`, `navigation/` | live |
 | `combat/` | live — acquire/fire/damage/death (see `combat/CONTEXT.md`) |
 | `economy/` | live — credits + harvest loop slice 1 (see `economy/CONTEXT.md`) |
+| `production/` | live — buildings, construction, unit queues slice 2a (see `production/CONTEXT.md`) |
 
 Tests: `make test`. Change impact: `map/effects/CONTEXT.md`.

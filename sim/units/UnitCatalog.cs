@@ -9,7 +9,13 @@ public sealed class UnitCatalog
 {
     public record SpawnParams(string Id, Fix64 Speed, Fix64 Radius, Fix64 Hp, Fix64 Sight,
         int Faction, Fix64 Damage, Fix64 Range, int CooldownTicks,
-        ArmorClass Armor, DamageType DamageType, bool Harvest);
+        ArmorClass Armor, DamageType DamageType, bool Harvest,
+        int Cost, int BuildTicks, string BuiltFrom);
+
+    /// <summary>True when unitId names a unit this building (catalog id) fields:
+    /// canon link is the unit's `builtFrom` (content/CONTEXT.md), nothing else.</summary>
+    public bool Builds(string buildingCatalogId, string unitId) =>
+        _byId.TryGetValue(unitId, out var p) && p.BuiltFrom == buildingCatalogId;
 
     private readonly Dictionary<string, SpawnParams> _byId = new();
     public static readonly Fix64 DefaultRadius = Fix64.Ratio(3, 10); // 0.3 cells: unit radius, tuning value until unit.json grows one
@@ -39,7 +45,10 @@ public sealed class UnitCatalog
             }
             cat._byId[root.GetProperty("id").GetString()!] = new(
                 root.GetProperty("id").GetString()!, Fix64.FromDouble(speed), DefaultRadius,
-                Fix64.FromDouble(hp), Fix64.FromDouble(sight), faction, dmg, rng, cd, armor, dtype, harvest);
+                Fix64.FromDouble(hp), Fix64.FromDouble(sight), faction, dmg, rng, cd, armor, dtype, harvest,
+                root.GetProperty("cost").GetInt32(),
+                root.GetProperty("buildTimeSeconds").GetInt32() * Rts.Sim.Core.SimWorld.TicksPerSecond,
+                root.GetProperty("builtFrom").GetString()!);
         }
         return cat;
     }

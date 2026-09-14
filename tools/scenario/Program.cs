@@ -48,9 +48,10 @@ if (doc.TryGetProperty("units", out var unitEls))
             new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest));
     }
 
-// --- orders + economy + navigation wired to the tick (steps 1-4 of sim/CONTEXT.md) ---
+// --- orders + economy + production + navigation wired to the tick (steps 1-4 of sim/CONTEXT.md) ---
 var orders = new Dictionary<EntityId, MoveOrder>();
 var econ = new Rts.Sim.Economy.EconomyStore();
+var buildingsCat = BuildingCatalog.LoadFromDirectory(Path.Combine(repoRoot, "content", "buildings"));
 if (doc.TryGetProperty("veins", out var veinsEl))
     foreach (var v in veinsEl.EnumerateArray())
         econ.AddVein(new FixVec2(Fix64.FromDouble(v.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(v.GetProperty("at")[1].GetDouble())),
@@ -62,11 +63,16 @@ if (doc.TryGetProperty("refineries", out var refsEl))
             new FixVec2(Fix64.FromDouble(r.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(r.GetProperty("at")[1].GetDouble()))));
 world.Systems.Add((w, due) => OrderSystem.ApplyCommands(orders, due, units.Find, (f, a) => econ.TrySpend(f, a)));
 world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.Step(econ, units, orders, w.Tick));
+world.Systems.Add((w, due) => Rts.Sim.Production.ProductionSystem.Step(
+    buildingsCat, catalog, units, map, w.Ids, due,
+    (f, a) => econ.TrySpend(f, a),
+    (f, a) => { econ.Deposit(f, a); return true; }));
 world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
 world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick));
 world.Systems.Add((w, due) => units.DespawnDead());
 world.HashMixers.Add(units.Hash);
 world.HashMixers.Add(econ.Hash);
+world.HashMixers.Add(h => Rts.Sim.Production.ProductionStore.Hash(units, h));
 
 // --- commands ---
 var commands = new List<Command>();
@@ -89,6 +95,10 @@ if (doc.TryGetProperty("commands", out var cmds))
             "attack-move" => new AttackMoveCommand(tick, faction, unitIds, tgt, false),
             "stop" => new StopCommand(tick, faction, unitIds),
             "spend" => new SpendCommand(tick, faction, c.GetProperty("amount").GetInt32()),
+            "place" => new PlaceBuildingCommand(tick, faction, c.GetProperty("building").GetString()!,
+                new FixVec2(Fix64.FromDouble(c.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(c.GetProperty("at")[1].GetDouble()))),
+            "train" => new TrainCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("unit").GetString()!),
+            "cancel" => new CancelProductionCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("index").GetInt32()),
             var t => throw new InvalidDataException($"unknown command type '{t}'")
         });
     }
@@ -150,6 +160,17 @@ if (creditIsFaction >= 0 && econ.Credits(creditIsFaction) != creditIsValue)
 {
     Console.Error.WriteLine($"ASSERT FAIL: faction {creditIsFaction} credits {econ.Credits(creditIsFaction)} != {creditIsValue}");
     return 1;
+}
+if (assert.ValueKind != JsonValueKind.Undefined && assert.TryGetProperty("buildingCountIs", out var bcEl))
+{
+    var want = bcEl.GetProperty("count").GetInt32();
+    var alive = units.Units.Count(u => u.Building != null && u.Hp.Raw > 0);
+    var constructing = units.Units.Count(u => u.Building is { ConstructionRemaining: > 0 });
+    if (alive != want)
+    {
+        Console.Error.WriteLine($"ASSERT FAIL: buildings alive {alive} (constructing {constructing}) != {want}");
+        return 1;
+    }
 }
 
 var hash = world.StateHash();
