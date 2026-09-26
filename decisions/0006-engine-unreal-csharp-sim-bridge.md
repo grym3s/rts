@@ -1,5 +1,6 @@
 ---
-status: proposed
+status: accepted
+accepted: 2026-09-27
 date: 2026-09-26
 supersedes: 0002
 ---
@@ -15,4 +16,6 @@ Use Unreal coordinates with map X → world X, map Y → world Y, and height →
 
 The previous Godot 4 implementation remains the working runtime until the Unreal project can build, run the host, render authoritative state, accept commands, and pass equivalent CI and visual acceptance checks. Remove Godot only after those checks pass.
 
-**Promotion condition:** install and pin an official Unreal Linux build; verify the C++ project toolchain; then pass the host-process and command round-trip spike. The user selected Unreal and authorized the migration. The machine currently requires Epic account sign-in and EULA acceptance before the official Linux editor download is available.
+**Promotion condition:** install and pin an official Unreal Linux build; verify the C++ project toolchain; then pass the host-process and command round-trip spike. The user selected Unreal and authorized the migration.
+
+**Promoted 2026-09-27:** all conditions verified — Unreal 5.8.3 pinned at `~/.local/opt/UnrealEngine-5.8.3`; editor target builds from source; host-process launch, protocolVersion-1 command round-trip, and clean shutdown pass as in-engine automation test `RtsBridge.Host.RoundTrip` (see `unreal/CONTEXT.md`). Remaining gate before Godot retirement: slice 6 parity checks.
