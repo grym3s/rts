@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "id": "rifleman-v2",
+  "displayName": "Armored Rifleman \u2014 Prototype 2",
+  "faction": "undecided (visual palette is provisional Coalition-style)",
+  "role": "infantry",
+  "status": "rejected",
+  "provenance": {
+    "sourceReferences": [
+      "art/references/armoured-infantry-reference.jpg"
+    ],
+    "generatedBy": "Hand-authored procedural Blender 5.0.1 script; original geometry inspired by, not converted from, the reference image.",
+    "notes": "Separate iteration; the original rifleman blockout, GLB, and Godot runtime copy are preserved. Hard-surface armor, panoramic blue visor, chest magazines, backpack, rifle, and metallic material variation were modeled as skinned mesh components."
+  },
+  "sourceFiles": {
+    "blender": "art/work/rifleman-v2/rifleman_v2.blend",
+    "builder": "art/work/rifleman-v2/build_rifleman_v2.py",
+    "previewRenderer": "art/work/rifleman-v2/render_review.py"
+  },
+  "exports": {
+    "gltfBinary": "art/export/rifleman-v2/rifleman_v2.glb",
+    "animationPreview": "art/export/rifleman-v2/rifleman_v2_animations.mp4",
+    "gifPreview": "art/export/rifleman-v2/rifleman_v2_animations.gif",
+    "clipStills": [
+      "art/export/rifleman-v2/preview_idle.png",
+      "art/export/rifleman-v2/preview_move.png",
+      "art/export/rifleman-v2/preview_fire.png"
+    ]
+  },
+  "interchange": {
+    "format": "glTF 2.0 binary",
+    "authoringUp": "Z",
+    "authoringForward": "-Y",
+    "glTFUp": "Y",
+    "footOrigin": true,
+    "engineImport": "not yet reviewed in Unreal"
+  },
+  "rig": {
+    "bones": 16,
+    "skinning": "single armature, rigid-per-part vertex groups; all 18960 source vertices assigned",
+    "boneNames": [
+      "root",
+      "hips",
+      "chest",
+      "neck",
+      "head",
+      "arm_l",
+      "arm_r",
+      "fore_l",
+      "fore_r",
+      "thigh_l",
+      "thigh_r",
+      "shin_l",
+      "shin_r",
+      "foot_l",
+      "foot_r",
+      "rifle"
+    ]
+  },
+  "animations": [
+    {
+      "name": "idle",
+      "frames": 48,
+      "fps": 24,
+      "loopIntent": true
+    },
+    {
+      "name": "move",
+      "frames": 32,
+      "fps": 24,
+      "loopIntent": true
+    },
+    {
+      "name": "fire",
+      "frames": 24,
+      "fps": 24,
+      "loopIntent": false
+    }
+  ],
+  "mesh": {
+    "sourceVertices": 18960,
+    "materialParts": 12,
+    "materials": [
+      "undersuit_charcoal",
+      "armor_deep_teal",
+      "armor_ceramic_blue",
+      "armor_midnight_blue",
+      "brushed_alloy",
+      "visor_housing",
+      "visor_cobalt_glass",
+      "cyan_status_lights",
+      "unit_identification_brass",
+      "webbing_olive",
+      "rifle_graphite",
+      "rubber"
+    ]
+  },
+  "review": {
+    "blenderBuild": true,
+    "glbReimported": true,
+    "animationClipsFound": [
+      "idle",
+      "move",
+      "fire"
+    ],
+    "previewRendered": true,
+    "gameplayCameraScaleReviewed": false,
+    "unrealImported": false,
+    "notes": [
+      "Rejected by the user because it does not match the chat renders; keep only as a comparison artifact.",
+      "Do not install or use in the game. Build a new model from art/references/elite-infantry-chat-render.jpg."
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "source": "/run/media/grymes/T9/AI Folders/AI Project Folders/RTS Development/rts/art/references/elite-infantry-chat-render.jpg",
+  "output": "rifleman-hunyuan-shape.glb",
+  "backend": "backend=rocm device=cuda dtype=float16 raster=torch gpu=AMD Radeon AI PRO R9700, 15.5 GiB [HIP 7.13.26162]",
+  "settings": {
+    "steps": 30,
+    "guidance_scale": 5.0,
+    "octree_resolution": 192,
+    "seed": 42,
+    "remove_background": true
+  },
+  "vertices": 69819,
+  "faces": 139688,
+  "elapsed_seconds": 192.5,
+  "generator_log": "Device: cuda, dtype: torch.float16\nPreprocessing image (remove_bg=True)...\nSize after preprocessing: (512, 512)\nLoading pipeline (first run may take a few minutes)...\nPipeline components:\n  vae: ShapeVAE\n  model: HunYuanDiTPlain\n  scheduler: FlowMatchEulerDiscreteScheduler\n  conditioner: SingleImageEncoder\n  image_processor: ImageProcessorV2\nMesh generation: steps=30, guidance=5.0, octree=192, seed=42, track_gpu=False\nMesh ready: 69819 vertices, 139688 faces\n\u2705 Done in 192.4 s\nPreview (GLB): /home/grymes/.local/opt/hunyuan3d-2.1-rocm/outputs/hunyuan3d_20260927_002350_raw.glb\nPick a format on the right to download. Post-processing is also on the right.",
+  "status": "generated; visual review required; not approved for game use",
+  "visual_review": {
+    "reviewed_by": "Blender 5.0.1 headless renders (front, side, elevated)",
+    "matches": [
+      "full-body armored infantry silhouette",
+      "helmet and visor placement",
+      "broad shoulder armor",
+      "chest plates",
+      "backpack/tall antenna",
+      "two arms holding a long rifle",
+      "armored legs and boots"
+    ],
+    "mismatches": [
+      "surface is smooth and melted compared with the highly detailed reference",
+      "blue visor glow and blue status lights are absent",
+      "small armor panel shapes, edge wear, rifle rail and fine components are lost",
+      "front render is close in overall pose, not yet a production-quality asset"
+    ],
+    "decision": "keep as an isolated work-in-progress; do not export to runtime assets"
+  }
+}

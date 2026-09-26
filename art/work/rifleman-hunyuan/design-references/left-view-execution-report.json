@@ -1,0 +1,19 @@
+{
+  "status": "success_reference_image_only_not_production_asset",
+  "prompt_id": "a93cd19a-cd6d-48ba-8deb-18b3cbb1a50d",
+  "comfyui": "isolated local ComfyUI 0.37.0 on 127.0.0.1:8191",
+  "gpu": "AMD Radeon AI PRO R9700 gfx1201",
+  "runtime": "PyTorch 2.14.0+rocm7.2",
+  "encoder": "qwen3vl_8b_int8_convrot.safetensors",
+  "vae": "qwen_image_2.1_vae_bf16.safetensors",
+  "input": "art/work/rifleman-hunyuan/design-references/rifleman-rear-reference_00001_.png",
+  "output": "rifleman-left-side-reference_00001_.png",
+  "output_sha256": "bc7f607b96a5ef7f8eeaf71346197ef67ed5353e539debb3b5d2034ff5b2384d",
+  "workflow": "art/work/rifleman-hunyuan/design-references/left-view-workflow.json",
+  "generation": "30 steps; Euler/simple; CFG 1; seed 27092702",
+  "limitations": [
+    "AI-generated visual interpretation, not confirmed canon",
+    "reference only, not geometry, rigging or runtime asset",
+    "side armor proportions must be compared to front reference during modeling"
+  ]
+}

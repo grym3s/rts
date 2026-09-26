@@ -1,0 +1,18 @@
+{
+  "status": "success_reference_image_only_not_production_asset",
+  "prompt_id": "1f0cf0e9-353f-4015-86ff-abf483f5ac2b",
+  "comfyui": "isolated local ComfyUI 0.37.0 on 127.0.0.1:8191",
+  "gpu": "AMD Radeon AI PRO R9700 gfx1201",
+  "runtime": "PyTorch 2.14.0+rocm7.2",
+  "input": "art/references/elite-infantry-chat-render.jpg",
+  "output": "rifleman-battle-wear-01_00001_.png",
+  "output_sha256": "3c010822089fcb934e5cc5cce6bd42b3e7858ca69c8293f55a6aa0e1171895f5",
+  "workflow": "art/work/rifleman-hunyuan/design-references/battle-wear-01-workflow.json",
+  "generation": "32 steps; Euler/simple; CFG 1; seed 27092703",
+  "purpose": "visual guide for later per-material damage variants; not a UV texture or production asset",
+  "limitations": [
+    "preserve original armor design as canon",
+    "image edit may alter small details and must be reviewed against primary reference",
+    "battle-wear pattern must be authored on model geometry/UVs later"
+  ]
+}

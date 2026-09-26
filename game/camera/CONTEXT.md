@@ -1,3 +1,3 @@
 # game/camera — pan/zoom
 
-`RtsCamera` (Camera2D): arrow keys + edge-scroll pan, wheel zoom anchored at cursor (50–200 px per sim cell… grid is 32 px at zoom 1). WASD intentionally unbound (order hotkeys). Bounds to the map rect via `SetBounds`. No sim types here.
+`RtsCamera` (Camera3D): perspective high-angle RTS camera with fixed 52° elevation, arrow/edge-scroll pan, wheel zoom anchored to the ground point under the cursor, and clamping to the 48×32 test map. It exposes ground-plane ray intersection for input. Simulation X/Y corresponds to Godot world X/Z. WASD remains unbound (A and S are order hotkeys). No sim types here.

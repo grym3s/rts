@@ -1,0 +1,29 @@
+{
+  "status": "success_reference_image_only_not_production_asset",
+  "prompt_id": "33aa45f3-03ad-4cad-87b1-177199d18f1d",
+  "comfyui": "isolated local ComfyUI 0.37.0 on 127.0.0.1:8190",
+  "gpu": "AMD Radeon AI PRO R9700 gfx1201",
+  "runtime": "PyTorch 2.14.0+rocm7.2",
+  "models": {
+    "diffusion_model": "qwen_image_2.1-Q4_K_M.gguf",
+    "text_encoder": "qwen3vl_8b_int8_convrot.safetensors",
+    "text_encoder_sha256": "8bfd0f6e12abf2d2d697ecc888e5e90b0d6741d6708f05799f53afa560452e8f",
+    "vae": "qwen_image_2.1_vae_bf16.safetensors"
+  },
+  "reference": "art/references/elite-infantry-chat-render.jpg",
+  "output": "rifleman-rear-reference_00001_.png",
+  "output_sha256": "74664fda34e6e8e4f24c63ba54e79c916fa8b923d9a1175deb330a3b0c6cd24a",
+  "prompt": "Create a high-fidelity character design reference of the EXACT same armored science-fiction infantry soldier as the input image, viewed directly from behind at true rear orthographic angle. Full figure from helmet top to boot soles, centered, no cropping, both arms held slightly away from the body in a relaxed A-pose, legs shoulder-width, hands empty. Preserve the reference's unmistakable proportions and equipment: broad layered angular shoulder armor, rounded segmented helmet shell, compact upper-back power pack with a centered circular blue-lit sensor, dark flexible undersuit, thick forearm and thigh plates, utility pouches, layered knee and shin armor, heavy armored boots. Preserve the dark battle-worn gunmetal and desaturated blue-grey armor, narrow faded pale-blue painted stripes, electric-blue status lights. Show plausible rear armor construction: panel breaks, recessed fasteners, hinges, cable guards, vents, worn paint edges, fine scratches, dents and soot; surface detail must remain physically attached to armor. The rifle is held low across the front and should be hidden from this rear camera; do not invent a second weapon. Cinematic AAA game asset presentation but evenly lit neutral charcoal studio background, crisp neutral key and rim lights that reveal the entire silhouette and surface finish, sharp focus, realistic PBR materials, no dramatic fog, no text, no labels, no extra figures, no turntable or multiple panels.",
+  "negative_prompt": "front view, three-quarter view, side view, cropped boots, cropped helmet, duplicate limbs, extra arms, extra legs, floating armor, smooth toy plastic, bright white armor, gold armor, red armor, fantasy robe, cape, exposed face, visible eyes, anime, illustration, low polygon, blurry, painterly, text, watermark, extra character, multiple views, collage, grid",
+  "seed": 270927,
+  "steps": 30,
+  "cfg": 1.0,
+  "sampler": "euler",
+  "scheduler": "simple",
+  "validation": "ComfyUI returned success; generated rear view visually checked. R9700 inference completed without observed GPU reset. This is evidence for this workload/runtime, not proof that the prior Hunyuan3D PyTorch 2.11 ROCm 7.13 texturing hang is fixed.",
+  "limitations": [
+    "AI-generated design reference only",
+    "do not use as geometry or runtime asset",
+    "rear details are plausible generated interpretation"
+  ]
+}
