@@ -1,0 +1,9 @@
+# tools/sim-host — engine-independent sim process
+
+Owns: a stdio newline-delimited-JSON host exposing the composed SimWorld to non-.NET engines (Unreal first). One request in, one response out per line. Kinds: `init` (scenario-v2 object minus commands/ticks/assert → snapshot at tick 0), `step` (tick + tick-stamped scenario-format commands → advances EXACTLY one tick, returns snapshot + events), plus bounded errors (never crashes the process).
+Protocol: `protocolVersion` must equal 1; request `tick` is the sim tick the commands execute AT (after init the host is at 0; commands stamped T ride the step that leaves Tick==T, matching the scenario runner's `t = 0..ticks-1` loop). Duplicates/gaps/command-mismatched stamps are recoverable `ok:false` errors; the world only advances on accepted steps, and a rejected request NEVER discards an initialized world (every error path is bounded to before `World.Step`). Command `target` is polymorphic by type: move/attack-move = `[x, y]`; attack = integer entity id (strict — non-integer/missing target is `malformed_request`). Response `state.hash` is an exact lowercase 16-hex-digit JSON **string** (the runner/CI format; raw JSON numbers lose precision >2^53-1 in JS consumers).
+Reads: `content/units`, `content/buildings` catalogs, scenario JSON on stdin. Writes: response lines on stdout.
+Composition is a verbatim copy of `tools/scenario/Program.cs` wiring; determinism parity with the runner's golden hashes is asserted by `tools/sim-host.tests` — if wiring drifts, those tests fail.
+Tests: `dotnet test tools/sim-host.tests`. CI runs `make check test`.
+Do NOT: add game rules, duplicate rule logic, own tick looping beyond one step, or mutate scenario semantics. `already_initialized` is fatal-by-design — restart the process to reset.
+Known limits (2026-09-26): events expose only (tick, subject, target) — the SimEvent contract; richer payloads need a sim-side contract change first, not host invention.

@@ -17,11 +17,11 @@ Working folders (`sim/<system>/`, `game/<area>/`, `tools/<tool>/`) each carry a 
 
 - **live** — in force; implement and cite against it.
 - **leftover** — still present, no longer the main path; touch only if in scope.
-- **ghost** — named or planned, not wired (e.g. `sim/navigation/` until it exists). Do not implement against ghosts as if they existed.
+- **ghost** — named or planned, not wired (e.g. visibility, formations). Do not implement against ghosts as if they existed.
 
 ## Name collisions
 
-- "Unit" in design talk = an `EntityId` plus rows in the component arrays in `sim/units/` (ghost until created), not a class.
+- "Unit" in design talk = an `EntityId` plus rows in the component arrays in `sim/units/` + `sim/world/UnitStore`, not a class.
 - "Order" = a per-unit queued intent (Move, AttackMove, …); "Command" = a tick-stamped player/AI input that *creates* orders. Commands cross the seam; orders never do.
 - "Scenario" = a `content/scenarios/*.json` start state + optional command log; "Replay" = a scenario plus a recorded command log and expected end-state hash.
 

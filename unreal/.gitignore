@@ -1,0 +1,9 @@
+; Unreal project caches and build outputs — never commit these.
+Binaries/
+Intermediate/
+Saved/
+Build/
+.vs/
+.vscode/
+*.generated.h
+dist/
