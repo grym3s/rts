@@ -7,3 +7,4 @@
 | [0003](0003-fixed-point-deterministic-sim.md) | accepted | 2026-08-17 | The sim uses fixed-point math and is deterministic from day one |
 | [0004](0004-repo-is-icm-system-map-subject.md) | accepted | 2026-08-17 | The repository is an ICM System Map subject with a thin factory |
 | [0005](0005-answers-not-holes.md) | accepted | 2026-08-30 | Answers, not holes: every faction can answer every strategy |
+| [0006](0006-engine-unreal-csharp-sim-bridge.md) | proposed | 2026-09-26 | Presentation engine: Unreal Engine 5 with an engine-independent .NET simulation |

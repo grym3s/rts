@@ -4,5 +4,5 @@ Owns: `GameMap` (square walkable grid; cell (cx,cy) spans [cx,cx+1]²), `UnitSto
 Reads: scenario data (via tools/scenario). Writes: its own structures only.
 Runs at: created before the first tick; mutated by `sim/orders` + `sim/navigation` during a tick.
 Tests: `../tests/NavigationTests.cs`.
-Do NOT: hold orders (that is `../orders`), pathfinding (`../navigation`), combat state (no folder yet — ADR: combat comes later).
+Do NOT: hold orders (that is `../orders`), pathfinding (`../navigation`), combat target/cooldown state (that is `../combat`).
 Change impact: grid geometry or unit fields change scenario hashes — `map/effects/CONTEXT.md`.

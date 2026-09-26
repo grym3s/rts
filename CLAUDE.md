@@ -21,8 +21,8 @@ Built on ICM: folders carry architecture, each working folder has a `CONTEXT.md`
 
 | If asked to… | Read first | Then |
 |---|---|---|
-| change movement / pathing | `sim/navigation/CONTEXT.md` (not yet created — see `sim/CONTEXT.md`), `map/effects/CONTEXT.md` | edit, `make test`, run scenarios |
-| change combat / targeting / damage | `sim/combat/CONTEXT.md` (not yet created), `map/effects/CONTEXT.md` | same |
+| change movement / pathing | `sim/navigation/CONTEXT.md`, `map/effects/CONTEXT.md` | edit, `make test`, run scenarios |
+| change combat / targeting / damage | `sim/combat/CONTEXT.md`, `map/effects/CONTEXT.md` | same |
 | add or tune a unit type | `content/CONTEXT.md`, then `sim/units/CONTEXT.md` | data first; code only for new behaviour |
 | change how it looks or controls | `game/CONTEXT.md` | `make godot-test` + manual check |
 | answer "what does changing X hit" | `map/effects/CONTEXT.md` | open the named contracts/cards |
