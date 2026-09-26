@@ -1,0 +1,23 @@
+{
+  "status": "failed_before_sampling",
+  "date": "2026-09-27",
+  "purpose": "Generate a rear orthographic design reference for the existing infantry mesh using the local Qwen Image 2.1 model.",
+  "input_reference": "art/references/elite-infantry-chat-render.jpg",
+  "workflow_prompt": "back-view-workflow.json",
+  "hardware": {
+    "gpu": "AMD Radeon AI PRO R9700",
+    "architecture": "gfx1201",
+    "runtime": "ComfyUI PyTorch 2.14.0+rocm7.2"
+  },
+  "models": {
+    "diffusion_model": "qwen_image_2.1-Q4_K_M.gguf",
+    "text_encoder_attempted": "qwen_3_4b.safetensors",
+    "text_encoder_expected_width": 4096,
+    "text_encoder_actual_width": 2560,
+    "compatible_encoder_being_downloaded": "Comfy-Org/Qwen-Image-2.1 text_encoders/qwen3vl_8b_int8_convrot.safetensors"
+  },
+  "error": "Given normalized_shape=[4096], expected input with shape [*4096], but got input of size [1, 291, 2560]",
+  "result": "No image was generated. The model and encoder loaded on the R9700, but sampling could not start because their feature widths do not match.",
+  "gpu_observation": "The R9700 completed model loading and reached the sampler without an amdgpu page fault or reset in this attempt. This does not prove the longer texture-generation workload is stable.",
+  "next_action": "Retry this saved prompt only after the official Qwen Image 2.1 compatible 8B text encoder is downloaded and ComfyUI has rediscovered it."
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "assetId": "rifleman",
+  "sheet": "rifleman_sheet.png",
+  "projection": "orthographic",
+  "background": "transparent",
+  "frameSizePx": [96, 96],
+  "layout": { "rows": 1, "columns": 8, "order": "row-major" },
+  "directions": ["E", "SE", "S", "SW", "W", "NW", "N", "NE"],
+  "directionConvention": "compass bearing on the top-down map; sprite faces that screen direction (N = screen-up)",
+  "animations": [
+    { "name": "idle", "rows": [0], "framesPerDirection": 1, "framesPerSecond": 1 }
+  ],
+  "framesPerSecond": 1,
+  "pixelsPerSimCellAtZoom1": 32,
+  "modelHeightMeters": 1.81,
+  "pivot": { "x": 0.5, "y": 0.92 },
+  "pivotNote": "bottom-centre of the frame; y measured from the top in texture space. Tune in-engine against the 32px/sim-cell footprint.",
+  "limits": "Blockout: single idle pose per direction, no rig, flat materials. Not a production animation set."
+}

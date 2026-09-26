@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "rifleman",
+  "displayName": "Coalition Rifleman",
+  "faction": "coalition (provisional)",
+  "role": "infantry",
+  "status": "animated-production",
+  "provenance": {
+    "sourceReferences": [
+      "art/references/armoured-infantry-reference.jpg"
+    ],
+    "generatedBy": "Procedural Blender 5.0.1 authoring via blender --background (build_rifleman.py). No image-to-3D generator locally; Qwen Image 2.1 through ComfyUI is concept images only.",
+    "notes": "Original design inspired by the reference silhouette (squat armoured infantry, domed helmet, visor slit, backpack, short rifle). Not generated from the image; reference untouched. Previous 2D blockout + sprite sheet archived under art/archive/2d-sprite-prototype-2026-09-26/."
+  },
+  "sourceFiles": {
+    "blender": "art/work/rifleman/rifleman.blend",
+    "intermediates": [
+      "art/work/rifleman/build_rifleman.py",
+      "art/work/rifleman/render_previews.py"
+    ]
+  },
+  "exports": {
+    "gltfBinary": "art/work/rifleman/rifleman.glb",
+    "gameCopy": "game/assets/rifleman/rifleman.glb"
+  },
+  "rig": {
+    "bones": 16,
+    "names": ["root", "hips", "chest", "neck", "head", "arm_l", "arm_r", "fore_l", "fore_r", "thigh_l", "thigh_r", "shin_l", "shin_r", "foot_l", "foot_r", "rifle"],
+    "convention": "Blender Z-up, origin at feet, facing -Y; down-limbs rolled -90 so local +Y pitches forward. glTF export +Y up: Godot sees forward -Z, feet y=0."
+  },
+  "animations": [
+    { "name": "idle", "frames": 48, "fps": 24, "loop": true },
+    { "name": "move", "frames": 24, "fps": 24, "loop": true },
+    { "name": "fire", "frames": 24, "fps": 24, "loop": true }
+  ],
+  "mesh": {
+    "name": "Rifleman",
+    "vertices": 423,
+    "materials": ["coalition_armor", "coalition_plate", "coalition_fabric", "equipment_dark", "visor_glow", "rifle_body", "insignia_brass"],
+    "skinning": "single skinned mesh, whole-part vertex groups (verified 423/423 weighted)"
+  },
+  "review": {
+    "blenderOpened": true,
+    "godotImported": true,
+    "cameraScaleReviewed": false,
+    "visualRoundtrip": [
+      "preview_front.png (idle), preview_back.png (idle), preview_left.png (move), preview_right.png (move), preview_aim34.png (fire)",
+      "Vision review of GLB roundtrip: rifle held forward, walk stride readable, backpack correct, no detached/intersecting geometry. Blocky low-poly style; upgrade path is a subdivision/sculpt pass.",
+      "cameraScaleReviewed remains false until a Godot gameplay screenshot at normal zoom is reviewed."
+    ],
+    "notes": [
+      "Faction assignment provisional: reference is a blue-visored armored infantry from the 'Elite Unit Design' chat; content/units/rifleman.json says coalition basic-infantry. Reconcile against docs/factions/ before production polish.",
+      "Animation driver: game/render/UnitRenderer.cs plays idle/move from interpolated velocity and fires 'fire' on a CooldownRemaining 0->positive edge with a valid target."
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "replace-with-kebab-case-id",
+  "displayName": "Replace with unit name",
+  "faction": null,
+  "role": "infantry",
+  "status": "concept",
+  "provenance": {
+    "sourceReferences": [],
+    "generatedBy": null,
+    "notes": "Record which parts are reference, generated, and manually edited."
+  },
+  "sourceFiles": {
+    "blender": null,
+    "intermediates": []
+  },
+  "exports": {
+    "gltfBinary": null,
+    "spriteSheet": null,
+    "spriteManifest": null
+  },
+  "spriteContract": {
+    "projection": "orthographic",
+    "background": "transparent",
+    "directions": [],
+    "animations": [],
+    "frameSizePx": null,
+    "framesPerSecond": null,
+    "pixelsPerSimCellAtZoom1": 32,
+    "pivot": null
+  },
+  "review": {
+    "blenderOpened": false,
+    "godotImported": false,
+    "cameraScaleReviewed": false,
+    "notes": []
+  }
+}

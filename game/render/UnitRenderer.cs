@@ -7,78 +7,210 @@ using Rts.Sim.World;
 
 namespace Rts.Game;
 
-/// <summary>Draws units as circles from sim state (read-only), interpolating between the last two
-/// tick snapshots. Also draws selection rings and the live selection box (delegated by Main).
-/// Fix64 → float happens here, at the render boundary (game/CONTEXT.md).</summary>
-public partial class UnitRenderer : Node2D
+/// <summary>Creates 3D unit views from sim state. Reads only; map X/Y maps to world X/Z.</summary>
+public partial class UnitRenderer : Node3D
 {
-    public const float CellSize = 32.0f; // px per sim cell at zoom 1
-
     public UnitStore Units = null!;
-    public System.Func<IReadOnlyCollection<int>>? SelectedIds;
-    public System.Func<(Vector2 A, Vector2 B)?>? DragBox; // world-space, while dragging
-    public System.Func<int, Vector2?>? TargetPos; // world pos of a unit id (attack lines)
+    public Func<IReadOnlyCollection<int>>? SelectedIds;
+    public Func<int, Vector3?>? TargetPos;
 
-    // double-buffered positions for interpolation: index = completedTick % 2
-    private readonly Dictionary<int, Vector2>[] _snap = { new(), new() };
+    private const string InfantryScenePath = "res://assets/rifleman/rifleman.glb";
+    private const float PickableUnitHeight = 0.9f;
+    private readonly Dictionary<int, Vector3>[] _snapshots = { new(), new() };
+    private readonly Dictionary<int, UnitView> _views = new();
+    private readonly Dictionary<int, int> _lastCooldown = new();
+    private PackedScene? _infantryScene;
+    private ImmediateMesh _targetLineMesh = null!;
     private int _lastTick = -1;
 
-    public static Vector2 ToWorld(Fix64 x, Fix64 y) =>
-        new((float)x.ToDouble() * CellSize, (float)y.ToDouble() * CellSize);
+    private sealed class UnitView
+    {
+        public required Node3D Root { get; init; }
+        public required MeshInstance3D SelectionRing { get; init; }
+        public required MeshInstance3D HealthBackground { get; init; }
+        public required MeshInstance3D HealthFill { get; init; }
+        public AnimationPlayer? Animator { get; init; }
+    }
 
-    /// <summary>Called by Main after each sim step with the tick that just completed.</summary>
+    public static Vector3 ToWorld(Fix64 mapX, Fix64 mapY) =>
+        new((float)mapX.ToDouble(), 0, (float)mapY.ToDouble());
+
+    public override void _Ready()
+    {
+        _infantryScene = ResourceLoader.Load<PackedScene>(InfantryScenePath);
+        if (_infantryScene == null)
+            GD.PushWarning($"Could not load {InfantryScenePath}; using a capsule proxy until the unit asset is installed.");
+
+        var lineMaterial = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            AlbedoColor = new Color(1.0f, 0.18f, 0.12f, 0.72f),
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+        };
+        _targetLineMesh = new ImmediateMesh();
+        AddChild(new MeshInstance3D { Mesh = _targetLineMesh, MaterialOverride = lineMaterial });
+    }
+
+    /// <summary>Capture one completed fixed-step snapshot for render interpolation.</summary>
     public void CaptureSnapshot(int tick)
     {
-        var buf = _snap[tick % 2];
-        buf.Clear();
-        foreach (var u in Units.Units)
-            buf[u.Id.Value] = ToWorld(u.Position.X, u.Position.Y);
+        var buffer = _snapshots[tick % 2];
+        buffer.Clear();
+        foreach (var unit in Units.Units)
+            buffer[unit.Id.Value] = ToWorld(unit.Position.X, unit.Position.Y);
         _lastTick = tick;
     }
 
-    public override void _Draw()
+    public Vector2 ScreenPosition(Vector2 screenPoint, RtsCamera camera)
     {
-        if (Units == null || _lastTick < 1) return;
+        var ground = camera.GroundPointAt(screenPoint);
+        return ground.HasValue ? new Vector2(ground.Value.X, ground.Value.Z) : Vector2.Zero;
+    }
 
-        // alpha = fraction of the current frame's step budget, set by Main each frame
-        var t = (float)Main.DrawAlpha;
-        var prev = _snap[(_lastTick + 1) % 2]; // tick-1 snapshot lives in the other buffer
-        var curr = _snap[_lastTick % 2];
-        var sel = SelectedIds?.Invoke();
+    public override void _Process(double delta)
+    {
+        if (Units == null || _lastTick < 0) return;
+        var blend = (float)Main.DrawAlpha;
+        var previous = _snapshots[(_lastTick + 1) % 2];
+        var current = _snapshots[_lastTick % 2];
+        var selected = SelectedIds?.Invoke();
+        var live = Units.Units.Select(u => u.Id.Value).ToHashSet();
 
-        foreach (var u in Units.Units)
+        foreach (var staleId in _views.Keys.Where(id => !live.Contains(id)).ToArray())
         {
-            var id = u.Id.Value;
-            if (!curr.TryGetValue(id, out var p)) continue;
-            var pos = prev.TryGetValue(id, out var q) ? q.Lerp(p, t) : p;
-            var r = (float)u.Radius.ToDouble() * 2f * CellSize;
+            _views[staleId].Root.QueueFree();
+            _views.Remove(staleId);
+            _lastCooldown.Remove(staleId);
+        }
 
-            DrawCircle(pos, r, id % 2 == 0 ? Colors.SteelBlue : Colors.CadetBlue);
-
-            // HP bar when hurt
-            if (u.Hp < u.MaxHp)
+        _targetLineMesh.ClearSurfaces();
+        var lineCount = 0;
+        foreach (var unit in Units.Units)
+        {
+            var id = unit.Id.Value;
+            if (!current.TryGetValue(id, out var position)) continue;
+            if (!_views.TryGetValue(id, out var view))
             {
-                var frac = (float)(u.Hp.ToDouble() / u.MaxHp.ToDouble());
-                var w = r * 2f;
-                var top = pos - new Vector2(r, r + 5f);
-                DrawRect(new Rect2(top, new Vector2(w, 3f)), new Color(0.1f, 0.1f, 0.1f, 0.8f), true);
-                var barColor = frac > 0.6f ? Colors.Green : frac > 0.3f ? Colors.Yellow : Colors.Red;
-                DrawRect(new Rect2(top, new Vector2(w * frac, 3f)), barColor, true);
+                view = CreateView(unit);
+                _views.Add(id, view);
+                if (previous.TryGetValue(id, out var firstPosition)) position = firstPosition;
             }
 
-            // attack target line
-            if (u.TargetId.Value >= 0 && TargetPos != null && TargetPos(u.TargetId.Value) is { } tp)
-                DrawLine(pos, tp, new Color(1f, 0.3f, 0.3f, 0.6f), 1f);
+            if (previous.TryGetValue(id, out var oldPosition))
+                position = oldPosition.Lerp(position, blend);
+            view.Root.Position = position;
 
-            if (sel != null && sel.Contains(id))
-                DrawArc(pos, r + 3f, 0, Mathf.Tau, 32, Colors.LimeGreen, 1.5f);
+            var vx = (float)unit.Velocity.X.ToDouble();
+            var vy = (float)unit.Velocity.Y.ToDouble();
+            var moving = vx * vx + vy * vy > 0.0001f;
+            if (moving)
+                view.Root.Rotation = new Vector3(0, Mathf.Atan2(-vx, -vy), 0);
+            UpdateAnimation(view.Animator, unit, moving);
+
+            view.SelectionRing.Visible = selected?.Contains(id) == true;
+            var hpFraction = unit.MaxHp.Raw <= 0 ? 1.0f : Mathf.Clamp((float)(unit.Hp.ToDouble() / unit.MaxHp.ToDouble()), 0.0f, 1.0f);
+            view.HealthBackground.Visible = hpFraction < 0.999f;
+            view.HealthFill.Visible = hpFraction < 0.999f;
+            view.HealthFill.Scale = new Vector3(hpFraction, 1, 1);
+            view.HealthFill.Position = new Vector3(-0.35f * (1.0f - hpFraction), 1.95f, 0);
+
+            if (unit.TargetId.Value >= 0 && TargetPos?.Invoke(unit.TargetId.Value) is { } target)
+            {
+                if (lineCount == 0) _targetLineMesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
+                _targetLineMesh.SurfaceAddVertex(position + Vector3.Up * 0.12f);
+                _targetLineMesh.SurfaceAddVertex(target + Vector3.Up * 0.12f);
+                lineCount++;
+            }
         }
+        if (lineCount > 0) _targetLineMesh.SurfaceEnd();
+    }
 
-        if (DragBox?.Invoke() is { } box)
+    private UnitView CreateView(Unit unit)
+    {
+        var root = new Node3D { Name = $"Unit_{unit.Id.Value}" };
+        AddChild(root);
+        Node3D? model = _infantryScene?.Instantiate<Node3D>();
+        if (model == null)
         {
-            var rect = new Rect2(box.A, box.B - box.A);
-            DrawRect(rect, Colors.White with { A = 0.15f }, true);
-            DrawRect(rect, Colors.White with { A = 0.9f }, false, 1f);
+            var fallbackMaterial = new StandardMaterial3D
+            {
+                AlbedoColor = unit.Faction == 0 ? new Color(0.2f, 0.52f, 0.78f) : new Color(0.72f, 0.25f, 0.2f),
+                Roughness = 0.8f,
+            };
+            model = new MeshInstance3D
+            {
+                Mesh = new CapsuleMesh { Radius = 0.28f, Height = 1.35f },
+                MaterialOverride = fallbackMaterial,
+                Position = new Vector3(0, 0.68f, 0),
+            };
         }
+        root.AddChild(model);
+
+        var factionColor = unit.Faction == 0 ? new Color(0.18f, 0.78f, 1.0f) : new Color(1.0f, 0.28f, 0.2f);
+        var ringMaterial = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            AlbedoColor = factionColor,
+        };
+        var ring = new MeshInstance3D
+        {
+            Name = "SelectionRing",
+            Mesh = new TorusMesh { InnerRadius = 0.32f, OuterRadius = 0.38f, Rings = 32, RingSegments = 6 },
+            MaterialOverride = ringMaterial,
+            Position = new Vector3(0, 0.035f, 0),
+            Visible = false,
+        };
+        root.AddChild(ring);
+
+        var background = MakeHealthBar(new Color(0.08f, 0.07f, 0.06f), new Vector3(0, 1.95f, 0));
+        var fill = MakeHealthBar(new Color(0.2f, 0.9f, 0.28f), new Vector3(0, 1.95f, 0));
+        root.AddChild(background);
+        root.AddChild(fill);
+
+        return new UnitView
+        {
+            Root = root,
+            SelectionRing = ring,
+            HealthBackground = background,
+            HealthFill = fill,
+            Animator = FindAnimationPlayer(model),
+        };
+    }
+
+    private static MeshInstance3D MakeHealthBar(Color color, Vector3 position) => new()
+    {
+        Mesh = new BoxMesh { Size = new Vector3(0.7f, 0.055f, 0.035f) },
+        MaterialOverride = new StandardMaterial3D { ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, AlbedoColor = color },
+        Position = position,
+        CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+    };
+
+    private void UpdateAnimation(AnimationPlayer? animator, Unit unit, bool moving)
+    {
+        if (animator == null) return;
+        var oldCooldown = _lastCooldown.GetValueOrDefault(unit.Id.Value, 0);
+        var fired = unit.TargetId != EntityId.None && oldCooldown <= 0 && unit.CooldownRemaining > 0 && HasClip(animator, "fire");
+        _lastCooldown[unit.Id.Value] = unit.CooldownRemaining;
+
+        if (fired)
+        {
+            animator.Play("fire");
+            return;
+        }
+        if (animator.IsPlaying() && animator.CurrentAnimation == "fire") return;
+        var locomotion = moving ? "move" : "idle";
+        if (HasClip(animator, locomotion) && (!animator.IsPlaying() || animator.CurrentAnimation != locomotion))
+            animator.Play(locomotion);
+    }
+
+    private static bool HasClip(AnimationPlayer player, string name) =>
+        player.GetAnimationList().Contains(name);
+
+    private static AnimationPlayer? FindAnimationPlayer(Node node)
+    {
+        if (node is AnimationPlayer player) return player;
+        foreach (var child in node.GetChildren())
+            if (FindAnimationPlayer(child) is { } found) return found;
+        return null;
     }
 }

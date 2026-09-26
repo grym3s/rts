@@ -1,0 +1,13 @@
+{
+  "source_reference": "art/references/elite-infantry-chat-render.jpg",
+  "model": "Qwen Image 2.1 Q4_K_M, local ComfyUI / ROCm 7.2, R9700 gfx1201",
+  "prompt": "Create a high-fidelity character design reference of the EXACT same armored science-fiction infantry soldier as the input image, viewed directly from behind at true rear orthographic angle. Full figure from helmet top to boot soles, centered, no cropping, both arms held slightly away from the body in a relaxed A-pose, legs shoulder-width, hands empty. Preserve the reference's unmistakable proportions and equipment: broad layered angular shoulder armor, rounded segmented helmet shell, compact upper-back power pack with a centered circular blue-lit sensor, dark flexible undersuit, thick forearm and thigh plates, utility pouches, layered knee and shin armor, heavy armored boots. Preserve the dark battle-worn gunmetal and desaturated blue-grey armor, narrow faded pale-blue painted stripes, electric-blue status lights. Show plausible rear armor construction: panel breaks, recessed fasteners, hinges, cable guards, vents, worn paint edges, fine scratches, dents and soot; surface detail must remain physically attached to armor. The rifle is held low across the front and should be hidden from this rear camera; do not invent a second weapon. Cinematic AAA game asset presentation but evenly lit neutral charcoal studio background, crisp neutral key and rim lights that reveal the entire silhouette and surface finish, sharp focus, realistic PBR materials, no dramatic fog, no text, no labels, no extra figures, no turntable or multiple panels.",
+  "negative_prompt": "front view, three-quarter view, side view, cropped boots, cropped helmet, duplicate limbs, extra arms, extra legs, floating armor, smooth toy plastic, bright white armor, gold armor, red armor, fantasy robe, cape, exposed face, visible eyes, anime, illustration, low polygon, blurry, painterly, text, watermark, extra character, multiple views, collage, grid",
+  "seed": 270927,
+  "steps": 30,
+  "cfg": 1.0,
+  "sampler": "euler",
+  "scheduler": "simple",
+  "reference_resolution": 1024,
+  "output_size": "reference aspect ratio, approximately 832x1216"
+}

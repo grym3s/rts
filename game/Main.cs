@@ -13,7 +13,7 @@ namespace Rts.Game;
 
 /// <summary>Root scene: owns the SimWorld, steps it at a fixed rate, drives render/overlay.
 /// Input → Commands only (rule 2); sim state is read-only here.</summary>
-public partial class Main : Node2D
+public partial class Main : Node3D
 {
     /// <summary>Interpolation alpha for UnitRenderer, refreshed every frame.</summary>
     public static double DrawAlpha;
@@ -29,7 +29,8 @@ public partial class Main : Node2D
     private UnitRenderer _renderer = null!;
     private OrdersInput _input = null!;
     private DebugOverlay _overlay = null!;
-    private (Vector2 A, Vector2 B)? _dragBox;
+    private SelectionOverlay _selectionOverlay = null!;
+    private RtsCamera _camera = null!;
 
     public override void _Ready()
     {
@@ -58,16 +59,19 @@ public partial class Main : Node2D
         _sim.Systems.Add((w, due) => CombatSystem.Step(_units, _orders, w.Tick));
         _sim.Systems.Add((w, due) => _units.DespawnDead());
 
-        // --- presentation ---
-        var camera = new RtsCamera { Position = new Vector2(24 * UnitRenderer.CellSize, 16 * UnitRenderer.CellSize) };
+        // --- 3D presentation ---
+        BuildTestField();
+
+        var camera = new RtsCamera();
         AddChild(camera);
-        camera.MakeCurrent();
+        camera.Configure(new Vector3(24, 0, 16), new Vector2(48, 32));
+        camera.Current = true;
+        _camera = camera;
 
         _renderer = new UnitRenderer
         {
             Units = _units,
             SelectedIds = () => _selection.Selected,
-            DragBox = () => _dragBox,
             TargetPos = id =>
             {
                 var t = _units.Find(new EntityId(id));
@@ -82,11 +86,31 @@ public partial class Main : Node2D
             SelectedIds = () => _selection.Selected,
             Selection = sel,
             Units = _units,
+            Camera = camera,
             Emit = c => _outbox.Add(c),
             CurrentTick = () => _sim.Tick,
             EnemiesOf = id => _units.Find(new EntityId(id)) is { } u && u.Faction != 0,
         };
-        _input.DragBoxChanged = (a, b) => _dragBox = a == b ? null : (a, b);
+        var selectionLayer = new CanvasLayer { Name = "SelectionHud" };
+        AddChild(selectionLayer);
+        _selectionOverlay = new SelectionOverlay
+        {
+            Name = "DragSelection",
+            AnchorRight = 1,
+            AnchorBottom = 1,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        selectionLayer.AddChild(_selectionOverlay);
+        _input.DragBoxChanged = (a, b) =>
+        {
+            if (a == b) _selectionOverlay.Box = null;
+            else
+            {
+                var left = Mathf.Min(a.X, b.X);
+                var top = Mathf.Min(a.Y, b.Y);
+                _selectionOverlay.Box = new Rect2(left, top, Mathf.Abs(b.X - a.X), Mathf.Abs(b.Y - a.Y));
+            }
+        };
         AddChild(_input);
 
         _overlay = new DebugOverlay();
@@ -95,6 +119,157 @@ public partial class Main : Node2D
         GD.Print($"sim ready, {SimWorld.TicksPerSecond} ticks/s, {_units.Units.Count} units");
 
         if (OS.GetCmdlineUserArgs().Any(a => a == "--smoke")) RunSmoke();
+        if (OS.GetCmdlineUserArgs().Any(a => a == "--shots")) StartShots();
+    }
+
+    // --- scripted screenshot capture (--shots): proves the live 3D presentation
+    // renders real models, walk cycles, and combat, using the actual game loop.
+    // Rendering goes through an offscreen SubViewport with its own camera so the
+    // captures do not depend on the window manager delivering compositor frames.
+    // Run under a display server (Xwayland is enough): godot --path game -- --shots
+    private static readonly (int Tick, string Name, Vector3 Target, float Distance)[] ShotList =
+    {
+        (5, "01_idle", new Vector3(6, 0, 12), 22f),
+        (150, "02_march", new Vector3(16, 0, 12), 30f),
+        (430, "03_engage", new Vector3(31, 0, 12), 34f),
+        (520, "04_firefight", new Vector3(35, 0, 12), 30f),
+        (650, "05_after", new Vector3(36, 0, 12), 34f),
+    };
+
+    private SubViewport? _shotViewport;
+    private Camera3D? _shotCamera;
+    private string? _pendingGrab;
+    private readonly HashSet<int> _aimedTicks = new();
+    private int _shotFrame;
+
+    private void StartShots()
+    {
+        var shotViewport = new SubViewport
+        {
+            Size = new Vector2I(1280, 720),
+            RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
+        };
+        _shotViewport = shotViewport;
+        AddChild(_shotViewport);
+        _shotCamera = new Camera3D { Fov = 45.0f, Near = 0.05f, Far = 300.0f };
+        _shotViewport.AddChild(_shotCamera);
+        _shotViewport.World3D = _camera.GetWorld3D(); // share the live game world
+        _shotFrame = 0;
+    }
+
+    private void AimShotCamera(Vector3 target, float distance)
+    {
+        var pitch = Mathf.DegToRad(52.0f);
+        var offset = new Vector3(0, Mathf.Sin(pitch), Mathf.Cos(pitch)) * distance;
+        _shotCamera!.GlobalPosition = target + offset;
+        _shotCamera.LookAt(target, Vector3.Up);
+    }
+
+    private void ShotStep()
+    {
+        _shotFrame++;
+        // grab last frame's rendered image before it changes
+        if (_pendingGrab != null)
+        {
+            var dir = OS.GetEnvironment("RTS_SHOTS_DIR");
+            if (string.IsNullOrEmpty(dir)) dir = "/tmp/rts-shots";
+            DirAccess.MakeDirRecursiveAbsolute(dir);
+            var path = dir + $"/{_pendingGrab}.png";
+            var err = _shotViewport!.GetTexture().GetImage().SavePng(path);
+            GD.Print($"SHOT_SAVED {_pendingGrab} tick={_sim.Tick} {path} err={err}");
+            _pendingGrab = null;
+        }
+        var first = ShotList[0];
+        if (_shotFrame == 1) AimShotCamera(first.Target, first.Distance);
+        foreach (var (tick, name, target, distance) in ShotList)
+        {
+            if (_sim.Tick < tick || _aimedTicks.Contains(tick)) continue;
+            _aimedTicks.Add(tick);
+            AimShotCamera(target, distance);
+            _pendingGrab = name; // saved on the next frame, after rendering
+            break;
+        }
+        if (_shotFrame == 40) // after the idle beat, march the squad at the enemy
+            _outbox.Add(new AttackMoveCommand(_sim.Tick, 0,
+                _units.Units.Where(x => x.Faction == 0).Select(x => x.Id).ToArray(),
+                new FixVec2(Fix64.FromInt(38), Fix64.FromInt(12)), false));
+        if (_aimedTicks.Count >= ShotList.Length && _pendingGrab == null)
+            GetTree().Quit();
+    }
+
+    private void BuildTestField()
+    {
+        var groundMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.18f, 0.23f, 0.20f),
+            Roughness = 0.96f,
+        };
+        var ground = new MeshInstance3D
+        {
+            Name = "TestGround",
+            Mesh = new PlaneMesh { Size = new Vector2(48, 32) },
+            MaterialOverride = groundMaterial,
+            Position = new Vector3(24, -0.06f, 16),
+        };
+        AddChild(ground);
+
+        var gridMaterial = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            AlbedoColor = new Color(0.31f, 0.38f, 0.32f, 0.36f),
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+        };
+        var grid = new ImmediateMesh();
+        grid.SurfaceBegin(Mesh.PrimitiveType.Lines, gridMaterial);
+        for (var x = 0; x <= 48; x++)
+        {
+            grid.SurfaceAddVertex(new Vector3(x, 0.005f, 0));
+            grid.SurfaceAddVertex(new Vector3(x, 0.005f, 32));
+        }
+        for (var z = 0; z <= 32; z++)
+        {
+            grid.SurfaceAddVertex(new Vector3(0, 0.005f, z));
+            grid.SurfaceAddVertex(new Vector3(48, 0.005f, z));
+        }
+        grid.SurfaceEnd();
+        AddChild(new MeshInstance3D { Name = "CellGrid", Mesh = grid, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+
+        var obstacleMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.31f, 0.29f, 0.23f),
+            Roughness = 1.0f,
+        };
+        AddObstacle("NorthBarrier", new Vector3(20.5f, 0.8f, 6), new Vector3(1, 1.6f, 12), obstacleMaterial);
+        AddObstacle("SouthBarrier", new Vector3(20.5f, 0.8f, 25), new Vector3(1, 1.6f, 12), obstacleMaterial);
+
+        var environment = new Godot.Environment
+        {
+            BackgroundMode = Godot.Environment.BGMode.Color,
+            BackgroundColor = new Color(0.045f, 0.06f, 0.07f),
+            AmbientLightSource = Godot.Environment.AmbientSource.Color,
+            AmbientLightColor = new Color(0.64f, 0.7f, 0.78f),
+            AmbientLightEnergy = 0.65f,
+        };
+        AddChild(new WorldEnvironment { Environment = environment });
+        AddChild(new DirectionalLight3D
+        {
+            Name = "KeyLight",
+            RotationDegrees = new Vector3(-52, -32, 0),
+            LightColor = new Color(1.0f, 0.91f, 0.77f),
+            LightEnergy = 1.25f,
+            ShadowEnabled = true,
+        });
+    }
+
+    private void AddObstacle(string nodeName, Vector3 position, Vector3 size, Material material)
+    {
+        AddChild(new MeshInstance3D
+        {
+            Name = nodeName,
+            Mesh = new BoxMesh { Size = size },
+            MaterialOverride = material,
+            Position = position,
+        });
     }
 
     /// <summary>Headless self-check (godot --path game --headless -- --smoke): emits commands
@@ -123,6 +298,7 @@ public partial class Main : Node2D
 
     public override void _Process(double delta)
     {
+        if (_shotFrame >= 0 && OS.GetCmdlineUserArgs().Any(a => a == "--shots")) ShotStep();
         var sw = Stopwatch.StartNew();
         const double step = 1.0 / SimWorld.TicksPerSecond;
         _accumulator += delta;

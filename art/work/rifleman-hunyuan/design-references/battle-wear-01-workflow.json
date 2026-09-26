@@ -1,0 +1,13 @@
+{
+  "source_reference": "art/references/elite-infantry-chat-render.jpg",
+  "prompt": "Create a high-fidelity combat-worn variant of the EXACT same armored infantry soldier in the reference image. Keep the same full-body pose, camera angle, silhouette, armor construction, rifle, dark gunmetal and blue-grey materials, electric-blue visor and status lights, and black background. Add clear but physically plausible accumulated battle damage to the armor only: chipped paint exposing bright metal at the helmet brow and outside edges of shoulder plates, several shallow projectile dents and scored scratches on chest plates and forearm guards, rubbed paint on knee/shin edges, a small dark scorch patch on one shoulder and soot streaks around a few vents. Include variation in age and direction of scratches; damage should follow plate curvature, stop at seams, and remain readable at full-body scale. Keep all plates attached, armor protective, and the soldier unharmed. No gore, no broken limbs, no exposed skin, no destroyed equipment, no sparks or active explosion. Maintain the reference's restrained military palette and realistic detailed PBR finish. Studio lighting that reveals surface wear, clean image, no text, no labels, no extra figures, no collage.",
+  "negative_prompt": "different armor design, different pose, altered proportions, bright white armor, gold armor, red armor, exaggerated torn armor, missing armor, exposed flesh, blood, gore, broken bones, severed limbs, flames, active explosion, floating debris, additional weapons, extra figure, anime, illustration, blurry, painterly, plastic toy, text, watermark, multiple views, collage",
+  "seed": 27092703,
+  "steps": 32,
+  "cfg": 1.0,
+  "sampler": "euler",
+  "scheduler": "simple",
+  "resolution": 1024,
+  "variant": "infantry_battle_wear_01",
+  "status": "provisional visual wear reference; not a texture map or production model"
+}

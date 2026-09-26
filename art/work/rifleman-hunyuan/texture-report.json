@@ -1,0 +1,13 @@
+{
+  "status": "failed_incomplete",
+  "attempt": "Hunyuan3D PBR texturing, safe preset (6 views, 256px, 2048 texture target)",
+  "failure": "ROCm reported GPU Hang on the R9700 during texturing; the Linux amdgpu driver reset the device. No textured GLB or PBR maps were produced.",
+  "evidence": "journalctl -k at 2026-09-27 00:45 UTC shows GPU reset begin/succeeded and VRAM lost for PCI device c7:00.0 (R9700).",
+  "follow_up": "The R9700 later passed a 1024x1024 PyTorch matmul after reset; that proves basic ROCm recovery, not full PBR stability. The paint run used the Hunyuan venv's PyTorch 2.11 ROCm 7.13 preview against the host's ROCm 7.2.4 / kernel amdgpu stack. The explicit boot argument amd_iommu=off is a plausible multi-GPU mapping issue; changing it to amd_iommu=pt and rebuilding Limine requires user confirmation and a reboot. Do not call the model finished: after the approved boot test, retry PBR with live monitoring, record kernel logs, and visually inspect the resulting maps in Blender. Separately, Qwen Image 2.1 image editing on the R9700 completed successfully under the host-aligned ComfyUI PyTorch 2.14 / ROCm 7.2 stack. This does not establish the root cause or repair the earlier Hunyuan ROCm 7.13 hang; boot IOMMU change remains unapproved/pending.",
+  "separate_r9700_validation": {
+    "workflow": "Qwen Image 2.1 image edit, 30 steps, local ComfyUI",
+    "result": "success",
+    "runtime": "PyTorch 2.14.0+rocm7.2",
+    "meaning": "R9700 can run this image inference workload without a reset; not equivalent to Hunyuan3D PBR stability"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "source_reference": "art/work/rifleman-hunyuan/design-references/rifleman-rear-reference_00001_.png",
+  "prompt": "Create one high-fidelity character design sheet image of the EXACT same armored science-fiction infantry soldier in the supplied rear reference, now seen in a strict 90-degree LEFT SIDE ORTHOGRAPHIC PROFILE. The soldier faces screen-left. Full figure from helmet crown to boot soles, centered with generous margins, camera perfectly level, no perspective distortion. Neutral relaxed A-pose, upper arms held about 15 degrees away from torso, forearms straight, hands relaxed and empty so the armor silhouette is unobstructed. Preserve the same broad layered shoulder shells, compact armored helmet and blue visor edge, thick dark gunmetal plates over a black flexible undersuit, large backpack with the same round blue rear sensor, forearm, thigh, knee and shin armor, heavy boots, pale blue-grey chipped stripe markings and small electric-blue status lights. Show the side depth and overlapping construction of the armor: segmented shoulder shell, elbow hinge, hip armor, side thigh pouch, knee joint, calf exhaust/guard, layered boot. Keep all parts physically attached and anatomically plausible. The weapon is omitted for this neutral armor reference. Neutral charcoal studio background, balanced soft key and rim light, crisp focus, realistic battle-worn PBR surface detail with scratches, dents and edge wear, no dramatic fog, no text, no labels, no extra figures, no collage or multiple panels.",
+  "negative_prompt": "front view, rear view, three-quarter view, perspective camera, cropped feet, cropped helmet, flying parts, floating armor, duplicate limbs, extra limbs, missing limbs, different character, bright white armor, gold armor, red armor, cape, robe, exposed face, anime, illustration, smooth plastic, low polygon, blurry, painterly, text, watermark, multiple views, collage, grid",
+  "seed": 27092702,
+  "steps": 30,
+  "cfg": 1.0,
+  "sampler": "euler",
+  "scheduler": "simple",
+  "resolution": 1024,
+  "output_intent": "additional provisional modeling reference only; not geometry or approval"
+}

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "rifleman-trellis2",
+  "displayName": "Rifleman high-detail TRELLIS.2 candidate",
+  "faction": null,
+  "role": "infantry",
+  "status": "environment_installing_runner_ready_no_mesh_yet",
+  "provenance": {
+    "sourceReferences": [
+      "art/references/elite-infantry-chat-render.jpg"
+    ],
+    "additionalGuidance": [
+      "art/work/rifleman-hunyuan/design-references/rifleman-rear-reference_00001_.png",
+      "art/work/rifleman-hunyuan/design-references/rifleman-left-side-reference_00001_.png",
+      "art/work/rifleman-hunyuan/design-references/rifleman-battle-wear-01_00001_.png"
+    ],
+    "generatedBy": "Microsoft TRELLIS.2-4B via isolated gfx1201 ROCm port",
+    "notes": "The primary front render defines design. Rear/side/wear images are provisional visual guidance. All geometry/material output remains unreviewed until the mesh exists and Blender renders are inspected."
+  },
+  "sourceFiles": {
+    "blender": null,
+    "intermediates": []
+  },
+  "generationRunner": "art/work/rifleman-trellis2/generate_trellis2.py",
+  "exports": {
+    "gltfBinary": null,
+    "spriteSheet": null,
+    "spriteManifest": null
+  },
+  "spriteContract": {
+    "projection": "not applicable during 3D candidate generation",
+    "background": "not applicable",
+    "directions": [],
+    "animations": [],
+    "frameSizePx": null,
+    "framesPerSecond": null,
+    "pixelsPerSimCellAtZoom1": null,
+    "pivot": null
+  },
+  "review": {
+    "blenderOpened": false,
+    "godotImported": false,
+    "cameraScaleReviewed": false,
+    "notes": [
+      "not approved for runtime; no model generated yet"
+    ]
+  }
+}

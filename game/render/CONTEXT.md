@@ -1,3 +1,3 @@
 # game/render — sim → pixels
 
-`UnitRenderer`: reads UnitStore (never writes), double-buffers positions per completed tick, interpolates with `Main.DrawAlpha`. Fix64→float happens only here (`ToWorld`). Selection rings + drag box drawn from callbacks Main supplies. 32 px per sim cell at zoom 1.
+`UnitRenderer` is a `Node3D`: it reads `UnitStore` (never writes), double-buffers positions per completed tick, interpolates with `Main.DrawAlpha`, maps sim X/Y to world X/Z, and derives model yaw from velocity. It loads the rifleman `.glb` scene from `game/assets/rifleman/`, drives `idle`, `move`, and `fire` clips when present, and creates a capsule proxy if the model is missing. Selection rings, damaged health bars, and target lines are world-space 3D geometry. The current imported model is still a primitive, unrigged proxy; the art task will replace it. It never mutates sim state.
