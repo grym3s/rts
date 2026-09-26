@@ -1,6 +1,6 @@
-// Slice-3 spike game mode: launch host -> init -> render snapshot -> send one tick-0
-// move command -> step once -> re-render from the new snapshot -> clean shutdown.
-// All numbers here are presentation fixtures; rules live in the .NET host only.
+// Slice 4: continuously hosts the sim, renders the authoritative roster with faction
+// colors, and turns player input into tick-stamped move commands. Host failure is
+// surfaced and halts stepping — never a locally fabricated state.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -9,6 +9,7 @@
 
 class URtsSimHostBridge;
 class ARtsSimUnitActor;
+struct FRtsHostReply;
 
 UCLASS()
 class RTSBRIDGE_API ARtsBridgeGameMode : public AGameModeBase
@@ -19,6 +20,13 @@ public:
 	virtual void StartPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 
+	/** Player-side entry points (called by ARtsRtsPlayerController). */
+	void RequestMoveTo(const FVector& WorldDestination);   // move selected (faction 0)
+	void ToggleSelectUnderCursor(const FVector2D& ScreenPos);
+	void SelectAll();
+
+	bool IsHostAlive() const { return bHostAlive; }
+
 private:
 	UPROPERTY()
 	TObjectPtr<URtsSimHostBridge> Bridge;
@@ -26,11 +34,14 @@ private:
 	UPROPERTY()
 	TArray<TObjectPtr<ARtsSimUnitActor>> UnitActors;
 
+	TSet<int32> SelectedIds;
+	// Command bodies (tick-less) queued by input; Tick stamps the current tick and sends them.
+	TArray<FString> PendingCommandBodies;
 	int32 NextTickToSend = 0;
-	bool bMoveSent = false;
+	bool bHostAlive = false;
 	bool bFinished = false;
 	double WaitStart = 0.0;
 
-	void SyncActorsFromReply(struct FRtsHostReply& Reply);
-	void FinishAndReport(bool bSuccess, const FString& Message);
+	void SyncActorsFromReply(FRtsHostReply& Reply);
+	void FailHost(const FString& Reason);
 };
