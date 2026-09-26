@@ -43,4 +43,11 @@ The implementation spike must verify that Unreal can launch, communicate with, a
 
 ## Current blocker and state
 
-No Unreal editor is installed yet. The Linux prebuilt editor is available from Epic's account-gated download page. The current browser session is not signed in, and the Epic GitHub source repository returns HTTP 404 for the configured `grym3s` account. The user must complete Epic sign-in and accept Epic's EULA before an authenticated download can proceed. This design document is not evidence that the engine or runtime migration is complete.
+Blocker resolved 2026-09-26: the official Linux Unreal 5.8.3 build is installed at `~/.local/opt/UnrealEngine-5.8.3` (pinned; `InstalledBuild.txt` present) and builds this project's editor target from source.
+
+- Slice 1: done (editor installed, pinned, startup + native C++ build verified).
+- Slice 2: done — `tools/sim-host/` protocolVersion-1 server, 30 protocol tests, `make host-publish` packages self-contained linux-x64/win-x64 binaries (win-x64 runtime unverified: no Wine).
+- Slice 3: done — `unreal/RtsBridge.uproject` + `URtsSimHostBridge`; editor automation test `RtsBridge.Host.RoundTrip` passes headless (nullrhi): real host launch, init, tick-0 move, 120 steps, clean shutdown. Build/run commands: `unreal/CONTEXT.md`. Known boundary: the installed build links editor/module targets only; monolithic Game target packaging needs the UAT/packaging path or a source engine.
+- Slice 4: next — camera, battlefield, squad rendering, selection, command input.
+
+The Godot lane remains live in parallel (selection overlay, camera framing, asset pipeline merged via #30); it retires only under slice 6 rules.
