@@ -48,6 +48,7 @@ Blocker resolved 2026-09-26: the official Linux Unreal 5.8.3 build is installed 
 - Slice 1: done (editor installed, pinned, startup + native C++ build verified).
 - Slice 2: done — `tools/sim-host/` protocolVersion-1 server, 30 protocol tests, `make host-publish` packages self-contained linux-x64/win-x64 binaries (win-x64 runtime unverified: no Wine).
 - Slice 3: done — `unreal/RtsBridge.uproject` + `URtsSimHostBridge`; editor automation test `RtsBridge.Host.RoundTrip` passes headless (nullrhi): real host launch, init, tick-0 move, 120 steps, clean shutdown. Build/run commands: `unreal/CONTEXT.md`. Known boundary: the installed build links editor/module targets only; monolithic Game target packaging needs the UAT/packaging path or a source engine.
-- Slice 4: next — camera, battlefield, squad rendering, selection, command input.
+- Slice 4: done (2026-09-27, #32) — gameplay loop: RTS camera (scroll/zoom/rotate), battlefield fixtures, faction-tinted squad rendering, LMB/A selection, RMB move commands stamped with the executing tick at 20 t/s; host failure halts stepping without fabricating state. `RtsBridge.Host.RoundTrip` still green headless. Not yet done inside slice scope: interactive GUI play-test (headless box).
+- Slice 5: next — infantry display: verified materials + `idle`/`move`/`fire` animations on host-driven actors, one representative explosion at RTS camera angle (acceptance bullets 5-6).
 
 The Godot lane remains live in parallel (selection overlay, camera framing, asset pipeline merged via #30); it retires only under slice 6 rules.
