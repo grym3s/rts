@@ -6,10 +6,10 @@ Writes: its own state; emits events for the current tick. Nothing else.
 Never: references Godot or any engine; uses floats; reads wall-clock time.
 
 ## Tick order (the one place this is stated)
-1. apply commands for this tick → orders (`orders/`, ghost)
+1. apply commands for this tick → orders (`orders/`, live)
 2. economy: harvest income, production queues (`economy/`, `production/`, live)
-3. navigation: path + avoidance + movement (`navigation/`, ghost)
-4. combat: acquire, fire, damage, death (`combat/`, ghost)
+3. navigation: path + avoidance + movement (`navigation/`, live)
+4. combat: acquire, fire, damage, death (`combat/`, live)
 5. (future) visibility
 6. cleanup: despawn dead, flush events
 
