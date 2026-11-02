@@ -8,7 +8,7 @@ namespace Rts.Sim.Units;
 /// Category is the raw canon string; ProductionRules interprets what it can produce.</summary>
 public sealed class BuildingCatalog
 {
-    public record PlacementParams(string Id, int Faction, string Category, int Cost, int BuildTicks, Fix64 Hp, string? Prereq);
+    public record PlacementParams(string Id, int Faction, string Category, int Cost, int BuildTicks, Fix64 Hp, string? Prereq, int Power);
 
     private readonly Dictionary<string, PlacementParams> _byId = new();
 
@@ -29,7 +29,8 @@ public sealed class BuildingCatalog
                 root.GetProperty("cost").GetInt32(),
                 root.GetProperty("buildTimeSeconds").GetInt32() * SimWorld.TicksPerSecond,
                 Fix64.FromDouble(root.GetProperty("stats").GetProperty("hp").GetDouble()),
-                root.GetProperty("prereq").ValueKind == JsonValueKind.Null ? null : root.GetProperty("prereq").GetString());
+                root.GetProperty("prereq").ValueKind == JsonValueKind.Null ? null : root.GetProperty("prereq").GetString(),
+                root.TryGetProperty("power", out var powerEl) ? powerEl.GetInt32() : 0);
         }
         return cat;
     }

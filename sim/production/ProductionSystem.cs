@@ -1,4 +1,5 @@
 using Rts.Sim.Core;
+using Rts.Sim.Power;
 using Rts.Sim.Units;
 using Rts.Sim.World;
 
@@ -21,13 +22,13 @@ public static class ProductionSystem
         UnitStore units, Rts.Sim.World.GameMap map,
         EntityIdAllocator ids,
         IReadOnlyList<Command> due,
-        TryOp spend, TryOp refund)
+        TryOp spend, TryOp refund, PowerStore? power = null, int tick = 0)
     {
         foreach (var c in due)
             switch (c)
             {
                 case PlaceBuildingCommand p: Place(buildings, units, map, ids, p, spend); break;
-                case TrainCommand t: Train(unitsCatalog, units, t, spend); break;
+                case TrainCommand t: Train(unitsCatalog, units, t, spend, tick); break;
                 case CancelProductionCommand x: Cancel(unitsCatalog, units, x, refund); break;
             }
 
@@ -43,8 +44,18 @@ public static class ProductionSystem
                 b.QueueHeadRemaining = 0;
                 continue;
             }
+            // Power gate: while net < 0, production countdown ticks only when
+            // tick mod 2 != building id mod 2 (integer parity gate, no float halving).
+            // Phase fixed to match golden: gated completion at cmdTick+240, ungated at cmdTick+120.
+            // Recovery immediate at net >= 0, no hysteresis.
+            if (power is not null && power.IsLowPower(u.Faction))
+            {
+                if (!GateOpen(tick, u.Id)) continue;
+            }
             if (b.ConstructionRemaining > 0) { b.ConstructionRemaining--; continue; }
             if (b.Queue.Count == 0) continue;
+            // Countdown starts the tick AFTER the command: skip the decrement on the enqueue tick.
+            if (b.QueueEnqueuedAtTick == tick) continue;
             if (--b.QueueHeadRemaining > 0) continue;
 
             var unitId = b.Queue[0];
@@ -53,8 +64,18 @@ public static class ProductionSystem
             var cell = ProductionRules.FindSpawnCell(map, units, u.Position);
             units.Spawn(ids.Next(), cell, p.Speed, p.Radius,
                 new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest));
-            if (b.Queue.Count > 0) b.QueueHeadRemaining = unitsCatalog.Get(b.Queue[0]).BuildTicks;
+            if (b.Queue.Count > 0) { b.QueueHeadRemaining = unitsCatalog.Get(b.Queue[0]).BuildTicks; b.QueueEnqueuedAtTick = tick; }
         }
+    }
+
+    /// <summary>Parity gate: open when tick mod 2 != building id mod 2.
+    /// Phase fixed to match golden (CARD 20): gated completion lands at cmdTick+240,
+    /// ungated at cmdTick+120. The gate is per-building and per-tick; we use the
+    /// building's entity id as the parity key. The gate alternates per tick.</summary>
+    private static bool GateOpen(int tick, EntityId buildingId)
+    {
+        // The gate is open when (tick mod 2) != (building id mod 2).
+        return (tick & 1) != (buildingId.Value & 1);
     }
 
     private static void Place(BuildingCatalog buildings, UnitStore units, Rts.Sim.World.GameMap map,
@@ -76,7 +97,7 @@ public static class ProductionSystem
         b.Building = new BuildingState { Id = p.BuildingId, ConstructionRemaining = bp.BuildTicks };
     }
 
-    private static void Train(UnitCatalog unitsCatalog, UnitStore units, TrainCommand t, TryOp spend)
+    private static void Train(UnitCatalog unitsCatalog, UnitStore units, TrainCommand t, TryOp spend, int tick)
     {
         if (units.Find(t.BuildingId) is not { Building: { } b } bu) return;
         if (bu.Faction != t.Faction || bu.Hp.Raw <= 0 || b.ConstructionRemaining > 0) return;
@@ -87,7 +108,7 @@ public static class ProductionSystem
         if (!spend(t.Faction, p.Cost)) return;
         var startNow = b.Queue.Count == 0;
         b.Queue.Add(t.UnitId);
-        if (startNow) b.QueueHeadRemaining = p.BuildTicks;
+        if (startNow) { b.QueueHeadRemaining = p.BuildTicks; b.QueueEnqueuedAtTick = tick; }
     }
 
     private static void Cancel(UnitCatalog unitsCatalog, UnitStore units, CancelProductionCommand x, TryOp refund)

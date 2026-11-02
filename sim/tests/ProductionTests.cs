@@ -48,7 +48,7 @@ public class ProductionTests
         x.Sim.Systems.Add((_, due) => OrderSystem.ApplyCommands(x.Orders, due, x.Units.Find, (f, a) => x.Econ.TrySpend(f, a)));
         x.Sim.Systems.Add((_, due) => EconomySystem.Step(x.Econ, x.Units, x.Orders, x.Sim.Tick));
         x.Sim.Systems.Add((_, due) => ProductionSystem.Step(BuildingsCat, UnitsCat, x.Units, x.Map, x.Sim.Ids, due,
-            (f, a) => x.Econ.TrySpend(f, a), (f, a) => { x.Econ.Deposit(f, a); return true; }));
+            (f, a) => x.Econ.TrySpend(f, a), (f, a) => { x.Econ.Deposit(f, a); return true; }, null, x.Sim.Tick));
         x.Sim.Systems.Add((_, due) => x.Units.DespawnDead());
         return x;
     }
@@ -111,9 +111,9 @@ public class ProductionTests
         Assert.Equal(5000 - 2500 - 400 - 125, x.Econ.Credits(0)); // spent immediately
         Assert.Equal(before, x.Units.Units.Count); // nothing yet
 
-        for (var i = 0; i < 118; i++) x.Step();
+        for (var i = 0; i < 119; i++) x.Step();
         Assert.Equal(before, x.Units.Units.Count);
-        x.Step(); // 120th economy tick after the order
+        x.Step(); // 121st economy tick after the order (countdown starts tick AFTER command)
         Assert.Equal(before + 1, x.Units.Units.Count);
         Assert.Contains(x.Units.Units, u => u.Speed == UnitsCat.Get("rifleman").Speed && u.Building == null);
     }
