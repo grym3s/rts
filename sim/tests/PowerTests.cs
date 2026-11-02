@@ -1,8 +1,8 @@
 using Rts.Sim.Core;
 using Rts.Sim.Economy;
 using Rts.Sim.Orders;
-using Rts.Sim.Production;
 using Rts.Sim.Power;
+using Rts.Sim.Production;
 using Rts.Sim.Units;
 using Xunit;
 
