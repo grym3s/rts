@@ -68,14 +68,17 @@ public sealed class HostedWorld
                     r.GetProperty("faction").GetInt32(),
                     new FixVec2(Fix64.FromDouble(r.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(r.GetProperty("at")[1].GetDouble()))));
 
-        // Same registration order as tools/scenario = the tick order in sim/CONTEXT.md.
+        // Canonical tick order (see Wiki/Projects/rts-development.md, 2026-11-02): income
+        // before spend, movement before proximity checks. Economy split: IncomeStep credits
+        // harvest before spend paths run; DepositStep credits arrivals after NavigationSystem.
+        world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.IncomeStep(econ, units, orders, w.Tick));
         world.Systems.Add((w, due) => OrderSystem.ApplyCommands(orders, due, units.Find, (f, a) => econ.TrySpend(f, a)));
-        world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.Step(econ, units, orders, w.Tick));
         world.Systems.Add((w, due) => Rts.Sim.Production.ProductionSystem.Step(
             buildingsCat, catalog, units, map, w.Ids, due,
             (f, a) => econ.TrySpend(f, a),
             (f, a) => { econ.Deposit(f, a); return true; }));
         world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
+        world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick));
         world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick));
         world.Systems.Add((w, due) => units.DespawnDead());
         world.HashMixers.Add(units.Hash);
