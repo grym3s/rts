@@ -182,6 +182,17 @@ if (assert.ValueKind != JsonValueKind.Undefined && assert.TryGetProperty("buildi
         return 1;
     }
 }
+if (assert.ValueKind != JsonValueKind.Undefined && assert.TryGetProperty("nonBuildingUnitCountIs", out var utEl))
+{
+    var faction = utEl.GetProperty("faction").GetInt32();
+    var want = utEl.GetProperty("count").GetInt32();
+    var alive = units.Units.Count(u => u.Faction == faction && u.Building == null && u.Hp.Raw > 0);
+    if (alive != want)
+    {
+        Console.Error.WriteLine($"ASSERT FAIL: faction {faction} non-building units {alive} != {want}");
+        return 1;
+    }
+}
 
 var hash = world.StateHash();
 Console.WriteLine($"{Path.GetFileName(args[0])}: tick={world.Tick} units={units.Units.Count} hash={hash:x16}");
