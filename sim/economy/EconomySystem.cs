@@ -19,6 +19,8 @@ public static class EconomySystem
     public static readonly Fix64 FillRadius = Fix64.Ratio(3, 2);    // 1.5 cells of a vein
     public static readonly Fix64 DepositRadius = Fix64.FromInt(2);      // 2 cells of a refinery
 
+    [Obsolete("Use IncomeStep + DepositStep at their canonical tick positions (2 and 6). " +
+              "Step couples deposit-proximity to pre-move positions and income to post-spend order.")]
     public static void Step(EconomyStore store, UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick)
     {
         foreach (var u in units.Units)
@@ -60,6 +62,61 @@ public static class EconomySystem
             u.Load += take;
             vein.Pool -= take;
             if (u.Load >= Capacity) u.Carrying = true;
+        }
+    }
+
+    /// <summary>Income pass (canonical tick position 2): fill at veins, flip to carrying,
+    /// issue head-to-refinery orders. Runs BEFORE OrderSystem so a SpendCommand due this
+    /// tick sees this tick's income. Deposit-on-arrival lives in DepositStep, which must
+    /// run AFTER NavigationSystem so proximity reads post-move positions.</summary>
+    public static void IncomeStep(EconomyStore store, UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick)
+    {
+        foreach (var u in units.Units)
+        {
+            if (!u.Harvest || u.Hp.Raw <= 0) continue;
+
+            if (u.Carrying)
+            {
+                var ref_ = NearestRefinery(store, u);
+                if (ref_ == null) continue; // no refinery: hold the load (bank on unit)
+                if (Dist(u, ref_.Position) > DepositRadius && !HasOrderTo(orders, u.Id, ref_.Position))
+                    orders[u.Id] = new MoveOrder(ref_.Position, new List<FixVec2>(), tick);
+                continue;
+            }
+
+            var vein = NearestLiveVein(store, u);
+            if (vein == null)
+            {
+                if (u.Load >= Capacity) u.Carrying = true;
+                continue;
+            }
+            u.HomeVein = vein.Id;
+            var take = Math.Min(Rate, Math.Min(Capacity - u.Load, vein.Pool));
+            u.Load += take;
+            vein.Pool -= take;
+            if (u.Load >= Capacity) u.Carrying = true;
+        }
+    }
+
+    /// <summary>Deposit pass (canonical tick position 6, after NavigationSystem): credits
+    /// a carrying unit that has arrived within DepositRadius of a refinery, using post-move
+    /// positions. Paired with IncomeStep; do not call from the same tick position.</summary>
+    public static void DepositStep(EconomyStore store, UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick)
+    {
+        foreach (var u in units.Units)
+        {
+            if (!u.Harvest || u.Hp.Raw <= 0 || !u.Carrying) continue;
+            var ref_ = NearestRefinery(store, u);
+            if (ref_ == null) continue; // no refinery: hold the load (bank on unit)
+            if (Dist(u, ref_.Position) > DepositRadius) continue;
+            store.Deposit(u.Faction, u.Load);
+            u.Load = 0;
+            u.Carrying = false;
+            var home = store.FindVein(u.HomeVein);
+            if (home != null && home.Pool > 0)
+                orders[u.Id] = new MoveOrder(home.Position, new List<FixVec2>(), tick);
+            else
+                orders.Remove(u.Id);
         }
     }
 
