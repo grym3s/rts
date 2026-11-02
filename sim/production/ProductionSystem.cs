@@ -45,7 +45,7 @@ public static class ProductionSystem
                 continue;
             }
             // Power gate: while net < 0, production countdown ticks only when
-            // tick mod 2 != building id mod 2 (integer parity gate, no float halving).
+            // tick mod 2 != building id mod 2 (integer parity gate, halving without fractions).
             // Phase fixed to match golden: gated completion at cmdTick+240, ungated at cmdTick+120.
             // Recovery immediate at net >= 0, no hysteresis.
             if (power is not null && power.IsLowPower(u.Faction))

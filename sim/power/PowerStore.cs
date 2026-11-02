@@ -2,7 +2,7 @@ namespace Rts.Sim.Power;
 
 /// <summary>Per-faction net power (sum(supply) − sum(draw) over alive, construction-complete
 /// buildings). Recomputed at tick step 2. While net &lt; 0, production countdown ticks only
-/// when tick mod 2 != building id mod 2 (integer parity gate, no float halving).
+/// when tick mod 2 != building id mod 2 (integer parity gate, halving without fractions).
 /// Recovery immediate at net &gt;= 0, no hysteresis.</summary>
 public sealed class PowerStore
 {
