@@ -6,12 +6,14 @@ Writes: its own state; emits events for the current tick. Nothing else.
 Never: references Godot or any engine; uses floats; reads wall-clock time.
 
 ## Tick order (the one place this is stated)
-1. apply commands for this tick → orders (`orders/`, live)
-2. economy: harvest income, production queues (`economy/`, `production/`, live)
-3. navigation: path + avoidance + movement (`navigation/`, live)
-4. combat: acquire, fire, damage, death (`combat/`, live)
-5. (future) visibility
-6. cleanup: despawn dead, flush events
+1. power: recompute net power per faction (`power/`, live)
+2. income: harvest income before spend (`economy/`, live)
+3. orders: apply commands for this tick (`orders/`, live)
+4. production: build queues, spawn units (`production/`, live)
+5. navigation: path + avoidance + movement (`navigation/`, live)
+6. deposit: credit arrivals after movement (`economy/`, live)
+7. combat: acquire, fire, damage, death (`combat/`, live)
+8. cleanup: despawn dead, flush events
 
 ## Folders
 | Folder | Status |
