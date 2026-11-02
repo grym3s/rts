@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 2, "seed": 21, "ticks": 179,
+  "map": { "width": 24, "height": 24, "blocked": [] },
+  "veins": [ { "at": [5, 5] } ],
+  "refineries": [ { "faction": 0, "at": [12, 5] } ],
+  "units": [ { "unit": "collector", "at": [5, 5] } ],
+  "assert": { "creditIs": { "faction": 0, "value": 5700 } }
+}
