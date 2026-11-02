@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 2,
+  "seed": 31,
+  "ticks": 2131,
+  "map": {
+    "width": 24,
+    "height": 24,
+    "blocked": []
+  },
+  "veins": [],
+  "refineries": [],
+  "commands": [
+    {
+      "tick": 1,
+      "faction": 0,
+      "type": "place",
+      "building": "coalition-construction-yard",
+      "at": [
+        5,
+        5
+      ]
+    },
+    {
+      "tick": 202,
+      "faction": 0,
+      "type": "place",
+      "building": "coalition-refinery",
+      "at": [
+        5,
+        9
+      ]
+    },
+    {
+      "tick": 805,
+      "faction": 0,
+      "type": "place",
+      "building": "coalition-reactor",
+      "at": [
+        8,
+        5
+      ]
+    },
+    {
+      "tick": 1608,
+      "faction": 0,
+      "type": "place",
+      "building": "coalition-barracks",
+      "at": [
+        11,
+        5
+      ]
+    },
+    {
+      "tick": 2010,
+      "faction": 0,
+      "type": "train",
+      "building": 3,
+      "unit": "rifleman"
+    }
+  ],
+  "assert": {
+    "nonBuildingUnitCountIs": {
+      "faction": 0,
+      "count": 1
+    }
+  }
+}

@@ -6,6 +6,7 @@
     <RootNamespace>Rts.Sim</RootNamespace>
     <AssemblyName>Rts.Sim</AssemblyName>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>NU1900</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="tests/**" />

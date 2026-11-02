@@ -14,6 +14,8 @@ public sealed class BuildingState
     /// <summary>Queue of unit catalog ids; index 0 is counting down.</summary>
     public List<string> Queue { get; } = new();
     public int QueueHeadRemaining { get; set; }
+    /// <summary>Tick on which the queue head was enqueued (countdown starts the tick AFTER).</summary>
+    public int QueueEnqueuedAtTick { get; set; }
 }
 
 /// <summary>Production state that isn't per-building: nothing today (queue lives on the
