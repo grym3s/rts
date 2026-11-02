@@ -3,6 +3,7 @@ using Rts.Sim.Combat;
 using Rts.Sim.Core;
 using Rts.Sim.Navigation;
 using Rts.Sim.Orders;
+using Rts.Sim.Power;
 using Rts.Sim.Units;
 using Rts.Sim.World;
 using Rts.Tools.SimHost.Protocol;
@@ -68,15 +69,19 @@ public sealed class HostedWorld
                     r.GetProperty("faction").GetInt32(),
                     new FixVec2(Fix64.FromDouble(r.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(r.GetProperty("at")[1].GetDouble()))));
 
-        // Canonical tick order (see Wiki/Projects/rts-development.md, 2026-11-02): income
-        // before spend, movement before proximity checks. Economy split: IncomeStep credits
-        // harvest before spend paths run; DepositStep credits arrivals after NavigationSystem.
+        // Canonical tick order (see Wiki/Projects/rts-development.md, 2026-11-02): Power(1)
+        // Income(2) Order(3) Production(4) Navigation(5) Deposit(6) Combat(7) Despawn(8).
+        // Economy is split: IncomeStep credits this tick's harvest before OrderSystem/Production
+        // spend; DepositStep credits arrivals after NavigationSystem has moved units, so refinery
+        // proximity reads post-move positions.
+        var power = new PowerStore();
+        world.Systems.Add((w, due) => PowerSystem.Step(power, buildingsCat, units));
         world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.IncomeStep(econ, units, orders, w.Tick));
         world.Systems.Add((w, due) => OrderSystem.ApplyCommands(orders, due, units.Find, (f, a) => econ.TrySpend(f, a)));
         world.Systems.Add((w, due) => Rts.Sim.Production.ProductionSystem.Step(
             buildingsCat, catalog, units, map, w.Ids, due,
             (f, a) => econ.TrySpend(f, a),
-            (f, a) => { econ.Deposit(f, a); return true; }));
+            (f, a) => { econ.Deposit(f, a); return true; }, power, w.Tick));
         world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
         world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick));
         world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick));
@@ -84,6 +89,7 @@ public sealed class HostedWorld
         world.HashMixers.Add(units.Hash);
         world.HashMixers.Add(econ.Hash);
         world.HashMixers.Add(h => Rts.Sim.Production.ProductionStore.Hash(units, h));
+        world.HashMixers.Add(power.Hash);
 
         return new HostedWorld { World = world, Units = units, Econ = econ, Map = map, _initialRoster = roster };
     }

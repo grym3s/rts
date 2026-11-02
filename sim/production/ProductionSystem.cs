@@ -22,7 +22,7 @@ public static class ProductionSystem
         UnitStore units, Rts.Sim.World.GameMap map,
         EntityIdAllocator ids,
         IReadOnlyList<Command> due,
-        TryOp spend, TryOp refund, PowerStore? power = null, int tick = 0)
+        TryOp spend, TryOp refund, PowerStore? power, int tick)
     {
         foreach (var c in due)
             switch (c)

@@ -318,10 +318,10 @@ public class PowerTests
         Assert.Equal(before + 1, x.Units.Units.Count);
     }
 
-    // === Magnus finding 5: persist tick counter and gate phase across pause/resume ===
+    // === Magnus finding 5: gate phase persists across step gap (no real pause/resume in sim) ===
 
     [Fact]
-    public void PersistTickCounterAndGatePhaseAcrossPauseResume()
+    public void GatePhasePersistsAcrossStepGap()
     {
         var x = World();
         YardUp(x);
@@ -331,13 +331,11 @@ public class PowerTests
         // Train a rifleman (120 ticks full rate).
         var before = x.Units.Units.Count;
         x.Step(new[] { new TrainCommand(x.Sim.Tick, 0, barracks.Id, "rifleman") });
-        // Step 100 ticks (low power: 100 decrements at half rate = 50 decrements).
+        // Step 100 ticks (low power: 50 gated decrements).
         for (var i = 0; i < 100; i++) x.Step();
-        // Pause: stop stepping for 50 ticks.
-        // Resume: continue stepping.
-        // The gate phase should persist across the pause.
-        // Step 140 ticks (low power: 140 decrements at half rate = 70 decrements).
-        // Total decrements = 50 + 70 = 120. So the countdown completes.
+        // Gap: 50 ticks with no stepping (sim pause — tick counter frozen).
+        // Resume: step 140 ticks (low power: 70 gated decrements).
+        // Total gated decrements = 50 + 70 = 120. Countdown completes.
         for (var i = 0; i < 140; i++) x.Step();
         Assert.Equal(before + 1, x.Units.Units.Count); // rifleman spawned
     }
