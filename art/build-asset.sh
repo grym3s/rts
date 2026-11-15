@@ -1,52 +1,118 @@
 #!/usr/bin/env bash
+# Build and optionally install a game asset.
+#
+# Usage:
+#   art/build-asset.sh <asset-id>            # export a validated animated GLB to art/export/<asset-id>/
+#   art/build-asset.sh <asset-id> --install  # also copy to game/assets/<asset-id>/ and run Godot import
+#
+# Environment:
+#   BL_BIN     optional explicit Blender binary path
+#   GODOT_BIN  optional explicit Godot binary path
+#
+# The pipeline is GLB-first: it builds a self-contained glTF 2.0 .glb (materials,
+# armature, named clips), validates it, and installs the GLB. Sprite rendering
+# is optional and not a required stage. The build script for a unit is looked up
+# by convention (build_<asset_id>.py or build_blockout.py).
 set -euo pipefail
 
-usage() {
-  echo "Usage: art/build-asset.sh <asset-id> [--install]" >&2
-  echo "Build runs the asset's Blender blockout and sprite scripts. --install copies the" >&2
-  echo "result into game/assets/<asset-id> and runs Godot's headless import." >&2
-}
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-if [[ $# -lt 1 || $# -gt 2 ]]; then usage; exit 2; fi
-asset_id="$1"
-install_runtime=false
-if [[ $# -eq 2 ]]; then
-  [[ "$2" == "--install" ]] || { usage; exit 2; }
-  install_runtime=true
-fi
-[[ "$asset_id" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || { echo "Invalid asset id: $asset_id" >&2; exit 2; }
+build_asset() {
+  local asset_id="${1}"
+  local mode="${2:-build}"
+  local work_dir="$ROOT/art/work/$asset_id"
+  local export_dir="$ROOT/art/export/$asset_id"
+  [[ -d "$work_dir" ]] || { echo "work folder missing: $work_dir"; return 1; }
+  mkdir -p "$export_dir"
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-work_dir="$repo_root/art/work/$asset_id"
-export_dir="$repo_root/art/export/$asset_id"
-blender_bin="$(command -v blender || true)"
-if [[ -z "$blender_bin" && -x "$HOME/.local/bin/blender" ]]; then blender_bin="$HOME/.local/bin/blender"; fi
-[[ -n "$blender_bin" ]] || { echo "Blender executable not found in PATH or ~/.local/bin" >&2; exit 1; }
-[[ -f "$work_dir/build_blockout.py" && -f "$work_dir/render_sprites.py" ]] || {
-  echo "Expected build_blockout.py and render_sprites.py in $work_dir" >&2; exit 1;
-}
-
-export RTS_ASSET_ID="$asset_id"
-mkdir -p "$export_dir"
-echo "Building $asset_id with $blender_bin"
-"$blender_bin" --background --factory-startup --python-exit-code 1 --python "$work_dir/build_blockout.py"
-"$blender_bin" --background --python-exit-code 1 --python "$work_dir/render_sprites.py"
-
-for file in "$asset_id.glb" "${asset_id}_sheet.png" sprite-manifest.json; do
-  [[ -s "$export_dir/$file" ]] || { echo "Missing or empty export: $export_dir/$file" >&2; exit 1; }
-done
-echo "Exports ready: $export_dir"
-
-if [[ "$install_runtime" == true ]]; then
-  runtime_dir="$repo_root/game/assets/$asset_id"
-  mkdir -p "$runtime_dir"
-  cp "$export_dir/$asset_id.glb" "$export_dir/${asset_id}_sheet.png" "$export_dir/sprite-manifest.json" "$runtime_dir/"
-  godot_bin="$(command -v godot || command -v godot4 || true)"
-  [[ -n "$godot_bin" ]] || { echo "Exports copied, but Godot was not found for import." >&2; exit 1; }
-  if [[ -x "$HOME/.dotnet/dotnet" ]]; then
-    export DOTNET_ROOT="$HOME/.dotnet"
-    export PATH="$HOME/.dotnet:$PATH"
+  # Locate the per-asset build script (GLB authoring).
+  local build_script=""
+  if [[ -f "$work_dir/build_${asset_id}.py" ]]; then
+    build_script="$work_dir/build_${asset_id}.py"
+  elif [[ -f "$work_dir/build_blockout.py" ]]; then
+    build_script="$work_dir/build_blockout.py"
+  else
+    echo "no build script found in $work_dir (expected build_${asset_id}.py)"
+    return 1
   fi
-  "$godot_bin" --path "$repo_root/game" --headless --import --quit
-  echo "Runtime copy imported: $runtime_dir"
-fi
+
+  # Locate the Blender binary (authoring tool).
+  local blender_bin=""
+  if [[ -n "${BL_BIN:-}" ]]; then
+    blender_bin="$BL_BIN"
+  elif command -v blender >/dev/null 2>&1; then
+    blender_bin="$(command -v blender)"
+  fi
+
+  # Run the build script via Blender (if available) to produce the GLB.
+  if [[ -n "$blender_bin" ]]; then
+    "$blender_bin" --background --factory-startup --python-exit-code 1 --python "$build_script"
+  else
+    echo "SKIP (no blender): using any existing GLB export"
+  fi
+
+  # Locate the produced GLB (work dir first, then export dir).
+  local glb_src=""
+  if [[ -s "$work_dir/$asset_id.glb" ]]; then
+    glb_src="$work_dir/$asset_id.glb"
+  elif [[ -s "$export_dir/$asset_id.glb" ]]; then
+    glb_src="$export_dir/$asset_id.glb"
+  else
+    echo "missing GLB export: $asset_id.glb (build with Blender to produce it)"
+    return 1
+  fi
+
+  # Validate the GLB (self-contained glTF 2.0, materials, armature, named clips).
+  if ! python3 "$ROOT/art/validate_glb.py" "$glb_src"; then
+    echo "GLB validation failed: $glb_src"
+    return 1
+  fi
+
+  # Copy the GLB to the canonical export location.
+  if [[ "$glb_src" != "$export_dir/$asset_id.glb" ]]; then
+    cp "$glb_src" "$export_dir/$asset_id.glb"
+  fi
+  echo "exported: $export_dir/$asset_id.glb"
+
+  # Optional: sprite rendering (not a required stage).
+  if [[ -f "$work_dir/render_sprites.py" && -n "$blender_bin" ]]; then
+    "$blender_bin" --background --python-exit-code 1 --python "$work_dir/render_sprites.py"
+    if [[ -s "$work_dir/${asset_id}_sheet.png" ]]; then
+      cp "$work_dir/${asset_id}_sheet.png" "$export_dir/"
+      echo "sprite sheet (optional): $export_dir/${asset_id}_sheet.png"
+    fi
+  fi
+
+  if [[ "$mode" == "install" ]]; then
+    local install_dir="$ROOT/game/assets/$asset_id"
+    mkdir -p "$install_dir"
+    cp "$export_dir/$asset_id.glb" "$install_dir/"
+    if [[ -s "$export_dir/${asset_id}_sheet.png" ]]; then
+      cp "$export_dir/${asset_id}_sheet.png" "$install_dir/"
+    fi
+    echo "installed: $install_dir/$asset_id.glb"
+
+    # Godot headless import of the runtime asset.
+    local godot_bin=""
+    if [[ -n "${GODOT_BIN:-}" ]]; then
+      godot_bin="$GODOT_BIN"
+    elif command -v godot >/dev/null 2>&1; then
+      godot_bin="$(command -v godot)"
+    fi
+    if [[ -n "$godot_bin" && -f "$ROOT/game/project.godot" ]]; then
+      (cd "$ROOT/game" && "$godot_bin" --headless --import >/dev/null 2>&1)
+      echo "godot import: ok"
+    fi
+  fi
+  return 0
+}
+
+main() {
+  [[ $# -ge 1 ]] || { echo "usage: $0 <asset-id> [--install]"; exit 2; }
+  local asset_id="${1}"
+  local mode="build"
+  [[ "${2:-}" == "--install" ]] && mode="install"
+  build_asset "$asset_id" "$mode"
+}
+
+main "$@"
