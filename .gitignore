@@ -25,3 +25,7 @@ mono_crash.*.json
 
 # make host-publish output
 dist/
+
+# working files and generated output
+GATES.md
+art/export/rifleman/
