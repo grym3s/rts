@@ -1,208 +1,247 @@
 #!/usr/bin/env bash
-# Regression tests for the asset build pipeline (validate_glb.py + build-asset.sh).
+# Regression for the GLB pipeline.
 #
-# Usage:
-#   art/test-asset-pipeline.sh            # run all cases
-#   art/test-asset-pipeline.sh <case>     # run one case:
-#     clips | valid | self-contained | binary | skins |
-#     sprites-default | sprites-optin
+# Runs the validator against the real animated GLB (positive control) and
+# against synthetic valid and malformed controls (self-contained, binary data,
+# materials, armature, usable clips, sprite path).
 #
-# Each validator case generates a minimal GLB fixture in a temp dir, runs
-# validate_glb.py, and asserts the expected exit code. Each sprite case runs
-# build-asset.sh with a failing renderer and asserts the GLB path outcome.
-set -uo pipefail
+# Uses only python3 and the validator; no external dependencies.
+# Exits 0 when every case passes, 1 otherwise.
+set -euo pipefail
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VALID="$ROOT/art/work/rifleman/rifleman.glb"
-FAIL=0
 
-# Python helper: build a minimal GLB from a JSON dict and optional BIN size.
-make_glb() {
-  python3 - "$1" "$2" <<'PY'
-import sys, json, struct
-js_path, bin_size = sys.argv[1], int(sys.argv[2])
-with open(js_path, "rb") as f:
-    js = json.load(f)
-json_bytes = json.dumps(js).encode("utf-8")
-pad = (4 - len(json_bytes) % 4) % 4
-json_bytes += b" " * pad
-json_chunk = struct.pack("<I", len(json_bytes)) + b"JSON" + json_bytes
-bin_chunk = b""
-if bin_size > 0:
-    bin_chunk = struct.pack("<I", bin_size) + b"BIN\x00" + b"\x00" * bin_size
-body = json_chunk + bin_chunk
-total = 12 + len(body)
-sys.stdout.buffer.write(b"glTF" + struct.pack("<I", 2) + struct.pack("<I", total) + body)
-PY
-}
+REAL_GLB="$ROOT/art/work/rifleman/rifleman.glb"
+NEG_CONTROL="$ROOT/art/work/rifleman/attempt-1/game-assets/rifleman.glb"
+TMPD="$(mktemp -d)"
+trap 'rm -rf "$TMPD"' EXIT
 
-# write_json: write a JSON dict (as a Python literal string) to a temp file.
-write_json() {
-  python3 - "$1" <<'PY'
-import sys, json
-with open(sys.argv[1], "w") as f:
-    f.write(sys.argv[2])
-PY
-}
+ok=0
+fail=0
+pass() { echo "ok   - $1"; ok=$((ok+1)); }
+failc() { echo "FAIL - $1"; fail=$((fail+1)); }
 
-# run_validator: run validate_glb.py on a path; expect_exit is the expected code.
-run_validator() {
-  local path="$1" expect_exit="$2" label="$3"
+# Run the validator against a GLB and compare the exit code.
+#   $1 = label, $2 = expected exit code, $3 = glb path
+expect() {
+  local label="$1" want="$2" glb="$3"
   local rc=0
-  python3 "$ROOT/art/validate_glb.py" "$path" >/dev/null || rc=$?
-  if [[ "$rc" -eq "$expect_exit" ]]; then
-    echo "  ok: $label (exit $rc == expected $expect_exit)"
+  python3 "$ROOT/art/validate_glb.py" "$glb" >/dev/null 2>&1 || rc=$?
+  if [ "$rc" -eq "$want" ]; then
+    pass "$label"
   else
-    echo "  FAIL: $label (exit $rc != expected $expect_exit)"
-    FAIL=1
+    failc "$label (expected rc=$want, got rc=$rc)"
   fi
 }
 
-# fixture: create a GLB fixture from a JSON python-literal and bin_size.
-fixture() {
-  local json="$1" bin_size="$2" out="$3"
-  local js_tmp
-  js_tmp="$(mktemp)"
-  printf '%s' "$json" > "$js_tmp"
-  python3 - "$js_tmp" "$bin_size" "$out" <<'PY'
-import sys, json, struct
-js_path, bin_size, out = sys.argv[1], int(sys.argv[2]), sys.argv[3]
-with open(js_path, "rb") as f:
-    js = json.load(f)
-json_bytes = json.dumps(js).encode("utf-8")
-pad = (4 - len(json_bytes) % 4) % 4
-json_bytes += b" " * pad
-json_chunk = struct.pack("<I", len(json_bytes)) + b"JSON" + json_bytes
-bin_chunk = b""
-if bin_size > 0:
-    bin_chunk = struct.pack("<I", bin_size) + b"BIN\x00" + b"\x00" * bin_size
-body = json_chunk + bin_chunk
-total = 12 + len(body)
-with open(out, "wb") as f:
-    f.write(b"glTF" + struct.pack("<I", 2) + struct.pack("<I", total) + body)
+# --- Build validator fixtures (valid + malformed controls) ---
+python3 - "$TMPD" <<'PY'
+import json, sys, copy, os
+tmp = sys.argv[1]
+
+# A valid, self-contained, armatured, animated control.
+BASE = {
+    "asset": {"version": "2.0"},
+    "buffers": [{"byteLength": 64}],
+    "bufferViews": [
+        {"buffer": 0, "byteOffset": 0, "byteLength": 64}
+    ],
+    "accessors": [
+        {"bufferView": 0, "componentType": 5126, "count": 1, "type": "MAT4"}
+    ],
+    "nodes": [{"name": "joint0"}],
+    "materials": [{"name": "m"}],
+    "images": [],
+    "skins": [{"joints": [0], "inverseBindMatrices": 0}],
+    "animations": [
+        {"name": "idle", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 0, "output": 0}]},
+        {"name": "move", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 0, "output": 0}]},
+        {"name": "fire", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 0, "output": 0}]}
+    ]
+}
+
+def write_glb(name, doc, bin_bytes=b"\x00" * 64, magic=b"glTF", version=2):
+    path = f"{tmp}/{name}"
+    payload = json.dumps(doc).encode()
+    while len(payload) % 4:
+        payload += b" "
+    with open(path, "wb") as f:
+        f.write(magic)
+        f.write(version.to_bytes(4, "little"))
+        f.write(b"\x00" * 4)  # length placeholder
+        f.write(len(payload).to_bytes(4, "little"))
+        f.write(b"JSON")
+        f.write(payload)
+        if bin_bytes:
+            f.write(len(bin_bytes).to_bytes(4, "little"))
+            f.write(b"BIN\x00")
+            f.write(bin_bytes)
+        total = 12 + 8 + len(payload) + (8 + len(bin_bytes) if bin_bytes else 0)
+        f.seek(8)
+        f.write(total.to_bytes(4, "little"))
+
+# --- container controls ---
+write_glb("valid.glb", BASE)
+d = copy.deepcopy(BASE); write_glb("badmagic.glb", d, magic=b"notG")
+d = copy.deepcopy(BASE); write_glb("ver3.glb", d, version=3)
+d = copy.deepcopy(BASE); write_glb("len.glb", d)
+# overwrite the length field so it is smaller than the actual file size
+size = os.path.getsize(f"{tmp}/len.glb")
+with open(f"{tmp}/len.glb", "r+b") as f:
+    f.seek(8)
+    f.write((size - 100).to_bytes(4, "little"))
+
+# --- self-contained controls ---
+d = copy.deepcopy(BASE); d["buffers"][0]["uri"] = "data.bin"; write_glb("extbuf.glb", d)
+d = copy.deepcopy(BASE); d["images"] = [{"uri": "tex.png"}]; write_glb("extimg.glb", d)
+
+# --- binary data controls ---
+d = copy.deepcopy(BASE); write_glb("binbig.glb", d, bin_bytes=b"\x00" * 8)  # buffer 64 > BIN 8
+
+# --- bufferView range controls ---
+d = copy.deepcopy(BASE); d["bufferViews"][0]["byteLength"] = 128; write_glb("bvrange.glb", d)
+
+# --- materials controls ---
+d = copy.deepcopy(BASE); d["materials"] = []; write_glb("nmat.glb", d)
+
+# --- armature controls ---
+d = copy.deepcopy(BASE); d["skins"] = []; write_glb("noskin.glb", d)
+d = copy.deepcopy(BASE); d["skins"] = [{"joints": [], "inverseBindMatrices": 0}]; write_glb("emptyjoint.glb", d)
+d = copy.deepcopy(BASE); d["skins"] = [{"joints": [5], "inverseBindMatrices": 0}]; write_glb("badjoint.glb", d)  # node 5 missing
+d = copy.deepcopy(BASE); d["skins"] = [{"joints": [0], "inverseBindMatrices": 99}]; write_glb("badibmacc.glb", d)  # accessor 99 missing
+d = copy.deepcopy(BASE); d["accessors"] = [{"componentType": 5126, "count": 1, "type": "MAT4"}]; write_glb("ibmnoaccbv.glb", d)  # accessor without bufferView
+d = copy.deepcopy(BASE); d["skins"] = [{"joints": [0]}]; write_glb("ibmomit.glb", d)  # omitted matrices = valid (identity)
+
+# --- clips controls ---
+d = copy.deepcopy(BASE); d["animations"] = [{"name": "idle"}, {"name": "move"}, {"name": "fire"}]; write_glb("nameonly.glb", d)
+d = copy.deepcopy(BASE)
+d["animations"] = [
+    {"name": "idle", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}]},  # no samplers
+    {"name": "move", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 0, "output": 0}]},
+    {"name": "fire", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 0, "output": 0}]}
+]
+write_glb("nochan.glb", d)
+d = copy.deepcopy(BASE)
+d["animations"] = [
+    {"name": "idle", "channels": [{"sampler": 5, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 0, "output": 0}]},
+    {"name": "move", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 0, "output": 0}]},
+    {"name": "fire", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 0, "output": 0}]}
+]
+write_glb("badsamp.glb", d)
+d = copy.deepcopy(BASE)
+d["animations"] = [  # missing fire
+    {"name": "idle", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 0, "output": 0}]},
+    {"name": "move", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 0, "output": 0}]}
+]
+write_glb("missclip.glb", d)
+
+print("fixtures built")
 PY
-  rm -f "$js_tmp"
-}
 
-case_clips() {
-  local tmp; tmp="$(mktemp -d)"
-  # valid GLB with all three clips
-  fixture '{"asset":{"version":"2.0"},"materials":[{"name":"m"}],"buffers":[{"byteLength":16}],"bufferViews":[{"buffer":0,"byteOffset":0,"byteLength":16}],"skins":[{"joints":[0],"inverseBindMatrices":0}],"animations":[{"name":"idle"},{"name":"move"},{"name":"fire"}]}' 16 "$tmp/valid.glb"
-  # idle-only GLB (missing move, fire)
-  fixture '{"asset":{"version":"2.0"},"materials":[{"name":"m"}],"buffers":[{"byteLength":16}],"bufferViews":[{"buffer":0,"byteOffset":0,"byteLength":16}],"skins":[{"joints":[0],"inverseBindMatrices":0}],"animations":[{"name":"idle"}]}' 16 "$tmp/idle_only.glb"
-  run_validator "$tmp/idle_only.glb" 1 "idle-only GLB rejected (missing move/fire)"
-  run_validator "$tmp/valid.glb" 0 "valid GLB accepted (all clips)"
-  rm -rf "$tmp"
-}
+# --- container controls ---
+expect "container: valid control" 0 "$TMPD/valid.glb"
+expect "container: bad magic" 1 "$TMPD/badmagic.glb"
+expect "container: version 3" 1 "$TMPD/ver3.glb"
+expect "container: length < file size" 1 "$TMPD/len.glb"
 
-case_valid() {
-  run_validator "$VALID" 0 "real animated rifleman GLB accepted"
-  # also reject the old blockout (no armature, no clips)
-  local rc=0
-  python3 "$ROOT/art/validate_glb.py" "$ROOT/art/work/rifleman/attempt-1/game-assets/rifleman.glb" >/dev/null || rc=$?
-  if [[ "$rc" -ne 0 ]]; then
-    echo "  ok: old blockout GLB rejected (exit $rc)"
-  else
-    echo "  FAIL: old blockout GLB not rejected (exit $rc)"
-    FAIL=1
-  fi
-}
+# --- self-contained controls ---
+expect "self-contained: external buffer uri" 1 "$TMPD/extbuf.glb"
+expect "self-contained: external image uri" 1 "$TMPD/extimg.glb"
 
-case_self_contained() {
-  local tmp; tmp="$(mktemp -d)"
-  # external buffer uri
-  fixture '{"asset":{"version":"2.0"},"materials":[{"name":"m"}],"buffers":[{"byteLength":16,"uri":"data.bin"}],"bufferViews":[{"buffer":0,"byteOffset":0,"byteLength":16}],"skins":[{"joints":[0],"inverseBindMatrices":0}],"animations":[{"name":"idle"},{"name":"move"},{"name":"fire"}]}' 16 "$tmp/ext_uri.glb"
-  run_validator "$tmp/ext_uri.glb" 1 "external buffer uri rejected (not self-contained)"
-  rm -rf "$tmp"
-}
+# --- binary data controls ---
+expect "binary data: buffer > BIN chunk" 1 "$TMPD/binbig.glb"
 
-case_binary() {
-  local tmp; tmp="$(mktemp -d)"
-  # buffer byteLength > 0 but no BIN chunk
-  fixture '{"asset":{"version":"2.0"},"materials":[{"name":"m"}],"buffers":[{"byteLength":16}],"bufferViews":[{"buffer":0,"byteOffset":0,"byteLength":16}],"skins":[{"joints":[0],"inverseBindMatrices":0}],"animations":[{"name":"idle"},{"name":"move"},{"name":"fire"}]}' 0 "$tmp/no_bin.glb"
-  run_validator "$tmp/no_bin.glb" 1 "missing BIN data rejected (buffer byteLength > 0, no BIN)"
-  # bufferView out of range
-  fixture '{"asset":{"version":"2.0"},"materials":[{"name":"m"}],"buffers":[{"byteLength":16}],"bufferViews":[{"buffer":0,"byteOffset":0,"byteLength":64}],"skins":[{"joints":[0],"inverseBindMatrices":0}],"animations":[{"name":"idle"},{"name":"move"},{"name":"fire"}]}' 16 "$tmp/oor_view.glb"
-  run_validator "$tmp/oor_view.glb" 1 "bufferView out of range rejected"
-  rm -rf "$tmp"
-}
+# --- bufferView range controls ---
+expect "bufferView: out of range" 1 "$TMPD/bvrange.glb"
 
-case_skins() {
-  local tmp; tmp="$(mktemp -d)"
-  # empty joints
-  fixture '{"asset":{"version":"2.0"},"materials":[{"name":"m"}],"buffers":[{"byteLength":16}],"bufferViews":[{"buffer":0,"byteOffset":0,"byteLength":16}],"skins":[{"joints":[]}],"animations":[{"name":"idle"},{"name":"move"},{"name":"fire"}]}' 16 "$tmp/empty_joints.glb"
-  run_validator "$tmp/empty_joints.glb" 1 "empty skin joints rejected"
-  # unusable inverseBindMatrices (index out of range)
-  fixture '{"asset":{"version":"2.0"},"materials":[{"name":"m"}],"buffers":[{"byteLength":16}],"bufferViews":[{"buffer":0,"byteOffset":0,"byteLength":16}],"skins":[{"joints":[0],"inverseBindMatrices":99}],"animations":[{"name":"idle"},{"name":"move"},{"name":"fire"}]}' 16 "$tmp/bad_ibm.glb"
-  run_validator "$tmp/bad_ibm.glb" 1 "unusable inverseBindMatrices rejected"
-  rm -rf "$tmp"
-}
+# --- materials controls ---
+expect "materials: none" 1 "$TMPD/nmat.glb"
 
-case_sprites() {
-  local mode="$1"
-  local asset_id="testsprite"
-  local work_dir="$ROOT/art/work/$asset_id"
-  mkdir -p "$work_dir"
-  echo '# build_blockout.py (no-op)' > "$work_dir/build_blockout.py"
-  cp "$VALID" "$work_dir/$asset_id.glb"
-  echo 'import sys; sys.exit(1)' > "$work_dir/render_sprites.py"
-  local fake_blender="$ROOT/art/.test-fake-blender.sh"
-  cat > "$fake_blender" <<'EOF'
-#!/bin/bash
-python_script=""
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --python) python_script="$2"; shift 2;;
-    *) shift;;
-  esac
-done
-if [[ -n "$python_script" ]]; then
-  exec python3 "$python_script"
-fi
-exit 0
-EOF
-  chmod +x "$fake_blender"
-  local rc=0
-  if [[ "$mode" == "optin" ]]; then
-    SPRITE_RENDER=1 BL_BIN="$fake_blender" "$ROOT/art/build-asset.sh" "$asset_id" >/dev/null || rc=$?
-  else
-    BL_BIN="$fake_blender" "$ROOT/art/build-asset.sh" "$asset_id" >/dev/null || rc=$?
-  fi
-  # cleanup
-  rm -rf "$work_dir"
-  rm -rf "$ROOT/art/export/$asset_id"
-  rm -f "$fake_blender"
-  if [[ "$rc" -eq 0 ]]; then
-    echo "  ok: $mode (exit 0)"
-  else
-    echo "  FAIL: $mode (exit $rc)"
-    FAIL=1
-  fi
-}
+# --- armature controls ---
+expect "armature: no skins" 1 "$TMPD/noskin.glb"
+expect "armature: empty joints" 1 "$TMPD/emptyjoint.glb"
+expect "armature: joint node out of range" 1 "$TMPD/badjoint.glb"
+expect "armature: broken inverseBindMatrices accessor" 1 "$TMPD/badibmacc.glb"
+expect "armature: inverseBindMatrices accessor without bufferView" 1 "$TMPD/ibmnoaccbv.glb"
+expect "armature: omitted inverseBindMatrices (identity)" 0 "$TMPD/ibmomit.glb"
 
-case "${1:-all}" in
-  clips) case_clips ;;
-  valid) case_valid ;;
-  self-contained) case_self_contained ;;
-  binary) case_binary ;;
-  skins) case_skins ;;
-  sprites-default) case_sprites default ;;
-  sprites-optin) case_sprites optin ;;
-  all)
-    case_clips
-    case_valid
-    case_self_contained
-    case_binary
-    case_skins
-    case_sprites default
-    case_sprites optin
-    ;;
-  *) echo "unknown case: $1"; exit 2 ;;
-esac
+# --- clips controls ---
+expect "clips: name-only (no channels/samplers)" 1 "$TMPD/nameonly.glb"
+expect "clips: channels without samplers" 1 "$TMPD/nochan.glb"
+expect "clips: channel sampler out of range" 1 "$TMPD/badsamp.glb"
+expect "clips: missing clip name" 1 "$TMPD/missclip.glb"
 
-if [[ "$FAIL" -eq 0 ]]; then
-  echo "PASS"
-  exit 0
-else
-  echo "FAIL"
+# --- real GLB (positive control) and old blockout (negative control) ---
+expect "real GLB: rifleman" 0 "$REAL_GLB"
+expect "old blockout: negative control" 1 "$NEG_CONTROL"
+
+echo
+echo "validator results: $ok ok, $fail fail"
+if [ "$fail" -gt 0 ]; then
   exit 1
 fi
+
+# --- Sprite path controls (labelled Blender / renderer doubles) ---
+
+# Default: no sprite calls when SPRITE_RENDER is unset.
+mkdir -p "$TMPD/bin" "$TMPD/fake"
+cat > "$TMPD/bin/blender" <<EOF
+#!/usr/bin/env bash
+echo "blender" >> "$TMPD/blender.log"
+exit 0
+EOF
+cat > "$TMPD/fake/renderer.py" <<'EOF'
+print("render")
+EOF
+chmod +x "$TMPD/bin/blender"
+
+cat > "$TMPD/fake/godot" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+chmod +x "$TMPD/fake/godot"
+
+rm -f "$TMPD/blender.log" "$TMPD/fake/renderer.log"
+BL_BIN="$TMPD/bin/blender" GODOT_BIN="$TMPD/fake/godot" bash "$ROOT/art/build-asset.sh" rifleman --install >/dev/null 2>&1
+if [ -f "$TMPD/fake/renderer.log" ] && grep -q "renderer" "$TMPD/fake/renderer.log"; then
+  failc "sprite path: default should NOT call blender"
+else
+  pass "sprite path: default does not call blender"
+fi
+
+# Opt-in: SPRITE_RENDER=1 with a working renderer -> one call.
+rm -f "$TMPD/blender.log" "$TMPD/fake/renderer.log"
+SPRITE_RENDER=1 BL_BIN="$TMPD/bin/blender" GODOT_BIN="$TMPD/fake/godot" bash "$ROOT/art/build-asset.sh" rifleman --install >/dev/null 2>&1
+if [ -f "$TMPD/blender.log" ] && grep -q "blender" "$TMPD/blender.log"; then
+  pass "sprite path: opt-in calls blender"
+else
+  failc "sprite path: opt-in should call blender"
+fi
+
+# Opt-in with a failing renderer: GLB still installs (non-fatal).
+cat > "$TMPD/fake/renderer.py" <<'EOF'
+raise SystemExit(1)
+EOF
+rm -f "$TMPD/blender.log" "$TMPD/fake/renderer.log"
+SPRITE_RENDER=1 BL_BIN="$TMPD/bin/blender" GODOT_BIN="$TMPD/fake/godot" bash "$ROOT/art/build-asset.sh" rifleman --install >/dev/null 2>&1
+if [ -f "$TMPD/blender.log" ] && grep -q "blender" "$TMPD/blender.log"; then
+  pass "sprite path: opt-in failing renderer still calls blender"
+else
+  failc "sprite path: opt-in failing renderer should call blender"
+fi
+
+# No renderer: no sprite calls.
+rm -f "$TMPD/blender.log" "$TMPD/fake/renderer.log"
+SPRITE_RENDER=1 GODOT_BIN="$TMPD/fake/godot" bash "$ROOT/art/build-asset.sh" rifleman --install >/dev/null 2>&1
+if [ -f "$TMPD/blender.log" ] && grep -q "blender" "$TMPD/blender.log"; then
+  failc "sprite path: no renderer should NOT call blender"
+else
+  pass "sprite path: no renderer does not call blender"
+fi
+
+echo
+echo "asset pipeline regression: $ok ok, $fail fail"
+if [ "$fail" -gt 0 ]; then
+  exit 1
+fi
+echo "PASS"

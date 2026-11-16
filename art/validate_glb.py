@@ -3,13 +3,16 @@
 
 Checks:
   - GLB container (magic "glTF", version 2, length matches file size, JSON chunk present and parseable)
-  - self-contained (no external buffer `uri`)
+  - self-contained (no external buffer `uri` and no external image `uri`)
   - binary data (BIN chunk present when a buffer has data; bufferView ranges within the buffer)
   - materials (non-empty `materials` array)
-  - armature (non-empty `skins`, each skin with non-empty `joints` and a usable `inverseBindMatrices` reference)
-  - named clips (an `animations` array containing all of `idle`, `move`, `fire`)
+  - armature (non-empty `skins`, each skin with non-empty `joints` whose node indices exist,
+    and a usable `inverseBindMatrices` reference — an accessor index into bufferView -> buffer;
+    omitted matrices are valid (identity per glTF 2.0))
+  - named clips (an `animations` array containing all of `idle`, `move`, `fire`,
+    each with usable channels and samplers)
 
-Exits 0 when all required elements are present, 1 otherwise.
+Exits 0 when all required elements are present and usable, 1 otherwise.
 """
 import json
 import struct
@@ -73,14 +76,16 @@ def main():
 
     problems = []
     buffers = js.get("buffers", [])
+    images = js.get("images", [])
 
-    # Self-contained: no external buffer references.
+    # Self-contained: no external buffer references and no external image references.
     external = [b.get("uri") for b in buffers if b.get("uri")]
-    if external:
-        print(f"  self-contained: external buffer uri {external} (not self-contained)")
+    ext_images = [im.get("uri") for im in images if im.get("uri")]
+    if external or ext_images:
+        print(f"  self-contained: external buffer uri {external} / external image uri {ext_images} (not self-contained)")
         problems.append("self-contained")
     else:
-        print(f"  self-contained: {len(buffers)} embedded buffer(s) (ok)")
+        print(f"  self-contained: {len(buffers)} embedded buffer(s), {len(images)} image(s) (ok)")
 
     # Binary data: required BIN chunk present when any buffer has data.
     max_byte = max((b.get("byteLength", 0) for b in buffers), default=0)
@@ -112,22 +117,37 @@ def main():
         print("  materials: none (missing)")
         problems.append("materials")
 
-    # armature: non-empty skins, each with non-empty joints and a usable inverseBindMatrices.
+    # armature: non-empty skins; each skin needs non-empty joints whose node
+    # references exist, plus a usable inverseBindMatrices reference (optional).
+    accessors = js.get("accessors", [])
+    nodes = js.get("nodes", [])
     skins = js.get("skins", [])
     bad_skins = []
     for i, s in enumerate(skins):
-        if not s.get("joints"):
+        joints = s.get("joints")
+        if not joints:
             bad_skins.append(f"skin{i}: empty joints")
             continue
+        missing_nodes = [n for n in joints if n >= len(nodes)]
+        if missing_nodes:
+            bad_skins.append(f"skin{i}: joint node indices {missing_nodes} out of range")
+            continue
         ibm = s.get("inverseBindMatrices")
-        if ibm is None or ibm >= len(buffer_views):
-            bad_skins.append(f"skin{i}: missing/invalid inverseBindMatrices")
-        else:
-            bv = buffer_views[ibm]
-            buf_idx = bv.get("buffer", 0)
-            buf_len = buffers[buf_idx].get("byteLength", 0) if buf_idx < len(buffers) else 0
-            if bv.get("byteOffset", 0) + bv.get("byteLength", 0) > buf_len:
-                bad_skins.append(f"skin{i}: inverseBindMatrices out of range")
+        if ibm is None:
+            continue  # optional; omitted = identity matrices (valid)
+        if ibm >= len(accessors):
+            bad_skins.append(f"skin{i}: inverseBindMatrices accessor {ibm} out of range")
+            continue
+        acc = accessors[ibm]
+        bv_idx = acc.get("bufferView")
+        if bv_idx is None or bv_idx >= len(buffer_views):
+            bad_skins.append(f"skin{i}: inverseBindMatrices accessor {ibm} has no valid bufferView")
+            continue
+        bv = buffer_views[bv_idx]
+        buf_idx = bv.get("buffer", 0)
+        buf_len = buffers[buf_idx].get("byteLength", 0) if buf_idx < len(buffers) else 0
+        if bv.get("byteOffset", 0) + bv.get("byteLength", 0) > buf_len:
+            bad_skins.append(f"skin{i}: inverseBindMatrices bufferView out of range")
     if skins and not bad_skins:
         joints_total = sum(len(s.get("joints", [])) for s in skins)
         print(f"  armature: {len(skins)} skin(s), {joints_total} joints (ok)")
@@ -138,15 +158,31 @@ def main():
         print(f"  armature: {bad_skins} (unusable)")
         problems.append("armature")
 
-    # clips: all required clips present.
+    # clips: all required clips present, each with usable channels and samplers.
     animations = js.get("animations", [])
-    clip_names = [a.get("name") for a in animations]
-    missing_clips = [n for n in REQUIRED_CLIPS if n not in clip_names]
-    if missing_clips:
-        print(f"  clips missing: {', '.join(missing_clips)}")
+    clip_by_name = {a.get("name"): a for a in animations}
+    clip_problems = []
+    for n in REQUIRED_CLIPS:
+        a = clip_by_name.get(n)
+        if a is None:
+            clip_problems.append(f"{n} missing")
+            continue
+        if not a.get("channels"):
+            clip_problems.append(f"{n} has no channels")
+            continue
+        if not a.get("samplers"):
+            clip_problems.append(f"{n} has no samplers")
+            continue
+        for c in a.get("channels", []):
+            sidx = c.get("sampler")
+            if sidx is None or sidx >= len(a.get("samplers", [])):
+                clip_problems.append(f"{n} channel sampler {sidx} out of range")
+                break
+    if clip_problems:
+        print(f"  clips: {', '.join(clip_problems)} (unusable)")
         problems.append("clips")
     else:
-        print(f"  clips: {', '.join(clip_names)} (ok)")
+        print(f"  clips: {', '.join(REQUIRED_CLIPS)} (ok)")
 
     if problems:
         print(f"RESULT: FAIL (missing {', '.join(problems)})")
