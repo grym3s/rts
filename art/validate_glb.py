@@ -3,14 +3,15 @@
 
 Checks:
   - GLB container (magic "glTF", version 2, length matches file size, JSON chunk present and parseable)
-  - self-contained (no external buffer `uri` and no external image `uri`)
+  - self-contained (no external buffer `uri` and no external image `uri`; data URIs are embedded;
+    image `bufferView` references are valid)
   - binary data (BIN chunk present when a buffer has data; bufferView ranges within the buffer)
   - materials (non-empty `materials` array)
   - armature (non-empty `skins`, each skin with non-empty `joints` whose node indices exist,
-    and a usable `inverseBindMatrices` reference — an accessor index into bufferView -> buffer;
-    omitted matrices are valid (identity per glTF 2.0))
+    and a usable `inverseBindMatrices` reference — an accessor index into bufferView -> buffer
+    with valid extent and joint coverage; omitted matrices are valid (identity per glTF 2.0))
   - named clips (an `animations` array containing all of `idle`, `move`, `fire`,
-    each with usable channels and samplers)
+    each with usable channels, samplers, and valid input/output accessor references)
 
 Exits 0 when all required elements are present and usable, 1 otherwise.
 """
@@ -77,12 +78,24 @@ def main():
     problems = []
     buffers = js.get("buffers", [])
     images = js.get("images", [])
+    buffer_views = js.get("bufferViews", [])
 
-    # Self-contained: no external buffer references and no external image references.
-    external = [b.get("uri") for b in buffers if b.get("uri")]
-    ext_images = [im.get("uri") for im in images if im.get("uri")]
-    if external or ext_images:
-        print(f"  self-contained: external buffer uri {external} / external image uri {ext_images} (not self-contained)")
+    # Self-contained: no external buffer references.
+    # Data URIs (data:image/...) are embedded; external file URIs are not.
+    external_bufs = [b.get("uri") for b in buffers if b.get("uri") and not b.get("uri", "").startswith("data:")]
+    ext_images = []
+    for im in images:
+        uri = im.get("uri")
+        if uri and not uri.startswith("data:"):
+            ext_images.append(uri)
+    # Image bufferView references must be valid.
+    bad_img_views = []
+    for im in images:
+        bv_idx = im.get("bufferView")
+        if bv_idx is not None and (bv_idx >= len(buffer_views) or bv_idx < 0):
+            bad_img_views.append(f"bufferView {bv_idx}")
+    if external_bufs or ext_images or bad_img_views:
+        print(f"  self-contained: ext buffer {external_bufs} / ext image {ext_images} / bad img view {bad_img_views} (not self-contained)")
         problems.append("self-contained")
     else:
         print(f"  self-contained: {len(buffers)} embedded buffer(s), {len(images)} image(s) (ok)")
@@ -96,7 +109,6 @@ def main():
         print(f"  binary data: BIN chunk {bin_size} (ok)")
 
     # bufferView references: byteOffset + byteLength within the buffer.
-    buffer_views = js.get("bufferViews", [])
     bad_views = 0
     for v in buffer_views:
         buf_idx = v.get("buffer", 0)
@@ -146,8 +158,18 @@ def main():
         bv = buffer_views[bv_idx]
         buf_idx = bv.get("buffer", 0)
         buf_len = buffers[buf_idx].get("byteLength", 0) if buf_idx < len(buffers) else 0
-        if bv.get("byteOffset", 0) + bv.get("byteLength", 0) > buf_len:
+        bv_end = bv.get("byteOffset", 0) + bv.get("byteLength", 0)
+        if bv_end > buf_len:
             bad_skins.append(f"skin{i}: inverseBindMatrices bufferView out of range")
+        else:
+            # Accessor extent: byteOffset + count*componentSize must fit in bufferView.
+            comp_size = {"SCALAR": 4, "VEC2": 8, "VEC3": 12, "VEC4": 16, "MAT4": 64}.get(acc.get("type"), 4)
+            acc_bytes = acc.get("byteOffset", 0) + acc.get("count", 0) * comp_size
+            if acc_bytes > bv.get("byteLength", 0):
+                bad_skins.append(f"skin{i}: inverseBindMatrices accessor extent {acc_bytes} exceeds bufferView {bv.get('byteLength', 0)}")
+            # Joint coverage: count must match number of joints.
+            if acc.get("count", 0) != len(joints):
+                bad_skins.append(f"skin{i}: inverseBindMatrices count {acc.get('count', 0)} != joints {len(joints)}")
     if skins and not bad_skins:
         joints_total = sum(len(s.get("joints", [])) for s in skins)
         print(f"  armature: {len(skins)} skin(s), {joints_total} joints (ok)")
@@ -177,6 +199,22 @@ def main():
             sidx = c.get("sampler")
             if sidx is None or sidx >= len(a.get("samplers", [])):
                 clip_problems.append(f"{n} channel sampler {sidx} out of range")
+                break
+            # Target node must reference a valid node.
+            tgt = c.get("target", {})
+            node_idx = tgt.get("node")
+            if node_idx is None or node_idx >= len(nodes) or node_idx < 0:
+                clip_problems.append(f"{n} channel target node {node_idx} invalid")
+                break
+        # Sampler input/output accessors must reference valid accessors.
+        for s in a.get("samplers", []):
+            inp = s.get("input")
+            if inp is None or inp >= len(accessors) or inp < 0:
+                clip_problems.append(f"{n} sampler input accessor {inp} invalid")
+                break
+            out = s.get("output")
+            if out is None or out >= len(accessors) or out < 0:
+                clip_problems.append(f"{n} sampler output accessor {out} invalid")
                 break
     if clip_problems:
         print(f"  clips: {', '.join(clip_problems)} (unusable)")
