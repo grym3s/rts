@@ -12,6 +12,11 @@ namespace Rts.Sim.Tests;
 /// orders for single and multiple units, arrival and stop behaviour, re-issuing
 /// an order mid-move, and same-input determinism over N ticks.
 ///
+/// Sim-only scope: these tests construct only SimWorld, OrderSystem and
+/// NavigationSystem. They do not exercise a host, protocol or bridge; host
+/// round-trip/state propagation and visible host-failure behaviour remain in
+/// GRY-288's acceptance.
+///
 /// Coverage map (headless vs GUI-only) is documented in
 /// docs/superpowers/plans/2026-11-16-slice-4-headless-sim-test-coverage.md.
 ///
@@ -221,7 +226,7 @@ public class Slice4GameplayLoopTests
         Assert.Equal(wa.Tick, wb.Tick);
     }
 
-    // ---- Host failure does not fabricate state (sim-level proxy) ----
+    // ---- Sim-only: an uncommanded world moves nothing (no host/bridge exercised) ----
 
     [Fact]
     public void Idle_world_does_not_fabricate_movement()
@@ -230,7 +235,10 @@ public class Slice4GameplayLoopTests
         var u = Spawn(units, world.Ids, new FixVec2(C(1), C(1)), C(4), Fix64.Ratio(3, 10));
         var h0 = world.StateHash();
         for (var t = 0; t < 20; t++) world.Step(Array.Empty<Command>());
-        Assert.Equal(new FixVec2(C(1), C(1)), u.Position); // no spurious movement
-        Assert.NotEqual(h0, world.StateHash()); // hash advanced only via the tick
+        Assert.Equal(new FixVec2(C(1), C(1)), u.Position); // no spurious movement without commands
+        // Proves only that the hash differs across ticks (the hash mixes the tick
+        // counter). It does not isolate which fields changed, and no host failure
+        // is exercised here.
+        Assert.NotEqual(h0, world.StateHash());
     }
 }
