@@ -17,7 +17,18 @@ Known limits (2026-09-27): `work/rifleman/` remains a preserved manual primitive
 | `references/heavy-tank-reference.jpg` | User-provided image attached in the “Elite Unit Design” chat | Heavy tank with blue lights and multiple weapons. Use as silhouette/detail reference; lower hull is cut by the frame. |
 | `references/elite-field-commander-concept.jpg` | Generated concept image from that chat | Larger elite soldier direction. Chat later refined this toward a shorter sculpted helmet and ivory/plum armor; this image predates that final description and should not override it. |
 
-These early concepts are not yet assigned to Coalition, Hegemony, or Ascendant. Resolve that against faction visual identity before production modeling.
+## Faction assessment — early concepts
+
+These references remain **undecided for faction assignment**. The faction canon defines gameplay identity (Coalition precision and information, Hegemony mass and attrition, Ascendant exotic technology and mobility), but it does not yet define a visual palette or faction-specific armor language that can reliably identify these images. Do not treat blue lighting, apparent armor weight, or weapon detail alone as faction evidence. Readability requires distinct silhouettes and reserved team-colour use; the current references do not establish those tests at RTS scale. Keep each image as a concept reference only. Do not begin production modeling from an assumed faction identity.
+
+| Reference | Faction status | Rationale |
+|---|---|---|
+| `references/elite-infantry-chat-render.jpg` | **Undecided** | This is the primary modeling-target image, with dark, detailed armor, broad shoulders, a blue visor, and a rifle. Those cues do not distinguish Coalition precision from Hegemony durability or Ascendant technology. The image remains an identity reference, not faction canon. |
+| `references/armoured-infantry-reference.jpg` | **Undecided** | The screenshot-style blue-visored infantry resembles the first reference, but does not show a faction-specific role or visual language. Its presentation also limits reliable silhouette comparison. |
+| `references/heavy-tank-reference.jpg` | **Undecided** | The broad, heavily armed tank could suggest Hegemony mass, but its lower hull is cropped and the image provides no faction marker. Coalition and Ascendant also field tanks, with different mechanical profiles. |
+| `references/elite-field-commander-concept.jpg` | **Undecided** | The image predates the chat's later ivory/plum armor and shorter sculpted-helmet direction. The later description is not enough to assign a faction because the canon does not map those colors or forms to one faction. Do not let this older image override the refined direction. |
+
+Faction references: [`Coalition`](../docs/factions/coalition.md) emphasizes precision, range, and information; [`Hegemony`](../docs/factions/hegemony.md) emphasizes mass, durability, and attrition; [`Ascendant`](../docs/factions/ascendant.md) emphasizes exotic technology and mobility. [`Design direction`](../docs/design-direction.md) sets readability and faction identity ahead of spectacle. [`Readability`](../docs/readability.md) requires silhouette, luminance, and team-colour checks that these source images have not passed. Revisit these assignments after the project defines faction-specific visual languages and the reference set can be evaluated against them.
 
 ## Local image generation available
 
