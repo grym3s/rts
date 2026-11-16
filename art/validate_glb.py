@@ -167,9 +167,14 @@ def main():
             acc_bytes = acc.get("byteOffset", 0) + acc.get("count", 0) * comp_size
             if acc_bytes > bv.get("byteLength", 0):
                 bad_skins.append(f"skin{i}: inverseBindMatrices accessor extent {acc_bytes} exceeds bufferView {bv.get('byteLength', 0)}")
-            # Joint coverage: count must match number of joints.
-            if acc.get("count", 0) != len(joints):
-                bad_skins.append(f"skin{i}: inverseBindMatrices count {acc.get('count', 0)} != joints {len(joints)}")
+            # Type must be MAT4 with FLOAT component (glTF 2.0 spec).
+            if acc.get("type") != "MAT4":
+                bad_skins.append(f"skin{i}: inverseBindMatrices type {acc.get('type')} is not MAT4")
+            if acc.get("componentType") != 5126:
+                bad_skins.append(f"skin{i}: inverseBindMatrices componentType {acc.get('componentType')} is not FLOAT")
+            # Joint coverage: count must be >= number of joints (glTF permits extra).
+            if acc.get("count", 0) < len(joints):
+                bad_skins.append(f"skin{i}: inverseBindMatrices count {acc.get('count', 0)} < joints {len(joints)}")
     if skins and not bad_skins:
         joints_total = sum(len(s.get("joints", [])) for s in skins)
         print(f"  armature: {len(skins)} skin(s), {joints_total} joints (ok)")
@@ -215,6 +220,39 @@ def main():
             out = s.get("output")
             if out is None or out >= len(accessors) or out < 0:
                 clip_problems.append(f"{n} sampler output accessor {out} invalid")
+                break
+            # Validate referenced data: non-empty, float component, input must be SCALAR.
+            inp_acc = accessors[inp]
+            out_acc = accessors[out]
+            if inp_acc.get("count", 0) == 0:
+                clip_problems.append(f"{n} sampler input accessor {inp} is empty")
+                break
+            if out_acc.get("count", 0) == 0:
+                clip_problems.append(f"{n} sampler output accessor {out} is empty")
+                break
+            if inp_acc.get("componentType") != 5126:
+                clip_problems.append(f"{n} sampler input accessor {inp} componentType {inp_acc.get('componentType')} is not FLOAT")
+                break
+            if inp_acc.get("type") != "SCALAR":
+                clip_problems.append(f"{n} sampler input accessor {inp} type {inp_acc.get('type')} is not SCALAR")
+                break
+            if out_acc.get("componentType") != 5126:
+                clip_problems.append(f"{n} sampler output accessor {out} componentType {out_acc.get('componentType')} is not FLOAT")
+                break
+            # Accessor extent: data must fit within its bufferView.
+            bad_extent = False
+            for label, acc in (("input", inp_acc), ("output", out_acc)):
+                bv_idx = acc.get("bufferView")
+                if bv_idx is None or bv_idx >= len(buffer_views):
+                    continue
+                bv = buffer_views[bv_idx]
+                comp_size = {"SCALAR": 4, "VEC2": 8, "VEC3": 12, "VEC4": 16, "MAT4": 64}.get(acc.get("type", ""), 0)
+                extent = acc.get("byteOffset", 0) + acc.get("count", 0) * comp_size
+                if extent > bv.get("byteLength", 0):
+                    clip_problems.append(f"{n} sampler {label} accessor extent {extent} exceeds bufferView {bv.get('byteLength', 0)}")
+                    bad_extent = True
+                    break
+            if bad_extent:
                 break
     if clip_problems:
         print(f"  clips: {', '.join(clip_problems)} (unusable)")

@@ -171,6 +171,85 @@ d["animations"] = [
     {"name": "fire", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]}
 ]
 write_glb("badnode.glb", d)
+# Empty input accessor (count = 0).
+d = copy.deepcopy(BASE)
+d["accessors"][1]["count"] = 0
+d["animations"] = [
+    {"name": "idle", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]},
+    {"name": "move", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]},
+    {"name": "fire", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]}
+]
+write_glb("emptyinpacc.glb", d)
+# Empty output accessor (count = 0).
+d = copy.deepcopy(BASE)
+d["accessors"][2]["count"] = 0
+d["animations"] = [
+    {"name": "idle", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]},
+    {"name": "move", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]},
+    {"name": "fire", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]}
+]
+write_glb("emptyoutacc.glb", d)
+# Invalid timestamp type (input type not SCALAR).
+d = copy.deepcopy(BASE)
+d["accessors"][1]["type"] = "VEC3"
+d["animations"] = [
+    {"name": "idle", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]},
+    {"name": "move", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]},
+    {"name": "fire", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]}
+]
+write_glb("badinpacc.glb", d)
+# Invalid component type (input not FLOAT).
+d = copy.deepcopy(BASE)
+d["accessors"][1]["componentType"] = 5123  # INTEGER
+d["animations"] = [
+    {"name": "idle", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]},
+    {"name": "move", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]},
+    {"name": "fire", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]}
+]
+write_glb("badinpacc.glb", d)
+# Output component type not FLOAT.
+d = copy.deepcopy(BASE)
+d["accessors"][2]["componentType"] = 5123  # INTEGER
+d["animations"] = [
+    {"name": "idle", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]},
+    {"name": "move", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]},
+    {"name": "fire", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]}
+]
+write_glb("badoutacc.glb", d)
+# Accessor extent exceeds bufferView (input).
+d = copy.deepcopy(BASE)
+d["accessors"][1]["count"] = 10  # 10*4=40 > 4 (bufferView byteLength)
+d["animations"] = [
+    {"name": "idle", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]},
+    {"name": "move", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]},
+    {"name": "fire", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]}
+]
+write_glb("accextent.glb", d)
+# Accessor extent exceeds bufferView (output).
+d = copy.deepcopy(BASE)
+d["accessors"][2]["count"] = 10  # 10*12=120 > 12 (bufferView byteLength)
+d["animations"] = [
+    {"name": "idle", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]},
+    {"name": "move", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]},
+    {"name": "fire", "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}], "samplers": [{"input": 1, "output": 2}]}
+]
+write_glb("accextentout.glb", d)
+# --- matrix type controls ---
+# SCALAR matrix accessor (should fail — type must be MAT4).
+d = copy.deepcopy(BASE)
+d["accessors"][0]["type"] = "SCALAR"
+d["accessors"][0]["componentType"] = 5126
+d["accessors"][0]["count"] = 1
+d["bufferViews"][0]["byteLength"] = 4
+d["skins"] = [{"joints": [0], "inverseBindMatrices": 0}]
+write_glb("scalarmatrix.glb", d)
+# 17 valid MAT4 matrices for 16 joints (should pass — count >= joints).
+d = copy.deepcopy(BASE)
+d["accessors"][0]["count"] = 17
+d["bufferViews"][0]["byteLength"] = 17 * 64
+d["buffers"][0]["byteLength"] = 17 * 64 + 4 + 12
+d["skins"] = [{"joints": [0], "inverseBindMatrices": 0}]
+write_glb("mat17.glb", d, bin_bytes=b"\x00" * (17 * 64 + 4 + 12))
 
 print("fixtures built")
 PY
@@ -214,6 +293,17 @@ expect "clips: missing clip name" 1 "$TMPD/missclip.glb"
 expect "clips: input accessor out of range" 1 "$TMPD/badinpacc.glb"
 expect "clips: output accessor out of range" 1 "$TMPD/badoutacc.glb"
 expect "clips: target node out of range" 1 "$TMPD/badnode.glb"
+expect "clips: empty input accessor (count=0)" 1 "$TMPD/emptyinpacc.glb"
+expect "clips: empty output accessor (count=0)" 1 "$TMPD/emptyoutacc.glb"
+expect "clips: input type not SCALAR" 1 "$TMPD/badinpacc.glb"
+expect "clips: input componentType not FLOAT" 1 "$TMPD/badinpacc.glb"
+expect "clips: output componentType not FLOAT" 1 "$TMPD/badoutacc.glb"
+expect "clips: input accessor extent exceeds bufferView" 1 "$TMPD/accextent.glb"
+expect "clips: output accessor extent exceeds bufferView" 1 "$TMPD/accextentout.glb"
+
+# --- matrix type controls ---
+expect "matrix: SCALAR type (not MAT4)" 1 "$TMPD/scalarmatrix.glb"
+expect "matrix: 17 MAT4 for 1 joint (count >= joints)" 0 "$TMPD/mat17.glb"
 
 # --- real GLB (positive control) and old blockout (negative control) ---
 expect "real GLB: rifleman" 0 "$REAL_GLB"
@@ -229,13 +319,19 @@ fi
 
 # Stage-aware doubles: GLB build uses $TMPD/bin/blender (writes to blender.log),
 # sprite path uses the same blender but detects render_sprites.py and writes to sprite.log.
+# If $TMPD/fail_renderer exists, the sprite stage fails (simulating a failing renderer).
 mkdir -p "$TMPD/bin" "$TMPD/fake"
 
 # GLB build stage double: writes to blender.log; for sprite path, creates sheet PNG.
+# If $TMPD/fail_renderer exists, the sprite stage exits 1.
 cat > "$TMPD/bin/blender" <<EOF
 #!/usr/bin/env bash
 for arg in "\$@"; do
   if [[ "\$arg" == *render_sprites.py ]]; then
+    if [[ -f "$TMPD/fail_renderer" ]]; then
+      echo "sprite-fail" >> "$TMPD/sprite.log"
+      exit 1
+    fi
     echo "sprite" >> "$TMPD/sprite.log"
     touch "$TMPD/rifleman_sheet.png"
   else
@@ -277,18 +373,23 @@ else
 fi
 
 # Opt-in with a failing renderer: GLB still installs (non-fatal).
-# Create a failing renderer double.
-cat > "$TMPD/fake/renderer.py" <<'EOF'
-raise SystemExit(1)
-EOF
-rm -f "$TMPD/blender.log" "$TMPD/sprite.log" "$TMPD/renderer.log"
+# Create a flag file to make the fake blender fail at the sprite stage.
+touch "$TMPD/fail_renderer"
+rm -f "$TMPD/blender.log" "$TMPD/sprite.log" "$TMPD/renderer.log" "$TMPD/rifleman_sheet.png"
 SPRITE_RENDER=1 BL_BIN="$TMPD/bin/blender" GODOT_BIN="$TMPD/fake/godot" bash "$ROOT/art/build-asset.sh" rifleman --install >/dev/null 2>&1
-# Check that GLB installed (build-asset.sh exited 0) and sprite blender was called.
-if [ -f "$TMPD/sprite.log" ]; then
-  pass "sprite path: opt-in failing renderer still calls sprite blender"
+# Check that GLB installed (build-asset.sh exited 0) and sprite blender was called (and failed).
+if [ -f "$TMPD/sprite.log" ] && grep -q "sprite-fail" "$TMPD/sprite.log"; then
+  pass "sprite path: opt-in failing renderer calls sprite blender and fails"
 else
-  failc "sprite path: opt-in failing renderer should call sprite blender"
+  failc "sprite path: opt-in failing renderer should call sprite blender and fail"
 fi
+# Assert isolated install: GLB bytes present in game assets despite sprite failure.
+if [ -f "$ROOT/game/assets/rifleman/rifleman.glb" ]; then
+  pass "sprite path: GLB still installed despite failing renderer"
+else
+  failc "sprite path: GLB should still be installed despite failing renderer"
+fi
+rm -f "$TMPD/fail_renderer"
 
 # No renderer: no sprite calls.
 rm -f "$TMPD/blender.log" "$TMPD/sprite.log" "$TMPD/renderer.log"
