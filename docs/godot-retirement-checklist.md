@@ -63,7 +63,7 @@ The gate is not met; GRY-290 stays blocked on Unreal art acceptance.
 | `.gitattributes` (2–5) | `*.tscn`, `*.tres`, `*.godot` text rules | remove those three lines (they only match `game/` files); keep `*.cs` and the LFS rules (`*.glb`, `*.blend`) |
 | `.vscode/extensions.json`, `launch.json`, `settings.json`, `tasks.json` | godot-tools, Godot launch configs, `godotTools.*` settings, `godot: headless import + run` task | remove Godot entries; add Unreal C++ equivalents |
 | `_scripts/check.sh` (19) | skips `game/.godot`, `game/bin`, `game/obj` | drop the `game/` skips once `game/` is gone |
-| `.gitignore` (6–7) | `.godot/` | optional cleanup; harmless if kept |
+| `.gitignore` (6–7) | `.godot/` | optional cleanup; harmless if kept. If kept it is a retained optional ignore, not an active dependency: excluded from the C3 and step-6 zero-match scans |
 
 ## C. Keep — do not delete
 
@@ -74,7 +74,7 @@ The gate is not met; GRY-290 stays blocked on Unreal art acceptance.
 | `art/work/`, `art/references/`, `art/archive/` | Blender sources, references, archived Godot prototype (spec: do not overwrite the archive) |
 | `decisions/` | history. ADR 0002 stays with its `supersedes: 0002` note on 0006; never rewrite history |
 | `docs/superpowers/` | migration plan and spec — the record of why this checklist exists |
-| `_scripts/check.sh` engine-namespace grep (24) | keeps `sim/` engine-free; it already greps `UnityEngine` too, add Unreal tokens if useful |
+| `_scripts/check.sh` engine-namespace grep (24) | keeps `sim/` engine-free; it already greps `UnityEngine` too, add Unreal tokens if useful. It is a negative guard, not a dependency: excluded from the C3 and step-6 zero-match scans, and never weakened to satisfy them |
 | `sim/CONTEXT.md` "Never: references Godot" (6) | reword to "references any engine" or keep; either is fine, it is not a dependency |
 
 ## C2. Historical records — keep as-is (explicit exceptions)
@@ -100,14 +100,25 @@ outside `game/` itself, appears in section A (remove), B (edit), C (keep) or C2
 
 ```
 git grep -il godot -- ':!game' ':!docs/superpowers' ':!docs/godot-retirement-checklist.md' \
-  ':!decisions' ':!art/work' ':!art/export' ':!art/prompts' ':!sim/CONTEXT.md'
+  ':!decisions' ':!art/work' ':!art/export' ':!art/prompts' ':!sim/CONTEXT.md' \
+  ':(exclude)_scripts/check.sh' ':(exclude).gitignore'
 git grep -l 'game/' -- ':!game' ':!docs/superpowers' ':!docs/godot-retirement-checklist.md' \
   ':!decisions' ':!art/work' ':!art/export' ':!art/prompts'
 ```
 
+(`:(exclude)` is required for the last two paths: `:!_scripts/...` fails on git
+2.53 because `_` after `:!` parses as pathspec magic.)
+
+The first scan omits two files whose `godot` mentions survive retirement and are
+not active dependencies: the engine-isolation guard at `_scripts/check.sh:24`
+(a negative grep that keeps `sim/` engine-free; section C requires keeping it)
+and the optional `.godot/` ignore at `.gitignore:6-7` (section B: harmless if
+kept). Do not remove or weaken either to satisfy the scan.
+
 At the inventory baseline the first scan returns exactly the section A and B
-files. After steps 1–6 it must return nothing. The second scan's non-A/B results
-are the section B and C files plus the C2 historical exceptions.
+files except those two retained entries. After steps 1–6 it must return nothing.
+The second scan's non-A/B results are the section B and C files plus the C2
+historical exceptions.
 
 ## D. Ordered removal checklist (GRY-290 execution)
 
@@ -138,9 +149,17 @@ Do all steps on one branch in one PR. Revert the PR is the rollback.
    - Positive control: `printf 'stale godot reference\n' > docs/_godot_probe.md`;
      the same command must return exactly that line; `rm docs/_godot_probe.md`
      and it returns nothing again.
-   - Verify full tree: the C3 first scan returns nothing.
+   - Verify full tree: the C3 first scan returns nothing. It excludes the
+     retained `check.sh` guard and the optional `.gitignore` entry, so those
+     history/guard mentions do not fail the oracle.
+   - Positive control for the full-tree scan: keep the probe file
+     `docs/_godot_probe.md` from the control above in place, add `--untracked`
+     to the C3 first scan, and confirm it names exactly that probe file. Remove
+     the probe and the scan returns nothing again.
 7. `_scripts/check.sh`: drop the `game/` skip case (line 19).
-   - Verify: `make check` passes.
+   - Verify: `make check` passes. The only remaining `godot` mention in the
+     file is the retained engine-isolation guard (line 24); the C3 scan excludes
+     it on purpose.
 8. Regenerate indexes: `make gen`.
    - Verify: `make check` passes; every changed folder has a current `CONTEXT.md` (AGENTS rule 3).
 9. Full parity on the final revision: `make check test`; each scenario hash run
