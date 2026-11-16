@@ -6,8 +6,9 @@
 #   art/build-asset.sh <asset-id> --install  # also copy to game/assets/<asset-id>/ and run Godot import
 #
 # Environment:
-#   BL_BIN     optional explicit Blender binary path
-#   GODOT_BIN  optional explicit Godot binary path
+#   BL_BIN        optional explicit Blender binary path
+#   GODOT_BIN     optional explicit Godot binary path
+#   SPRITE_RENDER optional: set to 1 to run sprite rendering (opt-in, non-fatal)
 #
 # The pipeline is GLB-first: it builds a self-contained glTF 2.0 .glb (materials,
 # armature, named clips), validates it, and installs the GLB. Sprite rendering
@@ -74,12 +75,16 @@ build_asset() {
   fi
   echo "exported: $export_dir/$asset_id.glb"
 
-  # Optional: sprite rendering (not a required stage).
-  if [[ -f "$work_dir/render_sprites.py" && -n "$blender_bin" ]]; then
-    "$blender_bin" --background --python-exit-code 1 --python "$work_dir/render_sprites.py"
-    if [[ -s "$work_dir/${asset_id}_sheet.png" ]]; then
-      cp "$work_dir/${asset_id}_sheet.png" "$export_dir/"
-      echo "sprite sheet (optional): $export_dir/${asset_id}_sheet.png"
+  # Optional sprite rendering: opt-in via SPRITE_RENDER=1, and non-fatal — a
+  # sprite failure never breaks the GLB path.
+  if [[ "${SPRITE_RENDER:-0}" == "1" && -f "$work_dir/render_sprites.py" && -n "$blender_bin" ]]; then
+    if "$blender_bin" --background --python-exit-code 1 --python "$work_dir/render_sprites.py"; then
+      if [[ -s "$work_dir/${asset_id}_sheet.png" ]]; then
+        cp "$work_dir/${asset_id}_sheet.png" "$export_dir/"
+        echo "sprite sheet (optional): $export_dir/${asset_id}_sheet.png"
+      fi
+    else
+      echo "sprite render failed (non-fatal): continuing GLB path"
     fi
   fi
 

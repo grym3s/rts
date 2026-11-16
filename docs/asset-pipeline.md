@@ -40,7 +40,7 @@ ComfyUI at `http://127.0.0.1:8188` has Qwen Image 2.1 and its Qwen text encoder/
 
 `game/Main.cs`, `game/camera/`, `game/orders/`, and `game/render/` now provide a 3D test field, high-angle camera, sim-position mapping, GLB instancing, optional clip playback, world-space selection/health indicators, and ray-to-ground order input. The current rifleman GLB is the first rigged, animated rifleman (built by `art/work/rifleman/build_rifleman.py`); it has an armature (16 joints) and named `idle`/`move`/`fire` clips. The renderer uses a capsule only if GLB loading fails.
 
-The `art/build-asset.sh` and `make asset-*` targets build/validate/install self-contained glTF 2.0 animated GLBs (materials, armature, named `idle`/`move`/`fire` clips). Sprite rendering is optional and not a required stage. A later approved GLB is installed by the same pipeline; no production-quality rifleman is required.
+The `art/build-asset.sh` and `make asset-*` targets build/validate/install self-contained glTF 2.0 animated GLBs (materials, armature, named `idle`/`move`/`fire` clips). The validator rejects a GLB before install when it is not self-contained (an external buffer `uri`), has missing binary data (a buffer `byteLength` larger than the BIN chunk, or a bufferView out of range), or has an unusable skin (empty `joints` or an out-of-range `inverseBindMatrices`). It also rejects any missing required clip. Sprite rendering is opt-in (`SPRITE_RENDER=1`) and non-fatal: a sprite failure never breaks the GLB path. A later approved GLB is installed by the same pipeline; no production-quality rifleman is required. Regression coverage lives in `art/test-asset-pipeline.sh`.
 
 ## Completion checks
 
