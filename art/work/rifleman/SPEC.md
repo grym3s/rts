@@ -99,16 +99,25 @@ beyond LOD0 pays only at the closest zoom.
 | LOD0 triangles | ≤ 6,000 | close zoom only |
 | LOD1 triangles | ≤ 2,000 | covers default zoom |
 | LOD2 triangles | ≤ 600 | zoom-out and mass scenes |
-| Exported surface materials | ≤ 2 per unit per LOD | runtime draw-call scope; see §6 for how 8 logical slots become ≤2 surfaces |
+| Rendered mesh primitives (surfaces) | ≤ 2 per unit for one active LOD | scope: the unit's opaque forward render pass; see §6 |
+| Distinct material definitions | ≤ 2 per unit per LOD | separate check; material count alone does not prove the surface budget |
 | Base-colour atlas | 1024×1024, sRGB | single atlas covering all 8 logical slots |
 | Normal map | 1024×1024 | OpenGL +Y convention |
 | ORM (AO/roughness/metallic packed) | 1024×1024 | linear |
 | Emissive mask | ≤ 512×512 or constant colours | visor/lights |
 | Total texture memory | ≤ 4 MB compressed per unit | power-of-two dimensions (4×4 block compression) |
 
-The draw-call budget is a runtime surface budget, not a limit on authoring material
-slots (§6). Neither the validator nor `make check` measures rendered draw calls;
-GRY-284 must verify surfaces by exported material count.
+The surface budget counts rendered mesh primitives, not material definitions. In
+glTF, a mesh contains primitives and each primitive references a material (Khronos
+glTF 2.0 specification §3.7.2.1). Two material definitions can still sit behind
+seven primitives, and each primitive renders as its own surface, so an exported
+material count alone can pass while the surface budget fails. The budget is at most
+2 rendered mesh primitives across the unit model for one active LOD. Scope: the
+unit's opaque forward render pass only. It is not a total-frame draw-call
+guarantee: shadow/depth passes, other units and engine batching are outside it.
+Neither the validator nor `make check` measures either number. GRY-284 verifies the
+surface budget by counting mesh primitives in the exported GLB for the active LOD,
+and keeps the ≤2 material-definition count as a separate check.
 
 Reference points: `rifleman-v2` shipped 18,960 source vertices and 12 surface
 materials (over budget, and rejected on looks); the Hunyuan shape is 69,819 vertices
@@ -201,15 +210,17 @@ decision — §1):
 ### Logical slots versus exported surfaces
 
 The eight slots above are logical authoring regions, not eight runtime surfaces. A
-mesh exported with one surface material per slot renders one draw call per surface:
-the current blockout exports 7 material primitives and `rifleman-v2` exports 12, so
-neither meets the ≤2 surface budget (§3) as exported. A single atlas on a single mesh
-does not by itself merge independently shaded slots.
+mesh exported with one material per slot ships one mesh primitive per slot, and
+each primitive renders as its own surface: the current blockout exports 7 material
+primitives and `rifleman-v2` exports 12, so neither meets the ≤2 surface budget
+(§3) as exported. A single atlas on a single mesh does not by itself merge
+independently shaded slots.
 
 Export contract for GRY-284:
 
 - Author the 8 slots as distinct regions of one 1024 base-colour atlas.
-- Export at most 2 surface materials per LOD:
+- Export at most 2 rendered mesh primitives per LOD, referencing at most 2 material
+  definitions:
   - one faction-tinted material covering `faction_primary`, `faction_secondary` and
     `faction_insignia`, using per-slot tint masks (one mask texture with distinct
     channels, or one mask per hue) so the runtime tints each region independently
@@ -218,10 +229,12 @@ Export contract for GRY-284:
     `weapon`, with colour variation baked into the atlas; `visor_glass` emissive
     moves into the neutral material's emissive map masked to the visor region, or
     into the tinted material if the visor hue becomes faction-owned.
-- The draw-call budget scope is runtime surfaces per unit per LOD after this merge.
-  It does not restrict the number of logical slots or authoring-time Blender
-  materials. No validator or CI check measures it; GRY-284 verifies by exported
-  material count.
+- The surface budget scope is rendered mesh primitives per unit for one active LOD,
+  in the unit's opaque forward render pass (§3). It does not restrict the number of
+  logical slots or authoring-time Blender materials, and it is not a total-frame
+  draw-call guarantee. No validator or CI check measures it; GRY-284 verifies by
+  counting mesh primitives in the exported GLB for the active LOD, with the ≤2
+  material-definition count kept as a separate check.
 
 Rename the coalition-prefixed blockout materials (`coalition_armor`, `coalition_plate`,
 `coalition_fabric`) to the neutral slot names above. Keep the tinted area small and in
@@ -261,7 +274,8 @@ separately:
 - the exact 16-bone name set (§4);
 - clip frame counts and 24 fps sampling (§5);
 - loop intent and imported loop modes (§5);
-- exported surface-material count ≤2 (§6);
+- rendered mesh primitives ≤ 2 per active LOD (§3, §6);
+- distinct material definitions ≤ 2 per LOD (§6);
 - texture sizes and memory budget (§3).
 
 Export settings from `docs/asset-pipeline.md`: applied transforms; materials and
