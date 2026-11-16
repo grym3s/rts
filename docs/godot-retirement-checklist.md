@@ -4,7 +4,8 @@ Inventory only. This document deletes nothing. GRY-290 runs the removal after th
 gate below passes. Sources: `docs/superpowers/specs/2026-09-26-unreal-rts-migration-design.md`
 (retirement rule), `docs/superpowers/plans/2026-09-26-unreal-rts-migration.md`
 (Task 6), ADR 0006 (supersedes ADR 0002), `unreal/CONTEXT.md` (current Unreal lane).
-Inventory taken from main at `133eb46`, 2026-11-16.
+Inventory taken from main at `133eb46`, 2026-11-16; reconciled against a
+tracked-file scan (section C3) after review feedback the same day.
 
 ## Gate rule
 
@@ -18,7 +19,8 @@ All of these must be true before any removal step:
    is green on a PR. Public CI keeps all sim tests without Epic credentials.
 3. Clean-checkout parity: `make check test`, all scenario hash runs, Unreal C++
    editor build, Unreal automation smoke (`RtsBridge.Host.RoundTrip`), and a
-   packaged host launch all pass.
+   packaged host launch all pass. The package and packaged-launch procedure is a
+   pre-removal prerequisite owned by GRY-290 (step 9); it is not yet defined.
 
 Current status (verified 2026-11-16): slices 1–4 are merged (`d82580e`, `2a27b45`,
 `f042374`, `75d49fb`). Slice 5 is scoped, not started. No Unreal CI lane exists.
@@ -38,7 +40,7 @@ The gate is not met; GRY-290 stays blocked on Unreal art acceptance.
 | `Makefile` `run` (line 45) | `godot --path game` | Unreal editor launch documented in `unreal/CONTEXT.md` | remove target |
 | `Makefile` `godot-test` (lines 47–50) | headless import + run + `SMOKE PASS` grep | Unreal automation `RtsBridge.Host.RoundTrip` + packaged host launch | remove after automation is the CI gate |
 | `.github/workflows/ci.yml` `godot` job (lines 28–47) | setup-godot 4.7.1, `dotnet build game/Game.csproj`, headless import + run | Unreal CI job (needs self-hosted runner or engine cache) | remove only when the Unreal job is green |
-| `art/build-asset.sh` import step (lines 44–50, header line 7) | `--install` copies exports to `game/assets/` and runs Godot headless import | Unreal import step chosen by slice 5 | rewrite step; keep Blender export logic |
+| `art/build-asset.sh` import step (lines 40–51, header line 7) | `--install` copies exports to `game/assets/` and runs Godot headless import | Unreal import step chosen by slice 5 | rewrite step; keep Blender export logic |
 
 ## B. Paths to edit at slice 6 (keep the file, change the Godot wording)
 
@@ -52,10 +54,16 @@ The gate is not met; GRY-290 stays blocked on Unreal art acceptance.
 | `docs/conventions.md` (4, 7) | "net8.0 (Godot)", Godot scene rules | drop the Godot note (keep the net8.0 target), replace scene rules with Unreal module rules |
 | `docs/CONTEXT.md` (13) | asset-pipeline row says "Godot asset workflow" | update the row text |
 | `art/CONTEXT.md` (6–7) | "imports into the pinned Godot project" | point at the Unreal import check |
+| `art/work/rifleman/CONTEXT.md` (7) | "`--install` to copy the prototype to Godot and run headless import" | update wording with the step-4 import rewrite |
+| `art/export/CONTEXT.md` (5–7) | "copies may be installed under `game/assets/<asset-id>/`"; "update `game/render/CONTEXT.md`" | replace with the Unreal runtime install path and the `unreal/` card names |
+| `map/effects/CONTEXT.md` (7, 15) | rows open `game/CONTEXT.md` ("the sim/game seam", "how things look/control") | point the rows at `unreal/CONTEXT.md` and `tools/sim-host/CONTEXT.md` |
+| `.github/PULL_REQUEST_TEMPLATE.md` (14) | validation box "`make godot-test` / manual check in editor" | replace with the Unreal automation check (`RtsBridge` automation run) |
+| `.github/ISSUE_TEMPLATE/task.md` (11) | example folder `game/selection` | replace the example with `unreal/` folder names |
+| `art/asset-manifest.template.json` (34) | `godotImported` review field | rename to `engineImported` for future manifests; existing manifests keep `godotImported` as history (section C2) |
+| `.gitattributes` (2–5) | `*.tscn`, `*.tres`, `*.godot` text rules | remove those three lines (they only match `game/` files); keep `*.cs` and the LFS rules (`*.glb`, `*.blend`) |
 | `.vscode/extensions.json`, `launch.json`, `settings.json`, `tasks.json` | godot-tools, Godot launch configs, `godotTools.*` settings, `godot: headless import + run` task | remove Godot entries; add Unreal C++ equivalents |
 | `_scripts/check.sh` (19) | skips `game/.godot`, `game/bin`, `game/obj` | drop the `game/` skips once `game/` is gone |
 | `.gitignore` (6–7) | `.godot/` | optional cleanup; harmless if kept |
-| `art/export/*/manifest.json`, `art/work/*/manifest.json` | record Godot import acceptance | update wording when the import step changes |
 
 ## C. Keep — do not delete
 
@@ -69,6 +77,38 @@ The gate is not met; GRY-290 stays blocked on Unreal art acceptance.
 | `_scripts/check.sh` engine-namespace grep (24) | keeps `sim/` engine-free; it already greps `UnityEngine` too, add Unreal tokens if useful |
 | `sim/CONTEXT.md` "Never: references Godot" (6) | reword to "references any engine" or keep; either is fine, it is not a dependency |
 
+## C2. Historical records — keep as-is (explicit exceptions)
+
+These files mention Godot or `game/` as a record of what actually happened. They
+are excluded from the step-6 zero-match check. Do not rewrite them.
+
+| Path | Why it stays as-is |
+|---|---|
+| `docs/godot-retirement-checklist.md` | this inventory; it names Godot by design |
+| `art/prompts/local-model-asset-pipeline-setup.md` (29–38) | stored art-prompt record; it documents the Godot-era axes and handoff contract that the archived exports were made under. Future prompts point at the Unreal contract instead |
+| `art/work/rifleman/manifest.json`, `art/work/rifleman-v2/manifest.json`, `art/work/rifleman-trellis2/manifest.json`, `art/export/rifleman-v2/manifest.json` | record the historical Godot import acceptance (`godotImported`) as fact; the copies they describe were really imported |
+| `art/work/rifleman/attempt-1/README.md` (3) | archive note describing where the first export copy went |
+| `art/work/rifleman/build_rifleman.py` (15) | axis-convention comment; the convention itself (Blender Z-up → glTF Y-up, forward −Z) is unchanged by the engine switch |
+| `decisions/0001`, `0002`, `0004`, `0006`, `2026-08-17-foundation-ultra-review.md`, `_index.md` | decision history (also section C) |
+| `docs/superpowers/` | migration spec and plan (also section C) |
+
+## C3. Scan reconciliation
+
+Every tracked file that mentions `godot` (case-insensitive) or a `game/` path,
+outside `game/` itself, appears in section A (remove), B (edit), C (keep) or C2
+(historical exception). Re-run both scans before the removal PR and after it:
+
+```
+git grep -il godot -- ':!game' ':!docs/superpowers' ':!docs/godot-retirement-checklist.md' \
+  ':!decisions' ':!art/work' ':!art/export' ':!art/prompts' ':!sim/CONTEXT.md'
+git grep -l 'game/' -- ':!game' ':!docs/superpowers' ':!docs/godot-retirement-checklist.md' \
+  ':!decisions' ':!art/work' ':!art/export' ':!art/prompts'
+```
+
+At the inventory baseline the first scan returns exactly the section A and B
+files. After steps 1–6 it must return nothing. The second scan's non-A/B results
+are the section B and C files plus the C2 historical exceptions.
+
 ## D. Ordered removal checklist (GRY-290 execution)
 
 Do all steps on one branch in one PR. Revert the PR is the rollback.
@@ -81,21 +121,38 @@ Do all steps on one branch in one PR. Revert the PR is the rollback.
    - Verify: `! grep -qi godot Makefile`; `make check test` passes.
 3. `ci.yml`: delete the `godot` job.
    - Verify: `! grep -qi godot .github/workflows/ci.yml`; `gh pr checks` green.
-4. `art/build-asset.sh`: replace the Godot import step with the slice-5 Unreal
-   import step; update the usage header.
-   - Verify: `! grep -qi godot art/build-asset.sh`; `art/build-asset.sh rifleman` exits 0.
-5. Docs: apply every edit in section B.
-   - Verify: `grep -rni godot README.md AGENTS.md CLAUDE.md CONTEXT.md docs/ art/CONTEXT.md .vscode/ | grep -v docs/superpowers` returns nothing.
-6. `.vscode/`: remove Godot extensions, launch configs, settings keys, tasks.
+4. `art/build-asset.sh`: replace the Godot import step (lines 40–51) with the
+   slice-5 Unreal import step; update the usage header (line 7).
+   - Verify: `! grep -qi godot art/build-asset.sh`; run
+     `art/build-asset.sh rifleman --install` — it must exit 0, copy the export
+     set to the new Unreal runtime location, and print the rewritten import
+     step's success line. Plain `art/build-asset.sh rifleman` skips the
+     `--install` branch entirely, so it does not exercise the rewrite.
+5. `.vscode/`: remove Godot extensions, launch configs, settings keys, tasks.
    - Verify: `! grep -qi godot .vscode/extensions.json .vscode/launch.json .vscode/settings.json .vscode/tasks.json`.
+6. Docs and templates: apply every edit in section B.
+   - Verify (zero-match oracle, scoped to active dependencies; it excludes this
+     checklist and `docs/superpowers`, which mention Godot on purpose):
+     `git grep --untracked -in godot -- README.md AGENTS.md CLAUDE.md CONTEXT.md docs/ art/CONTEXT.md .vscode/ .github/PULL_REQUEST_TEMPLATE.md .github/ISSUE_TEMPLATE/task.md map/effects/CONTEXT.md art/work/rifleman/CONTEXT.md art/export/CONTEXT.md art/asset-manifest.template.json .gitattributes ':!docs/superpowers' ':!docs/godot-retirement-checklist.md'`
+     returns nothing. `--untracked` lets the positive control below be caught.
+   - Positive control: `printf 'stale godot reference\n' > docs/_godot_probe.md`;
+     the same command must return exactly that line; `rm docs/_godot_probe.md`
+     and it returns nothing again.
+   - Verify full tree: the C3 first scan returns nothing.
 7. `_scripts/check.sh`: drop the `game/` skip case (line 19).
    - Verify: `make check` passes.
 8. Regenerate indexes: `make gen`.
    - Verify: `make check` passes; every changed folder has a current `CONTEXT.md` (AGENTS rule 3).
 9. Full parity on the final revision: `make check test`; each scenario hash run
    from `ci.yml`; Unreal editor build; `RtsBridge` automation; packaged host
-   launch (commands in `unreal/CONTEXT.md`).
-   - Verify: every command exits 0 with its expected hash/`Result: Success`.
+   launch. `unreal/CONTEXT.md` documents the host publish
+   (`dotnet publish tools/sim-host/SimHost.csproj -c Release -r linux-x64
+   --self-contained -o unreal/dist/linux-x64`) and the editor automation, but it
+   has no package or packaged-launch procedure yet. Defining those commands and
+   recording one successful packaged launch is a pre-removal prerequisite owned
+   by GRY-290. Do not treat retirement parity as proved until that record exists.
+   - Verify: every command exits 0 with its expected hash/`Result: Success`; the
+     packaged-launch record is on GRY-290.
 10. Submit for review and merge (separate review; production approval does not
     apply — no deployment path here).
 
@@ -103,6 +160,8 @@ Do all steps on one branch in one PR. Revert the PR is the rollback.
 
 - Debug overlay has no Unreal equivalent (section A, `game/debug/`).
 - No Unreal CI lane exists yet (gate item 2).
+- No package or packaged-launch procedure is defined or executed yet (step 9
+  prerequisite, owned by GRY-290).
 - `game/assets/rifleman/rifleman.glb` must be re-imported and verified in Unreal
   (slice 5) before `game/` is removed; the GLB itself may be kept under `art/`
   until the chosen interchange format is fixed.
