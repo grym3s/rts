@@ -283,6 +283,7 @@ public class ProtocolTests
     [Theory]
     [InlineData("chokepoint-30.json", "1727e6d2adb5efb8")]
     [InlineData("skirmish-10v10.json", "0fbba65f760574ce")]
+    [InlineData("tri-point-30.json", "7e1eb94ae7d983f3")]
     [InlineData("counters-6v4.json", "a418be859c7550c7")]
     [InlineData("economy-2h.json", "05829563b6901d19")]
     [InlineData("produce-1t1.json", "d854ebb325482ab9")] // re-pinned for power gate: 780adc3094385fcf -> d854ebb325482ab9
