@@ -28,7 +28,7 @@ Tasks marked **[blocks others]** hold up later work. Tasks tagged *.NET only* ca
 
 Each task gets a scenario in `content/scenarios/`. New behaviour gets its replay hash pinned in CI.
 
-- [ ] **T05 [blocks others] Enemy behaviour: hold, chase, return.** Enemies hold position, chase anything that comes in range, then return to their spot. No such rule exists in `sim/` yet.
+- [x] **T05 [blocks others] Enemy behaviour: hold, chase, return.** Enemies hold position, chase anything that comes in range, then return to their spot. *Done on `feat/t05-guard-behaviour`: leash 1.5 × sight, applies to both sides, scenario `guard-hold`.*
 - [ ] **T06 [blocks others] Win and lose condition.** Win when every enemy is dead, lose when all your units are. Needs a new sim event that the host passes on.
 - [ ] **T07 Restart a match.** The host refuses a second `init` (`already_initialized`). Either add a reset or have Unreal relaunch the host cleanly.
 - [x] **T08 [blocks others] Demo map and 30v30 scenario.** One hand-made map with blocked cells and chokepoints, plus a 30v30 scenario file. Pin its replay hash in CI. *Done 2026-11-24 on `feat/tri-point-map`: Tri-Point, water version, 30v30 T1 combined arms.*
