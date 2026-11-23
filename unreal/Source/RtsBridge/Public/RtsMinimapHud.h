@@ -7,6 +7,8 @@
 #include "GameFramework/HUD.h"
 #include "RtsMinimapHud.generated.h"
 
+class UTexture2D;
+
 UCLASS()
 class RTSBRIDGE_API ARtsMinimapHud : public AHUD
 {
@@ -34,6 +36,9 @@ private:
 		double StartTime = 0.0;
 	};
 	TArray<FOrderMarker> Markers;
+	/** Terrain image, one texel per cell, built once from the game mode's tile rows. */
+	UPROPERTY() TObjectPtr<UTexture2D> TerrainTex;
+	UTexture2D* GetTerrainTexture();
 	static constexpr double MarkerSeconds = 0.6;
 	static FLinearColor MarkerColor(EOrderMarker Kind);
 	void DrawMarkers(const FBox2D& MinimapR);

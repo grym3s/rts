@@ -7,6 +7,8 @@
 #include "RtsSimUnitActor.h"
 #include "RtsRtsPlayerController.h"
 #include "RtsMinimapHud.h"
+#include "RtsContentLoader.h"
+#include "RtsTerrainActor.h"
 #include "Engine/World.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/DirectionalLight.h"
@@ -18,25 +20,14 @@
 #include "Kismet/GameplayStatics.h"
 #include "HAL/PlatformTime.h"
 
-// Presentation fixture: the skirmish-10v10 roster (content/scenarios/skirmish-10v10.json,
-// minus its scripted commands) — 10 riflemen (faction 0, you, top-left) vs 10 conscripts
-// (faction 1, bottom-right) on a 32x24 field. Map size must match MapCellsW/H.
-// (Roster contents are a display choice; unit stats/rules come from content/ via the host.)
-static const TCHAR* InitRequest = TEXT(
-	"{\"protocolVersion\":1,\"kind\":\"init\",\"scenario\":"
-	"{\"schemaVersion\":2,\"seed\":7,\"map\":{\"width\":32,\"height\":24,\"blocked\":[]},"
-	"\"units\":["
-	"{\"unit\":\"rifleman\",\"at\":[4,6]},{\"unit\":\"rifleman\",\"at\":[5,6]},{\"unit\":\"rifleman\",\"at\":[6,6]},"
-	"{\"unit\":\"rifleman\",\"at\":[4,7]},{\"unit\":\"rifleman\",\"at\":[5,7]},{\"unit\":\"rifleman\",\"at\":[6,7]},"
-	"{\"unit\":\"rifleman\",\"at\":[4,8]},{\"unit\":\"rifleman\",\"at\":[5,8]},{\"unit\":\"rifleman\",\"at\":[6,8]},"
-	"{\"unit\":\"rifleman\",\"at\":[5,9]},"
-	"{\"unit\":\"conscript\",\"at\":[26,15]},{\"unit\":\"conscript\",\"at\":[27,15]},{\"unit\":\"conscript\",\"at\":[28,15]},"
-	"{\"unit\":\"conscript\",\"at\":[26,16]},{\"unit\":\"conscript\",\"at\":[27,16]},{\"unit\":\"conscript\",\"at\":[28,16]},"
-	"{\"unit\":\"conscript\",\"at\":[26,17]},{\"unit\":\"conscript\",\"at\":[27,17]},{\"unit\":\"conscript\",\"at\":[28,17]},"
-	"{\"unit\":\"conscript\",\"at\":[27,18]}]}}");
+// The match comes from content/ (ScenarioId / MapId): the scenario minus its scripted
+// commands becomes the host init; the typed tile map is drawn. Rules stay host-owned.
 
 // Design scale: 100 UU per map cell.
 static constexpr float SimCellUU = ARtsBridgeGameMode::CellUU;
+
+int32 ARtsBridgeGameMode::MapCellsW = 32;
+int32 ARtsBridgeGameMode::MapCellsH = 24;
 
 ARtsBridgeGameMode::ARtsBridgeGameMode()
 {
@@ -56,30 +47,25 @@ void ARtsBridgeGameMode::StartPlay()
 {
 	Super::StartPlay();
 
-	// --- Battlefield: ground plane + sun (placeholder art; real terrain is slice 5+). ---
+	// --- Match content: scenario (host init) + typed tile map (what we draw). ---
+	FRtsMatchSetup Setup;
+	FString LoadErr;
+	if (!RtsContent::LoadMatch(ScenarioId, MapId, Setup, LoadErr))
+	{
+		FailHost(FString::Printf(TEXT("CONTENT LOAD FAILED: %s"), *LoadErr));
+		return;
+	}
+	MapCellsW = Setup.Width;
+	MapCellsH = Setup.Height;
+	TerrainRows = Setup.Rows;
+	if (!Setup.bTypedMap)
+		UE_LOG(LogTemp, Warning, TEXT("RtsBridge: no typed map '%s' matching the scenario; drawing blocked cells only"), MapId);
+
+	// --- Battlefield: tiles (water plane + land/cliff/bridge boxes) + sun. ---
 	FActorSpawnParameters SP;
 	SP.Name = TEXT("Battlefield");
-	if (AStaticMeshActor* Ground = GetWorld()->SpawnActor<AStaticMeshActor>(
-		FVector(MapCellsW * 0.5 * SimCellUU, MapCellsH * 0.5 * SimCellUU, 0.0), FRotator::ZeroRotator, SP))
-	{
-		// Runtime-spawned StaticMeshActors are Static mobility: SetStaticMesh/SetMaterial
-		// then silently do nothing (black void instead of ground). Make it Movable first.
-		Ground->GetStaticMeshComponent()->SetMobility(EComponentMobility::Movable);
-		// Runtime load: ConstructorHelpers::FObjectFinder is constructor-only and is a fatal
-		// error when StartPlay runs in PIE.
-		if (UStaticMesh* Plane = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Plane.Plane")))
-			Ground->GetStaticMeshComponent()->SetStaticMesh(Plane);
-		// Dark green field so faction colours (red/blue) read clearly against it.
-		if (UMaterialInterface* Base = LoadObject<UMaterialInterface>(nullptr,
-				TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial")))
-			if (UMaterialInstanceDynamic* GroundMid = UMaterialInstanceDynamic::Create(Base, Ground))
-			{
-				GroundMid->SetVectorParameterValue(TEXT("Color"), FLinearColor(0.035f, 0.07f, 0.035f));
-				Ground->GetStaticMeshComponent()->SetMaterial(0, GroundMid);
-			}
-		Ground->SetActorScale3D(FVector(MapCellsW, MapCellsH, 1.0)); // one cell = 100 UU (plane mesh is 100 UU)
-		Ground->SetActorEnableCollision(true);
-	}
+	if (ARtsTerrainActor* Terrain = GetWorld()->SpawnActor<ARtsTerrainActor>(FVector::ZeroVector, FRotator::ZeroRotator, SP))
+		Terrain->Build(TerrainRows, SimCellUU);
 	// Lights spawned at runtime into an unbuilt level must be Movable to light anything.
 	if (ADirectionalLight* Sun = GetWorld()->SpawnActor<ADirectionalLight>(FVector::ZeroVector, FRotator(-45.0f, 30.0f, 0.0f)))
 	{
@@ -94,14 +80,20 @@ void ARtsBridgeGameMode::StartPlay()
 	{
 		ARtsRtsPlayerController* RtsPC = Cast<ARtsRtsPlayerController>(PC);
 		// The default class was set via DefaultEngine.ini; if not, log rather than crash.
-		if (!RtsPC)
+		if (RtsPC)
+		{
+			RtsPC->RefreshMapBounds(); // the map size is only known now (loaded above)
+		}
+		else
+		{
 			UE_LOG(LogTemp, Warning, TEXT("RtsBridge: PlayerController is not ARtsRtsPlayerController — check DefaultEngine.ini"));
+		}
 	}
 
 	// --- Host: launch + init. Failure is reported, not faked. ---
 	Bridge = NewObject<URtsSimHostBridge>(this);
 	FString Err;
-	if (!Bridge->StartAndInit(InitRequest, Err))
+	if (!Bridge->StartAndInit(Setup.InitRequest, Err))
 	{
 		FailHost(FString::Printf(TEXT("HOST START FAILED: %s"), *Err));
 		return;
@@ -116,13 +108,15 @@ void ARtsBridgeGameMode::Tick(float DeltaSeconds)
 	if (bFinished || !Bridge || !bHostAlive)
 		return;
 
-	// Fixed sim cadence: 20 ticks/s (SimWorld.TicksPerSecond). One step per due frame.
-	static double Accum = 0.0;
-	static const double TickDt = 1.0 / 20.0;
-	Accum += DeltaSeconds;
-	while (Accum >= TickDt && !bFinished && bHostAlive)
+	// Fixed sim cadence: 20 ticks/s (SimWorld.TicksPerSecond). Catch up after a hitch, but
+	// at most MaxStepsPerFrame: if steps ever cost more than real time, the sim slows down
+	// instead of the frame loop spiralling into a freeze.
+	static constexpr double TickDt = 1.0 / 20.0;
+	static constexpr int32 MaxStepsPerFrame = 3;
+	StepAccum = FMath::Min(StepAccum + DeltaSeconds, TickDt * MaxStepsPerFrame);
+	while (StepAccum >= TickDt && !bFinished && bHostAlive)
 	{
-		Accum -= TickDt;
+		StepAccum -= TickDt;
 		FString Commands = TEXT("[]");
 		if (PendingCommandBodies.Num() > 0)
 		{

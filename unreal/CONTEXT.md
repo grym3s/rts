@@ -20,10 +20,12 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   classes. No axis mappings: the controller reads keys directly (see below).
 
 ## Slice 4 — live gameplay loop (presentation only)
-- `RtsBridgeGameMode` — StartPlay spawns battlefield (plane+grid, sun, skylight),
-  launches host + init (skirmish-10v10 fixture: 32x24 map, seed 7, 10 riflemen f0
-  top-left vs 10 conscripts f1 right; rules still host-owned; camera opens on the f0
-  squad), then Tick steps the
+- `RtsBridgeGameMode` — StartPlay loads the match from content via `RtsContentLoader`
+  (`ScenarioId` = `tri-point-30`, `MapId` = `tri-point`; root = `$RTS_CONTENT_ROOT`,
+  else `<project>/..`): the scenario minus `commands`/`ticks`/`assert` is the host
+  init, its size sets `MapCellsW/H` (runtime statics) and the camera clamp
+  (`RefreshMapBounds`), and the typed tiles go to `RtsTerrainActor`. No typed map →
+  blocked rects drawn as cliff. Camera opens on the f0 (Coalition) army. Then Tick steps the
   host at the sim cadence (20 t/s), stamping queued command bodies with the current
   tick. Any host/protocol failure: log `RTS_SESSION_HOST_FAILURE`, halt stepping —
   never fabricate state.
@@ -47,9 +49,17 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   Test: `RtsBridge.Selection.Rules` (no world, no host).
 - `RtsMinimapHud` (HUDClass, set in the game mode ctor) — also draws the box-select
   drag rectangle; canvas-drawn minimap,
-  bottom-left: field, faction-coloured unit dots (selected = white outline), camera
+  bottom-left: terrain (transient texture, one texel per cell, built once from the
+  tile rows), faction-coloured unit dots (selected = white outline), camera
   footprint (viewport corners deprojected to Z=0). `MinimapToWorld` for clicks. Map
-  size comes from `ARtsBridgeGameMode::MapCellsW/H`, which must match the init map.
+  size comes from `ARtsBridgeGameMode::MapCellsW/H` (set from the loaded scenario).
+- `RtsTerrainActor` — T14-lite: water plane under the map, then land / cliff / bridge
+  tiles as row-run-merged boxes, one Movable instanced-mesh component per tile type
+  (land top Z=0, cliffs 80 UU, bridges just above land). Collision = query-only so RMB
+  ground traces hit any tile. `TileColor` is shared with the minimap.
+- `RtsContentLoader` (`RtsContent::LoadMatch`) — reads scenario + typed map from
+  content. Test: `RtsBridge.Content.TriPoint` (loads, host accepts the init, 30 per
+  faction, every spawn on a walkable tile).
   Order feedback (T12, pillar 1), drawn the same frame the order is queued and only if
   it was: move = green ground ping, attack-move = orange ping, attack = red ring on the
   target unit, stop = white ring on each stopped unit; 0.6 s, ground pings also on the
@@ -93,6 +103,13 @@ Publish the host first: `dotnet publish tools/sim-host/SimHost.csproj -c Release
 - Windows: `CreatePipe(..., bWritePipeLocal)` picks which end is NOT inheritable (Unix
   ignores the flag). The stdin pipe needs `true`, or `CreateProc` asserts "PipeReadChild
   is not inheritable". `CreateProc` Parms must be non-null (`TEXT("")`), or `check(Parms)` fires.
+- Windows `FPlatformProcess::Sleep(0.001)` lasts a whole ~15.6 ms timer tick. A host
+  reply bigger than one 4 KB pipe read then cost ~50 ms per step (Tri-Point froze). The
+  bridge keeps host stdout as bytes across reads (`PendingBytes`), decodes whole lines
+  only, and yields while waiting; the game mode runs ≤3 steps per frame so slow steps
+  slow the sim instead of spiralling. Also: Windows `CreateProc` routes the child's
+  stderr into the same pipe as stdout. Test: `RtsBridge.Content.TriPointStepSpeed`
+  (full 30v30 fight, mean step < 10 ms; ~0.8 ms measured).
 - `ConstructorHelpers::FObjectFinder` is constructor-only (fatal at runtime) — use
   `LoadObject` in StartPlay/BeginPlay.
 - Actor tick flags must be set in the constructor; setting them in StartPlay is too late.

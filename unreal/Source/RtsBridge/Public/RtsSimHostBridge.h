@@ -81,4 +81,8 @@ private:
 
 	/** Read until one complete '\n'-terminated line or deadline; false on timeout/host-exit. */
 	bool ReadResponseLine(FString& OutLine, double DeadlineSeconds);
+	/** Pop one complete line from PendingBytes (UTF-8 decoded), if there is one. */
+	bool TakeLine(FString& OutLine);
+	/** Host stdout bytes not yet consumed as a line (survive across reads). */
+	TArray<uint8> PendingBytes;
 };

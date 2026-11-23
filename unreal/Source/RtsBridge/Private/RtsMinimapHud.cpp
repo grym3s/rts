@@ -2,6 +2,8 @@
 #include "RtsBridgeGameMode.h"
 #include "RtsSimUnitActor.h"
 #include "RtsRtsPlayerController.h"
+#include "RtsTerrainActor.h"
+#include "Engine/Texture2D.h"
 #include "Engine/Canvas.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
@@ -46,6 +48,35 @@ bool ARtsMinimapHud::MinimapToWorld(const FVector2D& ScreenPos, FVector2D& OutWo
 	const FVector2D T = (ScreenPos - Rect.Min) / Rect.GetSize();
 	OutWorldXY = Map.Min + T * Map.GetSize();
 	return true;
+}
+
+UTexture2D* ARtsMinimapHud::GetTerrainTexture()
+{
+	if (TerrainTex)
+		return TerrainTex;
+	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (!GM || GM->GetTerrainRows().Num() == 0)
+		return nullptr;
+	const TArray<FString>& Rows = GM->GetTerrainRows();
+	const int32 H = Rows.Num(), W = Rows[0].Len();
+	UTexture2D* Tex = UTexture2D::CreateTransient(W, H, PF_B8G8R8A8);
+	if (!Tex)
+		return nullptr;
+	Tex->Filter = TF_Nearest; // crisp cells, no blur at minimap scale
+	Tex->SRGB = true;
+	FColor* Px = static_cast<FColor*>(Tex->GetPlatformData()->Mips[0].BulkData.Lock(LOCK_READ_WRITE));
+	for (int32 Y = 0; Y < H; ++Y)
+		for (int32 X = 0; X < W; ++X)
+		{
+			// Brighter than the 3D tiles so the small map reads at a glance.
+			FLinearColor C = ARtsTerrainActor::TileColor(X < Rows[Y].Len() ? Rows[Y][X] : TEXT('~')) * 3.0f;
+			C.A = 1.0f;
+			Px[Y * W + X] = C.ToFColor(true);
+		}
+	Tex->GetPlatformData()->Mips[0].BulkData.Unlock();
+	Tex->UpdateResource();
+	TerrainTex = Tex;
+	return TerrainTex;
 }
 
 FLinearColor ARtsMinimapHud::MarkerColor(EOrderMarker Kind)
@@ -166,7 +197,10 @@ void ARtsMinimapHud::DrawHUD()
 
 	// Frame + field.
 	DrawRect(FLinearColor(0.02f, 0.02f, 0.02f, 0.9f), R.Min.X - 3, R.Min.Y - 3, Sz.X + 6, Sz.Y + 6);
-	DrawRect(FLinearColor(0.10f, 0.16f, 0.11f, 1.0f), R.Min.X, R.Min.Y, Sz.X, Sz.Y);
+	if (UTexture2D* Tex = GetTerrainTexture())
+		DrawTexture(Tex, R.Min.X, R.Min.Y, Sz.X, Sz.Y, 0.0f, 0.0f, 1.0f, 1.0f);
+	else
+		DrawRect(FLinearColor(0.10f, 0.16f, 0.11f, 1.0f), R.Min.X, R.Min.Y, Sz.X, Sz.Y);
 
 	// Units.
 	if (const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr)

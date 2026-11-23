@@ -44,8 +44,9 @@ public:
 	bool IsHostAlive() const { return bHostAlive; }
 
 	/** Fixture map size in cells (must match the init request's map) and world scale. */
-	static constexpr int32 MapCellsW = 32;
-	static constexpr int32 MapCellsH = 24;
+	// Set from the loaded scenario in StartPlay (before any HUD/camera use of them).
+	static int32 MapCellsW;
+	static int32 MapCellsH;
 	static constexpr float CellUU = 100.0f;
 	static FBox2D MapWorldBounds() { return FBox2D(FVector2D(0.0, 0.0), FVector2D(MapCellsW * CellUU, MapCellsH * CellUU)); }
 
@@ -53,6 +54,12 @@ public:
 	const TArray<TObjectPtr<ARtsSimUnitActor>>& GetUnitActors() const { return UnitActors; }
 	bool IsSelected(int32 SimUnitId) const { return Selection.Contains(SimUnitId); }
 	const TSet<int32>& GetSelectedIds() const { return Selection.GetSelected(); }
+	/** Tile rows of the loaded map ('.' land, '~' water, '#' cliff, '=' bridge). */
+	const TArray<FString>& GetTerrainRows() const { return TerrainRows; }
+
+	/** Which content the match loads (content/scenarios/<id>.json, content/maps/<id>.json). */
+	static constexpr const TCHAR* ScenarioId = TEXT("tri-point-30");
+	static constexpr const TCHAR* MapId = TEXT("tri-point");
 	ARtsSimUnitActor* FindUnitActor(int32 SimUnitId) const
 	{
 		const TObjectPtr<ARtsSimUnitActor>* A = ActorsById.Find(SimUnitId);
@@ -72,6 +79,7 @@ private:
 	TMap<int32, TObjectPtr<ARtsSimUnitActor>> ActorsById;
 
 	FRtsSelection Selection;
+	TArray<FString> TerrainRows;
 	// Command bodies (tick-less) queued by input; Tick stamps the current tick and sends them.
 	TArray<FString> PendingCommandBodies;
 	int32 NextTickToSend = 0;
@@ -79,6 +87,7 @@ private:
 	bool bFinished = false;
 	bool bCameraFramedOnPlayer = false;  // start the view on your own units (once)
 	double WaitStart = 0.0;
+	double StepAccum = 0.0; // per match (a function static leaked across PIE sessions)
 
 	void SyncActorsFromReply(FRtsHostReply& Reply);
 	/** Sim id of the own (faction 0) unit within click tolerance of ScreenPos, or INDEX_NONE. */

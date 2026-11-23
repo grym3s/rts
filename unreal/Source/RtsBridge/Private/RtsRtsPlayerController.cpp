@@ -109,6 +109,12 @@ void ARtsRtsPlayerController::BeginPlay()
 	bShowMouseCursor = true;
 }
 
+void ARtsRtsPlayerController::RefreshMapBounds()
+{
+	if (RtsCamera)
+		RtsCamera->SetBounds(ARtsBridgeGameMode::MapWorldBounds());
+}
+
 void ARtsRtsPlayerController::CenterCameraOn(const FVector2D& WorldXY)
 {
 	if (RtsCamera)

@@ -30,6 +30,8 @@ public:
 
 	/** Centre the RTS camera on a world ground point (game mode uses it at match start). */
 	void CenterCameraOn(const FVector2D& WorldXY);
+	/** Re-read the map bounds for the camera clamp (after the game mode loads the map). */
+	void RefreshMapBounds();
 
 	/** Screen-space drag box (viewport px) while a box select is in progress, for the HUD. */
 	bool GetSelectionBox(FVector2D& OutA, FVector2D& OutB) const;

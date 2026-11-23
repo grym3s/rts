@@ -10,6 +10,7 @@
 
 bool URtsSimHostBridge::StartAndInit(const FString& InitRequestJson, FString& OutError)
 {
+	PendingBytes.Reset(); // a fresh host starts a fresh stream
 	// --- locate the host binary: RTS_HOST_BIN env override, else repo/packaged dist ---
 	FString HostBin = FPlatformMisc::GetEnvironmentVariable(TEXT("RTS_HOST_BIN"));
 	if (HostBin.IsEmpty())
@@ -126,7 +127,8 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseLine);
 	if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid())
 	{
-		OutReply.Error = TEXT("host response is not valid JSON");
+		OutReply.Error = FString::Printf(TEXT("host response is not valid JSON (%d chars): %s"),
+			ResponseLine.Len(), *ResponseLine.Left(300));
 		bPipeOpen = false;
 		return false;
 	}
@@ -184,44 +186,48 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 	return true;
 }
 
+bool URtsSimHostBridge::TakeLine(FString& OutLine)
+{
+	const int32 Nl = PendingBytes.Find(uint8('\n'));
+	if (Nl == INDEX_NONE)
+		return false;
+	// Decode only complete lines: decoding each pipe chunk separately corrupts a UTF-8
+	// character split across reads. Bytes after the newline stay for the next call.
+	const FUTF8ToTCHAR Conv(reinterpret_cast<const ANSICHAR*>(PendingBytes.GetData()), Nl);
+	OutLine = FString(Conv.Length(), Conv.Get());
+	OutLine.TrimEndInline(); // Windows .NET writes "\r\n"
+	PendingBytes.RemoveAt(0, Nl + 1, EAllowShrinking::No);
+	return true;
+}
+
 bool URtsSimHostBridge::ReadResponseLine(FString& OutLine, double TimeoutSeconds)
 {
 	const double Deadline = FPlatformTime::Seconds() + TimeoutSeconds;
-	FString Buffer;
-	while (FPlatformTime::Seconds() < Deadline)
+	TArray<uint8> Chunk;
+	while (true)
 	{
-		const FString Chunk = FPlatformProcess::ReadPipe(ReadParent);
-		if (!Chunk.IsEmpty())
+		if (TakeLine(OutLine))
+			return true;
+		Chunk.Reset();
+		if (FPlatformProcess::ReadPipeToArray(ReadParent, Chunk) && Chunk.Num() > 0)
 		{
-			Buffer += Chunk;
-			int32 NewlineIdx = INDEX_NONE;
-			if (Buffer.FindChar(TEXT('\n'), NewlineIdx))
-			{
-				OutLine = Buffer.Left(NewlineIdx);
-				OutLine.TrimEndInline();
-				return true;
-			}
+			PendingBytes.Append(Chunk);
+			continue; // a large reply arrives in several 4 KB reads: read on without waiting
 		}
-		else if (!FPlatformProcess::IsProcRunning(ProcHandle))
+		if (!FPlatformProcess::IsProcRunning(ProcHandle))
 		{
-			// Host exited; drain one last chance then fail — never fabricate a snapshot.
-			const FString Tail = FPlatformProcess::ReadPipe(ReadParent);
-			Buffer += Tail;
-			int32 NewlineIdx = INDEX_NONE;
-			if (Buffer.FindChar(TEXT('\n'), NewlineIdx))
-			{
-				OutLine = Buffer.Left(NewlineIdx);
-				OutLine.TrimEndInline();
-				return true;
-			}
+			// Host exited; drain once more then fail — never fabricate a snapshot.
+			Chunk.Reset();
+			if (FPlatformProcess::ReadPipeToArray(ReadParent, Chunk))
+				PendingBytes.Append(Chunk);
+			return TakeLine(OutLine);
+		}
+		if (FPlatformTime::Seconds() >= Deadline)
 			return false;
-		}
-		else
-		{
-			FPlatformProcess::Sleep(0.001);
-		}
+		// Yield, don't Sleep(0.001): on Windows that lasts a whole ~15.6 ms timer tick,
+		// which made every step cost ~50 ms on Tri-Point and froze the game.
+		FPlatformProcess::YieldThread();
 	}
-	return false;
 }
 
 void URtsSimHostBridge::Shutdown()
