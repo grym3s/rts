@@ -107,7 +107,7 @@ void ARtsBridgeGameMode::StartPlay()
 		return;
 	}
 	bHostAlive = true;
-	UE_LOG(LogTemp, Display, TEXT("RTS_SESSION: host up, stepping live (select: LMB click/drag, Shift adds, Ctrl+A, groups Ctrl+1-3/1-3, move: RMB, minimap: bottom-left)"));
+	UE_LOG(LogTemp, Display, TEXT("RTS_SESSION: host up, stepping live (select: LMB click/drag, Shift adds, Ctrl+A, groups Ctrl+1-3/1-3, move: RMB (enemy = attack), attack-move: F+LMB, stop: X, minimap: bottom-left)"));
 }
 
 void ARtsBridgeGameMode::Tick(float DeltaSeconds)
@@ -155,12 +155,10 @@ void ARtsBridgeGameMode::Tick(float DeltaSeconds)
 	}
 }
 
-void ARtsBridgeGameMode::RequestMoveTo(const FVector& WorldDestination)
+bool ARtsBridgeGameMode::QueueOrderForSelection(const TCHAR* Type, const FString& TargetJson)
 {
 	if (!bHostAlive || Selection.GetSelected().Num() == 0)
-		return;
-	const double MapX = WorldDestination.X / SimCellUU;
-	const double MapY = WorldDestination.Y / SimCellUU;
+		return false;
 	FString Ids;
 	for (const int32 Id : Selection.GetSelected())
 	{
@@ -169,23 +167,61 @@ void ARtsBridgeGameMode::RequestMoveTo(const FVector& WorldDestination)
 		Ids += FString::Printf(TEXT("%d"), Id);
 	}
 	// Tick-less body; Tick() wraps it as {"tick":N, <body>} when it sends.
-	PendingCommandBodies.Add(FString::Printf(
-		TEXT("\"faction\":0,\"type\":\"move\",\"units\":[%s],\"target\":[%.4f,%.4f]"),
-		*Ids, MapX, MapY));
+	FString Body = FString::Printf(TEXT("\"faction\":0,\"type\":\"%s\",\"units\":[%s]"), Type, *Ids);
+	if (!TargetJson.IsEmpty())
+		Body += TEXT(",\"target\":") + TargetJson;
+	PendingCommandBodies.Add(MoveTemp(Body));
+	return true;
+}
+
+static FString MapPointJson(const FVector& World)
+{
+	return FString::Printf(TEXT("[%.4f,%.4f]"), World.X / SimCellUU, World.Y / SimCellUU);
+}
+
+void ARtsBridgeGameMode::RequestMoveTo(const FVector& WorldDestination)
+{
+	QueueOrderForSelection(TEXT("move"), MapPointJson(WorldDestination));
+}
+
+void ARtsBridgeGameMode::RequestAttackMoveTo(const FVector& WorldDestination)
+{
+	QueueOrderForSelection(TEXT("attack-move"), MapPointJson(WorldDestination));
+}
+
+void ARtsBridgeGameMode::RequestAttackUnit(int32 TargetSimId)
+{
+	// Host contract: `attack` target is an integer entity id, never a coordinate.
+	QueueOrderForSelection(TEXT("attack"), FString::Printf(TEXT("%d"), TargetSimId));
+}
+
+void ARtsBridgeGameMode::RequestStop()
+{
+	QueueOrderForSelection(TEXT("stop"), FString());
 }
 
 int32 ARtsBridgeGameMode::PickOwnUnitAt(const FVector2D& ScreenPos) const
 {
+	return PickUnitAt(ScreenPos, /*bOwn=*/true);
+}
+
+int32 ARtsBridgeGameMode::PickEnemyUnitAt(const FVector2D& ScreenPos) const
+{
+	return PickUnitAt(ScreenPos, /*bOwn=*/false);
+}
+
+int32 ARtsBridgeGameMode::PickUnitAt(const FVector2D& ScreenPos, bool bOwn) const
+{
 	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
 	if (!PC)
 		return INDEX_NONE;
-	// Project each own unit to screen; take the closest within a click radius.
+	// Project each candidate unit to screen; take the closest within a click radius.
 	int32 BestId = INDEX_NONE;
 	float BestDist = 40.0f; // px click tolerance
 	for (const ARtsSimUnitActor* A : UnitActors)
 	{
-		if (!A || A->GetFaction() != 0)
-			continue; // you only select your own (faction 0) units
+		if (!A || (A->GetFaction() == 0) != bOwn)
+			continue; // own = faction 0 (you); enemy = any other faction
 		FVector2D Proj;
 		if (PC->ProjectWorldLocationToScreen(A->GetActorLocation(), Proj))
 		{

@@ -2,7 +2,9 @@
 //   WASD / arrows / screen-edge: scroll   wheel: zoom   (fixed north-up camera, no rotation)
 //   LMB: click = select under cursor, drag = box select (Shift adds/toggles);
 //        on the minimap, jump/drag the camera
-//   RMB: move selected units (ground point, or the minimap point)   Ctrl+A: select all
+//   RMB: move selected units (ground point, or the minimap point); on an enemy = attack it
+//   F then LMB: attack-move (ground/minimap) or attack (enemy); RMB cancels (Esc = stop PIE)
+//   X: stop   Ctrl+A: select all   (A/S belong to WASD, hence F/X)
 //   Ctrl+1..3: assign control group   1..3: recall (double-tap: centre camera on it)
 // Keys are read directly (no config axis mappings), so editor rewrites of
 // Config/DefaultInput.ini cannot silently unbind the camera.
@@ -46,6 +48,12 @@ private:
 	void OnGroup2() { OnGroupKey(1); }
 	void OnGroup3() { OnGroupKey(2); }
 	void OnGroupKey(int32 Group);
+	void OnAttackMoveKey();
+	void OnStopKey();
+	void SetAttackMoveArmed(bool bArmed);
+	/** Order the selection at the cursor: enemy under it = attack, else (attack-)move to
+	 *  the ground/minimap point. */
+	bool IssueOrderAtCursor(bool bAttack);
 
 	bool IsShiftDown() const;
 	bool IsCtrlDown() const;
@@ -55,6 +63,7 @@ private:
 	bool MouseOnMinimap(FVector2D& OutWorldXY) const;
 
 	bool bDraggingMinimap = false;
+	bool bAttackMoveArmed = false; // F pressed: next LMB issues attack-move (crosshair cursor)
 	// Left button held on the 3D view: a click until it moves past the box threshold.
 	bool bLeftDownOnView = false;
 	FVector2D DragStart = FVector2D::ZeroVector;

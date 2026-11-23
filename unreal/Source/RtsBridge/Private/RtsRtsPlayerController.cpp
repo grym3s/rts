@@ -44,6 +44,9 @@ void ARtsRtsPlayerController::SetupInputComponent()
 	PIC->BindKey(EKeys::One, IE_Pressed, this, &ARtsRtsPlayerController::OnGroup1);
 	PIC->BindKey(EKeys::Two, IE_Pressed, this, &ARtsRtsPlayerController::OnGroup2);
 	PIC->BindKey(EKeys::Three, IE_Pressed, this, &ARtsRtsPlayerController::OnGroup3);
+	// A and S are camera keys (WASD), so attack-move is F and stop is X.
+	PIC->BindKey(EKeys::F, IE_Pressed, this, &ARtsRtsPlayerController::OnAttackMoveKey);
+	PIC->BindKey(EKeys::X, IE_Pressed, this, &ARtsRtsPlayerController::OnStopKey);
 }
 
 bool ARtsRtsPlayerController::IsShiftDown() const
@@ -173,24 +176,75 @@ void ARtsRtsPlayerController::Tick(float DeltaSeconds)
 		RtsCamera->Scroll(FVector(Up, Right, 0.0f));
 }
 
-void ARtsRtsPlayerController::OnRightClick()
+void ARtsRtsPlayerController::SetAttackMoveArmed(bool bArmed)
+{
+	bAttackMoveArmed = bArmed;
+	CurrentMouseCursor = bArmed ? EMouseCursor::Crosshairs : EMouseCursor::Default;
+}
+
+void ARtsRtsPlayerController::OnAttackMoveKey()
+{
+	const ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
+	if (GM && GM->HasSelection())
+		SetAttackMoveArmed(true);
+}
+
+void ARtsRtsPlayerController::OnStopKey()
+{
+	SetAttackMoveArmed(false);
+	if (ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>())
+		GM->RequestStop();
+}
+
+
+bool ARtsRtsPlayerController::IssueOrderAtCursor(bool bAttack)
 {
 	ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
 	if (!GM || !GM->IsHostAlive())
-		return; // no local fallback: a dead host issues nothing
+		return false; // no local fallback: a dead host issues nothing
 	FVector2D W;
 	if (MouseOnMinimap(W))
 	{
-		GM->RequestMoveTo(FVector(W.X, W.Y, 0.0));
-		return;
+		const FVector P(W.X, W.Y, 0.0);
+		bAttack ? GM->RequestAttackMoveTo(P) : GM->RequestMoveTo(P);
+		return true;
+	}
+	// An enemy under the cursor is a direct attack, for both RMB and attack-move clicks.
+	float MX, MY;
+	if (GetMousePosition(MX, MY))
+	{
+		const int32 Enemy = GM->PickEnemyUnitAt(FVector2D(MX, MY));
+		if (Enemy != INDEX_NONE)
+		{
+			GM->RequestAttackUnit(Enemy);
+			return true;
+		}
 	}
 	FHitResult Hit;
-	if (GetHitResultUnderCursor(ECC_Visibility, false, Hit))
-		GM->RequestMoveTo(Hit.Location);
+	if (!GetHitResultUnderCursor(ECC_Visibility, false, Hit))
+		return false;
+	bAttack ? GM->RequestAttackMoveTo(Hit.Location) : GM->RequestMoveTo(Hit.Location);
+	return true;
+}
+
+void ARtsRtsPlayerController::OnRightClick()
+{
+	if (bAttackMoveArmed)
+	{
+		SetAttackMoveArmed(false); // RMB cancels a pending attack-move
+		return;
+	}
+	IssueOrderAtCursor(/*bAttack=*/false);
 }
 
 void ARtsRtsPlayerController::OnLeftClick()
 {
+	if (bAttackMoveArmed)
+	{
+		IssueOrderAtCursor(/*bAttack=*/true);
+		SetAttackMoveArmed(false);
+		return;
+	}
 	FVector2D W;
 	if (MouseOnMinimap(W))
 	{

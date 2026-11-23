@@ -24,6 +24,12 @@ public:
 
 	/** Player-side entry points (called by ARtsRtsPlayerController). */
 	void RequestMoveTo(const FVector& WorldDestination);   // move selected (faction 0)
+	void RequestAttackMoveTo(const FVector& WorldDestination); // attack-move selected
+	void RequestAttackUnit(int32 TargetSimId);             // attack one unit (sim id)
+	void RequestStop();                                    // stop selected
+	/** Sim id of a non-own unit within click tolerance of ScreenPos, or INDEX_NONE. */
+	int32 PickEnemyUnitAt(const FVector2D& ScreenPos) const;
+	bool HasSelection() const { return Selection.GetSelected().Num() > 0; }
 	/** Click-select the own unit nearest ScreenPos (empty ground clears; shift toggles). */
 	void ClickSelect(const FVector2D& ScreenPos, bool bShift);
 	/** Select own units whose screen projection is inside the rect A..B (shift adds). */
@@ -66,6 +72,9 @@ private:
 	void SyncActorsFromReply(FRtsHostReply& Reply);
 	/** Sim id of the own (faction 0) unit within click tolerance of ScreenPos, or INDEX_NONE. */
 	int32 PickOwnUnitAt(const FVector2D& ScreenPos) const;
+	int32 PickUnitAt(const FVector2D& ScreenPos, bool bOwn) const;
+	/** Queue one order for the selected units; TargetJson is the raw `target` value or empty. */
+	bool QueueOrderForSelection(const TCHAR* Type, const FString& TargetJson);
 	void RefreshSelectionRings();
 	void FailHost(const FString& Reason);
 };

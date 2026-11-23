@@ -36,8 +36,12 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   (<6 px movement: nearest own unit within 40 px, empty ground clears) or drag box
   (own units whose screen projection is inside); Shift toggles/adds. Ctrl+A = select all
   faction-0 units (A is scroll); Ctrl+1–3 assign group, 1–3 recall, double-tap
-  centres the camera on it; RMB = move selected faction-0 units to the
-  minimap point or ground trace (-> RequestMoveTo). Game mode only; never sim state.
+  centres the camera on it; RMB = enemy under cursor ? `attack` (target = sim id) :
+  `move` to the minimap point or ground trace. F arms attack-move (crosshair): next LMB
+  issues `attack-move` (or `attack` on an enemy); RMB cancels. X = `stop`. A/S are
+  WASD, hence F/X; Esc is left to the editor (stops PIE). All orders go through
+  `QueueOrderForSelection` (game mode); never sim state.
+  Test: `RtsBridge.Host.Orders` (real host accepts the exact attack/stop/attack-move bodies).
 - `RtsSelection.h` (`FRtsSelection`) — pure selection + control groups 1–3 over sim
   ids, port of `game/selection/SelectionController`; pruned against every snapshot.
   Test: `RtsBridge.Selection.Rules` (no world, no host).
