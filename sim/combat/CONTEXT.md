@@ -12,6 +12,7 @@ Tick step 4 (see `../CONTEXT.md`). `CombatSystem.Step(units, orders, tick)` per 
 5. target in `Range + radii` → deal `Damage × DamageMatrix[DamageType, target.Armor]` (floor 1 — chip, never bounce) on cooldown; out of range and not attack-moving → issue/refresh a chase `MoveOrder` to the target (navigation moves them);
 6. dead target → clear target (attack-movers resume route; plain attackers drop the order; guards re-acquire or return).
 
+Events (T09, when given the world): one `Shot` per hit (subject = shooter, target = victim, amount = damage applied) and one `Death` per kill (subject = dead unit, target = killer, faction = dead unit's).
 Step 6 cleanup: `UnitStore.DespawnDead()`. No RNG, no floats — fights are replays.
 Guard state is not in the state hash directly; it shows up through positions and HP. Scenario: `content/scenarios/guard-hold.json`.
 Weapon/HP/sight/faction/armor/damageType numbers come from `content/units/*.json` via `UnitProfile` (sim/units).

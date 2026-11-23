@@ -85,6 +85,7 @@ private:
 	int32 NextTickToSend = 0;
 	bool bHostAlive = false;
 	bool bFinished = false;
+	bool bMatchReported = false; // log/show the T06 result once
 	bool bCameraFramedOnPlayer = false;  // start the view on your own units (once)
 	double WaitStart = 0.0;
 	double StepAccum = 0.0; // per match (a function static leaked across PIE sessions)

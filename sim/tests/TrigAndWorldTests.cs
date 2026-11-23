@@ -107,8 +107,9 @@ public class EntityIdAndEventTests
         var w = new SimWorld(1);
         var a = w.Ids.Next();
         var b = w.Ids.Next();
-        w.Emit(a, b);
+        w.Emit(SimEventKind.Shot, a, b, Fix64.One);
         Assert.Single(w.Events);
+        Assert.Equal(new SimEvent(0, SimEventKind.Shot, a, b, Fix64.One, -1), w.Events[0]);
         w.Step(Array.Empty<Command>()); // clears the previous tick's buffer at its start
         Assert.Empty(w.Events);
     }

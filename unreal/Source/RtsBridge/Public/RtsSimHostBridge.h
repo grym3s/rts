@@ -45,6 +45,13 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	FString Hash;
 
+	/** Match outcome from state.match (T06). Winner -1 = draw. */
+	UPROPERTY(BlueprintReadOnly)
+	bool bMatchOver = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 MatchWinner = -1;
+
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FRtsUnitSnapshot> Units;
 

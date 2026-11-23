@@ -286,6 +286,7 @@ public class ProtocolTests
     [InlineData("tri-point-30.json", "5526cd76fdce4754")] // re-pinned for T05 guard (idle units hold, chase, return): 7e1eb94ae7d983f3 -> 5526cd76fdce4754
     [InlineData("counters-6v4.json", "39ac951e73e99076")] // re-pinned for T05 guard (idle units hold, chase, return): a418be859c7550c7 -> 39ac951e73e99076
     [InlineData("guard-hold.json", "e7a820c12422dad2")]
+    [InlineData("match-end.json", "3c75053acd9d4698")]
     [InlineData("economy-2h.json", "05829563b6901d19")]
     [InlineData("produce-1t1.json", "d854ebb325482ab9")] // re-pinned for power gate: 780adc3094385fcf -> d854ebb325482ab9
     public void Host_replay_matches_scenario_runner_golden_hash(string scenarioFile, string expectedHex)
@@ -332,6 +333,46 @@ public class ProtocolTests
 
         Assert.Equal(ticks, last.Tick);
         return last.State!.Hash;
+    }
+
+    // ---------- events and match (T09, T06) ----------
+
+    [Fact]
+    public void Shots_deaths_and_match_end_travel_as_events_and_match_state()
+    {
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":12,"height":8,"blocked":[]},"units":[{"unit":"rifleman","at":[2,3]},{"unit":"rifleman","at":[2,4]},{"unit":"rifleman","at":[2,5]},{"unit":"conscript","at":[5,4]}]}}"""));
+        Assert.True(init.Ok, init.Error);
+        Assert.False(init.State!.Match!.Over);
+
+        var kinds = new HashSet<string>();
+        HostEvent? death = null, end = null;
+        string? endLine = null;
+        HostResponse last = init;
+        for (var t = 0; t < 400 && end == null; t++)
+        {
+            var line = s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":{{t}},"commands":[]}""");
+            last = Resp(line);
+            Assert.True(last.Ok, last.Error);
+            foreach (var e in last.Events!)
+            {
+                kinds.Add(e.Kind);
+                if (e.Kind == "shot") Assert.True(e.Amount > 0);
+                if (e.Kind == "death") death = e;
+                if (e.Kind == "match_end") { end = e; endLine = line; }
+            }
+        }
+
+        Assert.Contains("shot", kinds);
+        Assert.NotNull(death);
+        Assert.Equal(3, death!.Subject); // the conscript
+        Assert.Equal(1, death.Faction);
+        Assert.NotNull(end);
+        Assert.Equal(0, end!.Faction);
+        Assert.Contains("\"kind\":\"match_end\"", endLine);
+        Assert.True(last.State!.Match!.Over);
+        Assert.Equal(0, last.State.Match.Winner);
+        Assert.Equal(last.Tick - 1, last.State.Match.EndTick);
     }
 
     // ---------- hash wire format ----------

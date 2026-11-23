@@ -178,6 +178,12 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 	if (const TSharedPtr<FJsonObject>* StateObj = nullptr; Root->TryGetObjectField(TEXT("state"), StateObj))
 	{
 		(*StateObj)->TryGetStringField(TEXT("hash"), OutReply.Hash);
+		const TSharedPtr<FJsonObject>* MatchObj = nullptr;
+		if ((*StateObj)->TryGetObjectField(TEXT("match"), MatchObj))
+		{
+			(*MatchObj)->TryGetBoolField(TEXT("over"), OutReply.bMatchOver);
+			(*MatchObj)->TryGetNumberField(TEXT("winner"), OutReply.MatchWinner);
+		}
 		const TArray<TSharedPtr<FJsonValue>>* UnitsArr = nullptr;
 		if ((*StateObj)->TryGetArrayField(TEXT("units"), UnitsArr))
 		{

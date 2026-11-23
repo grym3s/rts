@@ -9,8 +9,9 @@ namespace Rts.Sim.Combat;
 public static class CombatSystem
 {
     /// <summary>One tick of combat. Chase distance: a unit ordered to attack a target outside its
-    /// weapons range gets a fresh MoveOrder toward that target each tick it is idle-pathed.</summary>
-    public static void Step(UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick)
+    /// weapons range gets a fresh MoveOrder toward that target each tick it is idle-pathed.
+    /// `events` (optional) receives a Shot per hit and a Death per kill (T09).</summary>
+    public static void Step(UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick, SimWorld? events = null)
     {
         foreach (var u in units.Units)
         {
@@ -48,7 +49,11 @@ public static class CombatSystem
                     // means chip, never bounce (ADR 0005); floor decided in the reference model.
                     var applied = u.Damage * DamageMatrix.Get(u.DamageType, target.Armor);
                     if (applied.Raw < Fix64.OneRaw) applied = Fix64.One;
+                    var wasAlive = target.Hp.Raw > 0;
                     target.Hp -= applied;
+                    events?.Emit(SimEventKind.Shot, u.Id, target.Id, applied);
+                    if (wasAlive && target.Hp.Raw <= 0)
+                        events?.Emit(SimEventKind.Death, target.Id, u.Id, faction: target.Faction);
                     u.CooldownRemaining = u.CooldownTicks;
                 }
             }

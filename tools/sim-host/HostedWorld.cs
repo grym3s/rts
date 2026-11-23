@@ -20,6 +20,7 @@ public sealed class HostedWorld
     public required UnitStore Units { get; init; }
     public required Rts.Sim.Economy.EconomyStore Econ { get; init; }
     public required GameMap Map { get; init; }
+    public required Rts.Sim.Match.MatchState Match { get; init; }
 
     /// <summary>Roster at load time. The scenario runner resolves a command with no explicit
     /// `units` against THIS list (computed once at scenario load), not the live roster —
@@ -70,7 +71,7 @@ public sealed class HostedWorld
                     new FixVec2(Fix64.FromDouble(r.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(r.GetProperty("at")[1].GetDouble()))));
 
         // Canonical tick order (see Wiki/Projects/rts-development.md, 2026-11-02): Power(1)
-        // Income(2) Order(3) Production(4) Navigation(5) Deposit(6) Combat(7) Despawn(8).
+        // Income(2) Order(3) Production(4) Navigation(5) Deposit(6) Combat(7) Despawn(8) Match(9).
         // Economy is split: IncomeStep credits this tick's harvest before OrderSystem/Production
         // spend; DepositStep credits arrivals after NavigationSystem has moved units, so refinery
         // proximity reads post-move positions.
@@ -84,14 +85,16 @@ public sealed class HostedWorld
             (f, a) => { econ.Deposit(f, a); return true; }, power, w.Tick));
         world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
         world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick));
-        world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick));
+        world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick, w));
         world.Systems.Add((w, due) => units.DespawnDead());
+        var match = new Rts.Sim.Match.MatchState();
+        world.Systems.Add((w, due) => Rts.Sim.Match.MatchSystem.Step(w, units, match));
         world.HashMixers.Add(units.Hash);
         world.HashMixers.Add(econ.Hash);
         world.HashMixers.Add(h => Rts.Sim.Production.ProductionStore.Hash(units, h));
         world.HashMixers.Add(power.Hash);
 
-        return new HostedWorld { World = world, Units = units, Econ = econ, Map = map, _initialRoster = roster };
+        return new HostedWorld { World = world, Units = units, Econ = econ, Map = map, Match = match, _initialRoster = roster };
     }
 
     /// <summary>Decode scenario-format command objects (tick-stamped). `allUnits` fills the
@@ -170,13 +173,29 @@ public sealed class HostedWorld
         var factions = new List<HostFaction>(2);
         for (var f = 0; f < 2; f++) factions.Add(new HostFaction(f, Econ.Credits(f)));
 
-        return new HostState { Hash = World.StateHash(), Units = units, Factions = factions };
+        return new HostState
+        {
+            Hash = World.StateHash(),
+            Units = units,
+            Factions = factions,
+            Match = new HostMatch(Match.Over, Match.Winner, Match.EndTick),
+        };
     }
 
     public List<HostEvent> CaptureEvents()
     {
         var evs = new List<HostEvent>(World.Events.Count);
-        foreach (var e in World.Events) evs.Add(new HostEvent(e.Tick, e.Subject.Value, e.Target.Value));
+        foreach (var e in World.Events)
+            evs.Add(new HostEvent(e.Tick, KindName(e.Kind), e.Subject.Value, e.Target.Value, e.Amount.Raw, e.Faction));
         return evs;
     }
+
+    /// <summary>Wire names for SimEventKind (protocol v1, additive). New kinds get a new name here.</summary>
+    private static string KindName(SimEventKind k) => k switch
+    {
+        SimEventKind.Shot => "shot",
+        SimEventKind.Death => "death",
+        SimEventKind.MatchEnded => "match_end",
+        _ => throw new ArgumentOutOfRangeException(nameof(k), k, "no wire name"),
+    };
 }

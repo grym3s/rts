@@ -13,7 +13,10 @@ Never: references Godot or any engine; uses floats; reads wall-clock time.
 5. navigation: path + avoidance + movement (`navigation/`, live)
 6. deposit: credit arrivals after movement (`economy/`, live)
 7. combat: acquire, fire, damage, death (`combat/`, live)
-8. cleanup: despawn dead, flush events
+8. cleanup: despawn dead
+9. match: decide win / lose (`match/`, live)
+
+Events (`core/SimWorld.Emit`) are buffered per tick and cleared at the next step's start: combat emits `Shot` and `Death`, match emits `MatchEnded`. Events never enter the state hash.
 
 ## Folders
 | Folder | Status |
@@ -24,5 +27,6 @@ Never: references Godot or any engine; uses floats; reads wall-clock time.
 | `combat/` | live — acquire/fire/damage/death (see `combat/CONTEXT.md`) |
 | `economy/` | live — credits + harvest loop slice 1 (see `economy/CONTEXT.md`) |
 | `production/` | live — buildings, construction, unit queues slice 2a (see `production/CONTEXT.md`) |
+| `match/` | live — win / lose (see `match/CONTEXT.md`) |
 
 Tests: `make test`. Change impact: `map/effects/CONTEXT.md`.

@@ -50,6 +50,8 @@ public sealed record HostState
     public ulong Hash { get; init; }
     public required IReadOnlyList<HostUnit> Units { get; init; }
     public IReadOnlyList<HostFaction>? Factions { get; init; }
+    /// <summary>Match outcome (T06): over, winner faction (-1 = draw or not over), end tick (-1 while running).</summary>
+    public HostMatch? Match { get; init; }
 }
 
 /// <summary>Serializes a ulong as an exact lowercase 16-hex-char JSON string; parses the same
@@ -77,7 +79,12 @@ public sealed record HostUnit(
 
 public sealed record HostFaction(int Faction, int Credits);
 
-public sealed record HostEvent(int Tick, int Subject, int Target);
+public sealed record HostMatch(bool Over, int Winner, int EndTick);
+
+/// <summary>One sim event (T09). kind: "shot" (subject hit target for amount, Q32.32 raw),
+/// "death" (subject died, target = killer, faction = dead unit's), "match_end" (faction = winner,
+/// -1 = draw; subject/target -1). Ids are -1 where they do not apply.</summary>
+public sealed record HostEvent(int Tick, string Kind, int Subject, int Target, long Amount, int Faction);
 
 /// <summary>Strict decoder/encoder. Unknown fields, missing fields, and wrong types are
 /// errors — a presentation bug must surface, not silently drive the sim wrong.</summary>

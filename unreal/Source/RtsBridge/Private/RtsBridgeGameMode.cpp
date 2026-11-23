@@ -19,6 +19,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Kismet/GameplayStatics.h"
 #include "HAL/PlatformTime.h"
+#include "Engine/Engine.h"
 
 // The match comes from content/ (ScenarioId / MapId): the scenario minus its scripted
 // commands becomes the host init; the typed tile map is drawn. Rules stay host-owned.
@@ -146,6 +147,16 @@ void ARtsBridgeGameMode::Tick(float DeltaSeconds)
 		}
 		NextTickToSend++;
 		SyncActorsFromReply(Reply);
+		if (Reply.bMatchOver && !bMatchReported)
+		{
+			// T06 result; the real win/lose screen with restart is T19.
+			bMatchReported = true;
+			const FString Msg = Reply.MatchWinner == 0 ? TEXT("VICTORY") : Reply.MatchWinner < 0 ? TEXT("DRAW") : TEXT("DEFEAT");
+			UE_LOG(LogTemp, Display, TEXT("RTS_MATCH_OVER: %s (winner %d, tick %lld)"), *Msg, Reply.MatchWinner, Reply.Tick);
+			if (GEngine)
+				GEngine->AddOnScreenDebugMessage(-1, 30.0f, Reply.MatchWinner == 0 ? FColor::Green : FColor::Red,
+					FString::Printf(TEXT("%s  (match over at tick %lld)"), *Msg, Reply.Tick), true, FVector2D(3.0f, 3.0f));
+		}
 	}
 }
 

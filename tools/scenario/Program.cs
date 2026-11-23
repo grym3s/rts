@@ -63,7 +63,7 @@ if (doc.TryGetProperty("refineries", out var refsEl))
             r.GetProperty("faction").GetInt32(),
             new FixVec2(Fix64.FromDouble(r.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(r.GetProperty("at")[1].GetDouble()))));
 // Canonical tick order (see Wiki/Projects/rts-development.md, 2026-11-02): Power(1)
-// Income(2) Order(3) Production(4) Navigation(5) Deposit(6) Combat(7) Despawn(8).
+// Income(2) Order(3) Production(4) Navigation(5) Deposit(6) Combat(7) Despawn(8) Match(9).
 // Economy is split: IncomeStep credits this tick's harvest before OrderSystem/Production
 // spend; DepositStep credits arrivals after NavigationSystem has moved units, so refinery
 // proximity reads post-move positions.
@@ -77,8 +77,10 @@ world.Systems.Add((w, due) => Rts.Sim.Production.ProductionSystem.Step(
     (f, a) => { econ.Deposit(f, a); return true; }, power, w.Tick));
 world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
 world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick));
-world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick));
+world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick, w));
 world.Systems.Add((w, due) => units.DespawnDead());
+var match = new Rts.Sim.Match.MatchState();
+world.Systems.Add((w, due) => Rts.Sim.Match.MatchSystem.Step(w, units, match));
 world.HashMixers.Add(units.Hash);
 world.HashMixers.Add(econ.Hash);
 world.HashMixers.Add(h => Rts.Sim.Production.ProductionStore.Hash(units, h));
@@ -192,6 +194,18 @@ if (assert.ValueKind != JsonValueKind.Undefined && assert.TryGetProperty("nonBui
         Console.Error.WriteLine($"ASSERT FAIL: faction {faction} non-building units {alive} != {want}");
         return 1;
     }
+}
+
+if (assert.ValueKind != JsonValueKind.Undefined && assert.TryGetProperty("matchWinner", out var mwEl))
+{
+    // T06: the match must be decided by the end of the run, for this faction (-1 = draw)
+    var want = mwEl.GetInt32();
+    if (!match.Over || match.Winner != want)
+    {
+        Console.Error.WriteLine($"ASSERT FAIL: match over={match.Over} winner={match.Winner} (want winner {want})");
+        return 1;
+    }
+    Console.WriteLine($"match: winner={match.Winner} endTick={match.EndTick}");
 }
 
 var hash = world.StateHash();

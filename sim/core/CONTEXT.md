@@ -1,6 +1,6 @@
 # sim/core — primitives every other sim folder depends on
 
-Owns: `Fix64` (Q32.32 fixed-point), `FixVec2`, `Rng` (seeded xorshift), `EntityId` + `EntityIdAllocator`, `Command` types, `SimEvent`, `SimWorld` (state container + `Tick`).
+Owns: `Fix64` (Q32.32 fixed-point), `FixVec2`, `Rng` (seeded xorshift), `EntityId` + `EntityIdAllocator`, `Command` types, `SimEvent` + `SimEventKind` (Shot, Death, MatchEnded — tick, subject, target, amount, faction), `SimWorld` (state container + `Tick`).
 Reads: nothing. Writes: nothing outside itself.
 Runs at: `SimWorld.Tick` drives the order in `../CONTEXT.md`.
 Tests: `../tests/Fix64Tests.cs`, `../tests/SimWorldTests.cs`, `../tests/TrigAndWorldTests.cs`.

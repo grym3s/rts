@@ -6,4 +6,4 @@ Reads: `content/units`, `content/buildings` catalogs, scenario JSON on stdin. Wr
 Composition is a verbatim copy of `tools/scenario/Program.cs` wiring; determinism parity with the runner's golden hashes is asserted by `tools/sim-host.tests` — if wiring drifts, those tests fail.
 Tests: `dotnet test tools/sim-host.tests`. CI runs `make check test`.
 Do NOT: add game rules, duplicate rule logic, own tick looping beyond one step, or mutate scenario semantics. `already_initialized` is fatal-by-design — restart the process to reset.
-Known limits (2026-09-26): events expose only (tick, subject, target) — the SimEvent contract; richer payloads need a sim-side contract change first, not host invention.
+Events (T09, additive to v1): each is `{tick, kind, subject, target, amount, faction}`; kinds `shot` (amount = damage, Q32.32 raw), `death` (target = killer, faction = dead unit's), `match_end` (faction = winner, -1 draw). The snapshot carries `state.match = {over, winner, endTick}` (T06). Names come from `HostedWorld.KindName`; payloads come from the sim's SimEvent contract, never host invention.

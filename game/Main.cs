@@ -56,7 +56,7 @@ public partial class Main : Node3D
 
         _sim.Systems.Add((w, due) => OrderSystem.ApplyCommands(_orders, due, _units.Find));
         _sim.Systems.Add((w, due) => NavigationSystem.Step(_map, _units, _orders));
-        _sim.Systems.Add((w, due) => CombatSystem.Step(_units, _orders, w.Tick));
+        _sim.Systems.Add((w, due) => CombatSystem.Step(_units, _orders, w.Tick, w));
         _sim.Systems.Add((w, due) => _units.DespawnDead());
 
         // --- 3D presentation ---

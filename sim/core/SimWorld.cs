@@ -1,7 +1,19 @@
 namespace Rts.Sim.Core;
 
-/// <summary>Something that happened during a tick, for the presentation layer / replay consumers. Read-only after emission.</summary>
-public readonly record struct SimEvent(int Tick, EntityId Subject, EntityId Target);
+/// <summary>What a SimEvent reports. Values are part of the host wire (as snake_case names).</summary>
+public enum SimEventKind
+{
+    /// <summary>Subject fired at Target and dealt Amount damage (after the counter matrix and chip floor).</summary>
+    Shot,
+    /// <summary>Subject died this tick; Target is the killer, Faction the dead unit's faction.</summary>
+    Death,
+    /// <summary>The match ended this tick; Faction is the winner, -1 for a draw (everyone died together).</summary>
+    MatchEnded,
+}
+
+/// <summary>Something that happened during a tick, for the presentation layer / replay consumers.
+/// Read-only after emission. Events are not state: they never enter the state hash.</summary>
+public readonly record struct SimEvent(int Tick, SimEventKind Kind, EntityId Subject, EntityId Target, Fix64 Amount, int Faction);
 
 /// <summary>State container and tick driver. Systems (in their own folders) are static functions over this. Order: see sim/CONTEXT.md.</summary>
 public sealed class SimWorld
@@ -29,9 +41,9 @@ public sealed class SimWorld
         Rng = new Rng(seed);
     }
 
-    /// <summary>Emit an event for the current tick. Systems call this; the buffer is cleared each tick end.</summary>
-    public void Emit(EntityId subject, EntityId target = default) =>
-        _events.Add(new SimEvent(Tick, subject, target));
+    /// <summary>Emit an event for the current tick. Systems call this; the buffer is cleared at the next step's start.</summary>
+    public void Emit(SimEventKind kind, EntityId subject, EntityId target, Fix64 amount = default, int faction = -1) =>
+        _events.Add(new SimEvent(Tick, kind, subject, target, amount, faction));
 
     /// <summary>Advance one fixed step. Commands stamped for a later tick are kept; earlier or equal are applied now.</summary>
     public void Step(IReadOnlyList<Command> commands)
