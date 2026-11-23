@@ -107,7 +107,7 @@ void ARtsBridgeGameMode::StartPlay()
 		return;
 	}
 	bHostAlive = true;
-	UE_LOG(LogTemp, Display, TEXT("RTS_SESSION: host up, stepping live (select: LMB/Ctrl+A, move: RMB, minimap: bottom-left)"));
+	UE_LOG(LogTemp, Display, TEXT("RTS_SESSION: host up, stepping live (select: LMB click/drag, Shift adds, Ctrl+A, groups Ctrl+1-3/1-3, move: RMB, minimap: bottom-left)"));
 }
 
 void ARtsBridgeGameMode::Tick(float DeltaSeconds)
@@ -157,12 +157,12 @@ void ARtsBridgeGameMode::Tick(float DeltaSeconds)
 
 void ARtsBridgeGameMode::RequestMoveTo(const FVector& WorldDestination)
 {
-	if (!bHostAlive || SelectedIds.Num() == 0)
+	if (!bHostAlive || Selection.GetSelected().Num() == 0)
 		return;
 	const double MapX = WorldDestination.X / SimCellUU;
 	const double MapY = WorldDestination.Y / SimCellUU;
 	FString Ids;
-	for (const int32 Id : SelectedIds)
+	for (const int32 Id : Selection.GetSelected())
 	{
 		if (Ids.Len())
 			Ids += TEXT(",");
@@ -174,42 +174,98 @@ void ARtsBridgeGameMode::RequestMoveTo(const FVector& WorldDestination)
 		*Ids, MapX, MapY));
 }
 
-void ARtsBridgeGameMode::ToggleSelectUnderCursor(const FVector2D& ScreenPos)
+int32 ARtsBridgeGameMode::PickOwnUnitAt(const FVector2D& ScreenPos) const
+{
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+	if (!PC)
+		return INDEX_NONE;
+	// Project each own unit to screen; take the closest within a click radius.
+	int32 BestId = INDEX_NONE;
+	float BestDist = 40.0f; // px click tolerance
+	for (const ARtsSimUnitActor* A : UnitActors)
+	{
+		if (!A || A->GetFaction() != 0)
+			continue; // you only select your own (faction 0) units
+		FVector2D Proj;
+		if (PC->ProjectWorldLocationToScreen(A->GetActorLocation(), Proj))
+		{
+			const float D = FVector2D::Distance(Proj, ScreenPos);
+			if (D < BestDist) { BestDist = D; BestId = A->GetSimUnitId(); }
+		}
+	}
+	return BestId;
+}
+
+void ARtsBridgeGameMode::RefreshSelectionRings()
+{
+	for (ARtsSimUnitActor* A : UnitActors)
+		if (A)
+			A->SetSelected(Selection.Contains(A->GetSimUnitId()));
+}
+
+void ARtsBridgeGameMode::ClickSelect(const FVector2D& ScreenPos, bool bShift)
+{
+	Selection.Click(PickOwnUnitAt(ScreenPos), bShift);
+	RefreshSelectionRings();
+}
+
+void ARtsBridgeGameMode::BoxSelect(const FVector2D& A, const FVector2D& B, bool bShift)
 {
 	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
 	if (!PC)
 		return;
-	// Project each unit to screen; select the closest within a click radius.
-	int32 BestIdx = INDEX_NONE;
-	float BestDist = 60.0f; // px click tolerance
-	for (int32 i = 0; i < UnitActors.Num(); ++i)
+	const FBox2D Rect(FVector2D(FMath::Min(A.X, B.X), FMath::Min(A.Y, B.Y)),
+		FVector2D(FMath::Max(A.X, B.X), FMath::Max(A.Y, B.Y)));
+	TArray<int32> Ids;
+	for (const ARtsSimUnitActor* U : UnitActors)
 	{
-		if (UnitActors[i]->GetFaction() != 0)
-			continue; // you only select your own (faction 0) units
 		FVector2D Proj;
-		if (PC->ProjectWorldLocationToScreen(UnitActors[i]->GetActorLocation(), Proj))
-		{
-			const float D = FVector2D::Distance(Proj, ScreenPos);
-			if (D < BestDist) { BestDist = D; BestIdx = i; }
-		}
+		if (U && U->GetFaction() == 0 && PC->ProjectWorldLocationToScreen(U->GetActorLocation(), Proj)
+			&& Rect.IsInside(Proj))
+			Ids.Add(U->GetSimUnitId());
 	}
-	SelectedIds.Reset();
-	if (BestIdx != INDEX_NONE)
-		SelectedIds.Add(UnitActors[BestIdx]->GetSimUnitId());
-	for (int32 i = 0; i < UnitActors.Num(); ++i)
-		UnitActors[i]->SetSelected(i == BestIdx);
+	Selection.BoxSelect(Ids, bShift);
+	RefreshSelectionRings();
 }
 
 void ARtsBridgeGameMode::SelectAll()
 {
-	SelectedIds.Reset();
-	for (ARtsSimUnitActor* A : UnitActors)
-	{
-		const bool bMine = A->GetFaction() == 0;
-		if (bMine)
-			SelectedIds.Add(A->GetSimUnitId());
-		A->SetSelected(bMine);
-	}
+	TArray<int32> Ids;
+	for (const ARtsSimUnitActor* A : UnitActors)
+		if (A && A->GetFaction() == 0)
+			Ids.Add(A->GetSimUnitId());
+	Selection.SetAll(Ids);
+	RefreshSelectionRings();
+}
+
+void ARtsBridgeGameMode::AssignGroup(int32 Group)
+{
+	Selection.AssignGroup(Group);
+}
+
+bool ARtsBridgeGameMode::RecallGroup(int32 Group)
+{
+	const bool bOk = Selection.RecallGroup(Group);
+	if (bOk)
+		RefreshSelectionRings();
+	return bOk;
+}
+
+bool ARtsBridgeGameMode::SelectionCentroid(FVector2D& OutWorldXY) const
+{
+	FVector2D Sum(0, 0);
+	int32 N = 0;
+	for (const ARtsSimUnitActor* A : UnitActors)
+		if (A && Selection.Contains(A->GetSimUnitId()))
+		{
+			const FVector L = A->GetActorLocation();
+			Sum += FVector2D(L.X, L.Y);
+			++N;
+		}
+	if (N == 0)
+		return false;
+	OutWorldXY = Sum / N;
+	return true;
 }
 
 void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
@@ -234,8 +290,13 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 			A->SetFaction(S.Faction);
 		}
 		A->SetSimPosition(S.X, S.Y);
-		A->SetSelected(SelectedIds.Contains(S.Id));
 	}
+	// Units that left the roster (deaths, later) drop out of the selection and groups.
+	TSet<int32> Alive;
+	for (const FRtsUnitSnapshot& S : Reply.Units)
+		Alive.Add(S.Id);
+	Selection.Prune([&Alive](int32 Id) { return Alive.Contains(Id); });
+	RefreshSelectionRings();
 
 	// First snapshot: centre the camera on your (faction-0) units, like an RTS start.
 	if (!bCameraFramedOnPlayer)

@@ -9,6 +9,8 @@
 #include "UnrealClient.h"
 #include "Components/InputComponent.h"
 #include "InputCoreTypes.h"
+#include "RtsSelection.h"
+#include "HAL/PlatformTime.h"
 
 void ARtsRtsPlayerController::SetupInputComponent()
 {
@@ -38,6 +40,54 @@ void ARtsRtsPlayerController::SetupInputComponent()
 	// Ctrl+A, not A: A is scroll-left.
 	PIC->BindKey(FInputChord(EKeys::A, /*bShift=*/false, /*bCtrl=*/true, /*bAlt=*/false, /*bCmd=*/false),
 		IE_Pressed, this, &ARtsRtsPlayerController::OnSelectAll);
+	// Plain bindings; the handler reads Ctrl itself (assign vs recall).
+	PIC->BindKey(EKeys::One, IE_Pressed, this, &ARtsRtsPlayerController::OnGroup1);
+	PIC->BindKey(EKeys::Two, IE_Pressed, this, &ARtsRtsPlayerController::OnGroup2);
+	PIC->BindKey(EKeys::Three, IE_Pressed, this, &ARtsRtsPlayerController::OnGroup3);
+}
+
+bool ARtsRtsPlayerController::IsShiftDown() const
+{
+	return IsInputKeyDown(EKeys::LeftShift) || IsInputKeyDown(EKeys::RightShift);
+}
+
+bool ARtsRtsPlayerController::IsCtrlDown() const
+{
+	return IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl);
+}
+
+bool ARtsRtsPlayerController::GetSelectionBox(FVector2D& OutA, FVector2D& OutB) const
+{
+	float MX, MY;
+	if (!bLeftDownOnView || !GetMousePosition(MX, MY))
+		return false;
+	const FVector2D Cur(MX, MY);
+	if (FVector2D::Distance(Cur, DragStart) < FRtsSelection::BoxDragThreshold)
+		return false;
+	OutA = DragStart;
+	OutB = Cur;
+	return true;
+}
+
+void ARtsRtsPlayerController::OnGroupKey(int32 Group)
+{
+	ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
+	if (!GM)
+		return;
+	if (IsCtrlDown())
+	{
+		GM->AssignGroup(Group);
+		LastGroupTapped = INDEX_NONE;
+		return;
+	}
+	if (!GM->RecallGroup(Group))
+		return;
+	const double Now = FPlatformTime::Seconds();
+	FVector2D C;
+	if (LastGroupTapped == Group && Now - LastGroupTapTime <= DoubleTapSeconds && GM->SelectionCentroid(C))
+		CenterCameraOn(C);
+	LastGroupTapped = Group;
+	LastGroupTapTime = Now;
 }
 
 void ARtsRtsPlayerController::BeginPlay()
@@ -100,7 +150,7 @@ void ARtsRtsPlayerController::Tick(float DeltaSeconds)
 		return;
 	}
 
-	const bool bCtrl = IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl);
+	const bool bCtrl = IsCtrlDown();
 	float Up = KeyAxis(EKeys::W, EKeys::Up, EKeys::S, EKeys::Down);
 	float Right = bCtrl ? 0.0f : KeyAxis(EKeys::D, EKeys::Right, EKeys::A, EKeys::Left);
 
@@ -149,17 +199,30 @@ void ARtsRtsPlayerController::OnLeftClick()
 			RtsCamera->JumpTo(W);
 		return;
 	}
-	if (ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>())
+	// Click or box is decided on release, by how far the mouse moved.
+	float MX, MY;
+	if (GetMousePosition(MX, MY))
 	{
-		float MX, MY;
-		if (GetMousePosition(MX, MY))
-			GM->ToggleSelectUnderCursor(FVector2D(MX, MY));
+		bLeftDownOnView = true;
+		DragStart = FVector2D(MX, MY);
 	}
 }
 
 void ARtsRtsPlayerController::OnLeftRelease()
 {
 	bDraggingMinimap = false;
+	if (!bLeftDownOnView)
+		return;
+	bLeftDownOnView = false;
+	ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
+	float MX, MY;
+	if (!GM || !GetMousePosition(MX, MY))
+		return;
+	const FVector2D End(MX, MY);
+	if (FVector2D::Distance(End, DragStart) < FRtsSelection::BoxDragThreshold)
+		GM->ClickSelect(DragStart, IsShiftDown());
+	else
+		GM->BoxSelect(DragStart, End, IsShiftDown());
 }
 
 void ARtsRtsPlayerController::OnSelectAll()

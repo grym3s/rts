@@ -1,6 +1,7 @@
 #include "RtsMinimapHud.h"
 #include "RtsBridgeGameMode.h"
 #include "RtsSimUnitActor.h"
+#include "RtsRtsPlayerController.h"
 #include "Engine/Canvas.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
@@ -53,6 +54,24 @@ void ARtsMinimapHud::DrawHUD()
 	if (!Canvas)
 		return;
 	const FVector2D Vp(Canvas->SizeX, Canvas->SizeY);
+
+	// Box-select drag rectangle (screen space, under the minimap).
+	if (const ARtsRtsPlayerController* RPC = Cast<ARtsRtsPlayerController>(PlayerOwner))
+	{
+		FVector2D A, B;
+		if (RPC->GetSelectionBox(A, B))
+		{
+			const FVector2D Mn(FMath::Min(A.X, B.X), FMath::Min(A.Y, B.Y));
+			const FVector2D Mx(FMath::Max(A.X, B.X), FMath::Max(A.Y, B.Y));
+			const FLinearColor Edge(0.3f, 1.0f, 0.4f, 1.0f);
+			DrawRect(FLinearColor(0.3f, 1.0f, 0.4f, 0.12f), Mn.X, Mn.Y, Mx.X - Mn.X, Mx.Y - Mn.Y);
+			DrawLine(Mn.X, Mn.Y, Mx.X, Mn.Y, Edge, 1.5f);
+			DrawLine(Mx.X, Mn.Y, Mx.X, Mx.Y, Edge, 1.5f);
+			DrawLine(Mx.X, Mx.Y, Mn.X, Mx.Y, Edge, 1.5f);
+			DrawLine(Mn.X, Mx.Y, Mn.X, Mn.Y, Edge, 1.5f);
+		}
+	}
+
 	const FBox2D R = MinimapRect(Vp);
 	const FVector2D Sz = R.GetSize();
 

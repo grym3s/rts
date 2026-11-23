@@ -5,6 +5,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "RtsSelection.h"
 #include "RtsBridgeGameMode.generated.h"
 
 class URtsSimHostBridge;
@@ -23,8 +24,16 @@ public:
 
 	/** Player-side entry points (called by ARtsRtsPlayerController). */
 	void RequestMoveTo(const FVector& WorldDestination);   // move selected (faction 0)
-	void ToggleSelectUnderCursor(const FVector2D& ScreenPos);
+	/** Click-select the own unit nearest ScreenPos (empty ground clears; shift toggles). */
+	void ClickSelect(const FVector2D& ScreenPos, bool bShift);
+	/** Select own units whose screen projection is inside the rect A..B (shift adds). */
+	void BoxSelect(const FVector2D& A, const FVector2D& B, bool bShift);
 	void SelectAll();
+	/** Control groups 0..2 (keys 1–3): Ctrl assigns, plain recalls. */
+	void AssignGroup(int32 Group);
+	bool RecallGroup(int32 Group);
+	/** World-XY centroid of the selected units (for double-tap "jump to group"). */
+	bool SelectionCentroid(FVector2D& OutWorldXY) const;
 
 	bool IsHostAlive() const { return bHostAlive; }
 
@@ -36,7 +45,7 @@ public:
 
 	/** Read-only views for the HUD/minimap (presentation of host snapshots). */
 	const TArray<TObjectPtr<ARtsSimUnitActor>>& GetUnitActors() const { return UnitActors; }
-	bool IsSelected(int32 SimUnitId) const { return SelectedIds.Contains(SimUnitId); }
+	bool IsSelected(int32 SimUnitId) const { return Selection.Contains(SimUnitId); }
 
 private:
 	UPROPERTY()
@@ -45,7 +54,7 @@ private:
 	UPROPERTY()
 	TArray<TObjectPtr<ARtsSimUnitActor>> UnitActors;
 
-	TSet<int32> SelectedIds;
+	FRtsSelection Selection;
 	// Command bodies (tick-less) queued by input; Tick stamps the current tick and sends them.
 	TArray<FString> PendingCommandBodies;
 	int32 NextTickToSend = 0;
@@ -55,5 +64,8 @@ private:
 	double WaitStart = 0.0;
 
 	void SyncActorsFromReply(FRtsHostReply& Reply);
+	/** Sim id of the own (faction 0) unit within click tolerance of ScreenPos, or INDEX_NONE. */
+	int32 PickOwnUnitAt(const FVector2D& ScreenPos) const;
+	void RefreshSelectionRings();
 	void FailHost(const FString& Reason);
 };

@@ -32,11 +32,17 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   wheel zoom 400–5000 UU, `JumpTo` for minimap. No rotation.
 - `RtsRtsPlayerController` — cursor always shown. Keys polled with `IsInputKeyDown`
   (WASD/arrows) + 8 px screen-edge scroll (only while the viewport has focus); wheel via
-  `BindKey` — no config mappings. LMB: on minimap jump/drag camera, else
-  select-under-cursor (screen-space nearest, own faction 0 only); Ctrl+A = select all
-  faction-0 units (A is scroll); RMB = move selected faction-0 units to the
+  `BindKey` — no config mappings. LMB: on minimap jump/drag camera, else click
+  (<6 px movement: nearest own unit within 40 px, empty ground clears) or drag box
+  (own units whose screen projection is inside); Shift toggles/adds. Ctrl+A = select all
+  faction-0 units (A is scroll); Ctrl+1–3 assign group, 1–3 recall, double-tap
+  centres the camera on it; RMB = move selected faction-0 units to the
   minimap point or ground trace (-> RequestMoveTo). Game mode only; never sim state.
-- `RtsMinimapHud` (HUDClass, set in the game mode ctor) — canvas-drawn minimap,
+- `RtsSelection.h` (`FRtsSelection`) — pure selection + control groups 1–3 over sim
+  ids, port of `game/selection/SelectionController`; pruned against every snapshot.
+  Test: `RtsBridge.Selection.Rules` (no world, no host).
+- `RtsMinimapHud` (HUDClass, set in the game mode ctor) — also draws the box-select
+  drag rectangle; canvas-drawn minimap,
   bottom-left: field, faction-coloured unit dots (selected = white outline), camera
   footprint (viewport corners deprojected to Z=0). `MinimapToWorld` for clicks. Map
   size comes from `ARtsBridgeGameMode::MapCellsW/H`, which must match the init map.
