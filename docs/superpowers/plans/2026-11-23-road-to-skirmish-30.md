@@ -15,8 +15,8 @@ Tasks marked **[blocks others]** hold up later work. Tasks tagged *.NET only* ca
 
 ## Phase 0 — Get unblocked
 
-- [ ] **T01 [blocks others] Install Unreal 5.8.3 on a machine we use.** The pinned Linux install (`~/.local/opt/UnrealEngine-5.8.3`) can't be found any more, which is why GRY-288 is blocked. The bridge is written to work on Windows too, but that path has never been tested.
-- [ ] **T02 [blocks others] Build the host and the Unreal project, and play it once** (after T01). Run `make host-publish`, build the `RtsBridgeEditor` target, then try camera pan/zoom/rotate, select and right-click move. Steps are in `unreal/CONTEXT.md`. This finishes GRY-288.
+- [x] **T01 [blocks others] Install Unreal 5.8.3 on a machine we use.** The pinned Linux install (`~/.local/opt/UnrealEngine-5.8.3`) can't be found any more, which is why GRY-288 is blocked. The bridge is written to work on Windows too, but that path has never been tested.
+- [x] **T02 [blocks others] Build the host and the Unreal project, and play it once** (after T01). Run `make host-publish`, build the `RtsBridgeEditor` target, then try camera pan/zoom/rotate, select and right-click move. Steps are in `unreal/CONTEXT.md`. This finishes GRY-288.
 - [ ] **T03 Review and merge the open GRY branches.**
   - GRY-296 (headless slice 4 tests) is the easiest.
   - GRY-295 (rifleman spec) and GRY-297 (slice 5 combat effects spec) are needed by Phase 3.
@@ -31,18 +31,18 @@ Each task gets a scenario in `content/scenarios/`. New behaviour gets its replay
 - [ ] **T05 [blocks others] Enemy behaviour: hold, chase, return.** Enemies hold position, chase anything that comes in range, then return to their spot. No such rule exists in `sim/` yet.
 - [ ] **T06 [blocks others] Win and lose condition.** Win when every enemy is dead, lose when all your units are. Needs a new sim event that the host passes on.
 - [ ] **T07 Restart a match.** The host refuses a second `init` (`already_initialized`). Either add a reset or have Unreal relaunch the host cleanly.
-- [ ] **T08 [blocks others] Demo map and 30v30 scenario.** One hand-made map with blocked cells and chokepoints, plus a 30v30 scenario file. Pin its replay hash in CI.
+- [x] **T08 [blocks others] Demo map and 30v30 scenario.** One hand-made map with blocked cells and chokepoints, plus a 30v30 scenario file. Pin its replay hash in CI. *Done 2026-11-24 on `feat/tri-point-map`: Tri-Point, water version, 30v30 T1 combined arms.*
 - [ ] **T09 [blocks others] Richer sim events.** Events only carry (tick, subject, target). Health bars and effects need damage amounts and deaths, so this is a sim contract change first, then the host protocol.
 
 ## Phase 2 — Unreal controls (finish slice 4)
 
 All game rules stay in the sim. Unreal only sends Commands.
 
-- [ ] **T10 Attack, attack-move and stop orders** (after T02). Unreal only sends `move` today. The host already accepts the others.
-- [ ] **T11 Box select, shift-add, control groups 1–3** (after T02). Copy the behaviour from `game/selection/`.
-- [ ] **T12 Order feedback within one frame** (after T10). A ground marker or acknowledgement on every order. This is pillar 1.
-- [ ] **T13 Smooth movement and facing** (after T02). Interpolate positions between the 20 t/s snapshots and turn units toward where they're moving.
-- [ ] **T14 Draw the map's terrain and obstacles** (after T08). Show blocked cells so chokepoints can be read.
+- [x] **T10 Attack, attack-move and stop orders** (after T02). Unreal only sends `move` today. The host already accepts the others. *Done on `feat/unreal-orders`.*
+- [x] **T11 Box select, shift-add, control groups 1–3** (after T02). Copy the behaviour from `game/selection/`. *Done on `feat/unreal-box-select`.*
+- [x] **T12 Order feedback within one frame** (after T10). A ground marker or acknowledgement on every order. This is pillar 1. *Done on `feat/unreal-feedback-smoothing`.*
+- [x] **T13 Smooth movement and facing** (after T02). Interpolate positions between the 20 t/s snapshots and turn units toward where they're moving. *Done on `feat/unreal-feedback-smoothing`.*
+- [ ] **T14 Draw the map's terrain and obstacles** (after T08). Show blocked cells so chokepoints can be read. *Basic version on `feat/tri-point-map`: tiles drawn as boxes and on the minimap; real art later.*
 
 ## Phase 3 — Make fights readable (slice 5)
 
@@ -59,6 +59,16 @@ All game rules stay in the sim. Unreal only sends Commands.
 - [ ] **T22 500 units at 60 fps or better** on both machines, plus the headless 500/2000-unit `tools/bench` run.
 - [ ] **T23 Unreal build in CI, then remove Godot,** following the GRY-298 checklist. Public CI keeps running all sim tests without Epic credentials.
 - [ ] **T24 Packaged build that runs on both machines.** It must find the self-contained `sim-host` without a global .NET install.
+
+## Tri-Point follow-ups (added 2026-11-24, after T08)
+
+T08 built the water version of Tri-Point (`content/maps/tri-point.json`, generated by `tools/mapgen/tri-point.mjs`) but the sim can only use its land: water and cliffs are blocked cells. These tasks make the rest of the map real. Each is a sim change, so each one re-pins golden hashes in the same PR.
+
+- [ ] **T25 [blocks others] Terrain and movement domains.** Teach the sim the map's tile types (land, water, cliff, bridge) and give units a domain: land units on land and bridges, naval on water and under bridges, air anywhere, hover/amphibious on both (Skimmer, Ripple, Sever-class walking ashore, beach landings). Navigation plans per domain; combat honours the `targets` field (`ground` / `air` / `sea`) that unit files already carry.
+- [ ] **T26 Destructible bridges and causeways — units must be able to attack them.** Bridges (`=` tiles, including the strait, channel and pier bridges) and causeways are structures with hit points that any unit able to hit structures can target and destroy. Destroyed, they become impassable to ground units (ships can still pass under a broken bridge), and path plans through them are invalidated. An engineer touching one repairs it instantly to full health and is consumed (map design rule). Needs: a targetable terrain-structure entity, a nav-grid update when one dies, `attack` orders on them from Unreal, and a visible broken state. Depends on T25 for the bridge tile type; T09 events for showing the hit and the collapse.
+- [ ] **T27 Ascendant as a real third faction.** `UnitCatalog` maps Hegemony to faction 1 and everything else to 0, so Coalition and Ascendant are allies today. Make factions 0/1/2 and seat Ascendant in Tri-Point's empty top home.
+- [ ] **T28 Captures: Seam radars and the central rig.** Engineer-touch capture (consumed, instant), the Tri-Point control states (Neutral, Occupied, Contested, Held, Fortified) with weighted majority, income and the reveal rules from the map design.
+- [ ] **T29 Bring in the rest of the 79 units by domain,** after T25 (and their owned mechanics: Marking, Conscription, Phase) — infantry and vehicles first, then naval, then air.
 
 ---
 
