@@ -60,3 +60,17 @@ Publish the host first: `dotnet publish tools/sim-host/SimHost.csproj -c Release
 - 5.8 removed `UStaticMesh::GetStaticMaterial(i)` — use `GetStaticMaterials()[i]`.
 - Project-wide `make check` treats stale gitignored `tools/*/bin|obj` surviving a
   branch switch as content: `git clean -qfdX tools/` before running locally.
+- Windows: `CreatePipe(..., bWritePipeLocal)` picks which end is NOT inheritable (Unix
+  ignores the flag). The stdin pipe needs `true`, or `CreateProc` asserts "PipeReadChild
+  is not inheritable". `CreateProc` Parms must be non-null (`TEXT("")`), or `check(Parms)` fires.
+- Running the editor can rewrite `Config/DefaultInput.ini` to EnhancedInput classes;
+  this project uses legacy input — revert that diff, don't commit it.
+
+## Windows (verified 2026-11-24, UE 5.8.4 + VS 2022)
+```
+dotnet publish tools/sim-host/SimHost.csproj -c Release -r win-x64 --self-contained -o unreal/dist/win-x64
+"<UE>\Engine\Build\BatchFiles\Build.bat" RtsBridgeEditor Win64 Development -project=<abs>\unreal\RtsBridge.uproject -WaitMutex
+set RTS_CONTENT_ROOT=<repo>
+"<UE>\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" <abs>\unreal\RtsBridge.uproject -nullrhi -NoSound -unattended -ExecCmds="Automation RunTests RtsBridge; Quit"
+```
+Close any open Unreal Editor first: Live Coding blocks command-line builds.

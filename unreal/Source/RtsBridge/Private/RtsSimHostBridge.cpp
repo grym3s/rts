@@ -39,7 +39,11 @@ bool URtsSimHostBridge::StartAndInit(const FString& InitRequestJson, FString& Ou
 	void* ToChildR = nullptr;
 	void* FromChildR = nullptr;
 	void* FromChildW = nullptr;
-	if (!FPlatformProcess::CreatePipe(ToChildR, ToChildW, /*bWritePipeLocal=*/false))
+	// bWritePipeLocal matters on Windows only (Unix ignores it): it picks which end stays
+	// non-inheritable. For stdin the parent keeps the WRITE end, so the child's read end
+	// must stay inheritable — `false` here trips CreateProc's "PipeReadChild is not
+	// inheritable" assertion on Win64.
+	if (!FPlatformProcess::CreatePipe(ToChildR, ToChildW, /*bWritePipeLocal=*/true))
 	{
 		OutError = TEXT("CreatePipe(stdin) failed");
 		return false;
@@ -53,7 +57,8 @@ bool URtsSimHostBridge::StartAndInit(const FString& InitRequestJson, FString& Ou
 
 	uint32 Pid = 0;
 	const FString HostDir = FPaths::GetPath(HostBin);
-	ProcHandle = FPlatformProcess::CreateProc(*HostBin, nullptr, false, false, false, &Pid, 0,
+	// Parms must be non-null: Windows CreateProcInternal does check(Parms).
+	ProcHandle = FPlatformProcess::CreateProc(*HostBin, TEXT(""), false, false, false, &Pid, 0,
 		*HostDir, FromChildW /*-> child stdout*/, ToChildR /*-> child stdin*/);
 	if (!ProcHandle.IsValid())
 	{
