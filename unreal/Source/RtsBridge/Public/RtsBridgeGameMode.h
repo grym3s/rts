@@ -17,6 +17,7 @@ class RTSBRIDGE_API ARtsBridgeGameMode : public AGameModeBase
 	GENERATED_BODY()
 
 public:
+	ARtsBridgeGameMode();
 	virtual void StartPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 
@@ -26,6 +27,16 @@ public:
 	void SelectAll();
 
 	bool IsHostAlive() const { return bHostAlive; }
+
+	/** Fixture map size in cells (must match the init request's map) and world scale. */
+	static constexpr int32 MapCellsW = 32;
+	static constexpr int32 MapCellsH = 24;
+	static constexpr float CellUU = 100.0f;
+	static FBox2D MapWorldBounds() { return FBox2D(FVector2D(0.0, 0.0), FVector2D(MapCellsW * CellUU, MapCellsH * CellUU)); }
+
+	/** Read-only views for the HUD/minimap (presentation of host snapshots). */
+	const TArray<TObjectPtr<ARtsSimUnitActor>>& GetUnitActors() const { return UnitActors; }
+	bool IsSelected(int32 SimUnitId) const { return SelectedIds.Contains(SimUnitId); }
 
 private:
 	UPROPERTY()
@@ -40,6 +51,7 @@ private:
 	int32 NextTickToSend = 0;
 	bool bHostAlive = false;
 	bool bFinished = false;
+	bool bCameraFramedOnPlayer = false;  // start the view on your own units (once)
 	double WaitStart = 0.0;
 
 	void SyncActorsFromReply(FRtsHostReply& Reply);

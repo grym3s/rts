@@ -6,52 +6,88 @@
 #include "RtsSimHostBridge.h"
 #include "RtsSimUnitActor.h"
 #include "RtsRtsPlayerController.h"
+#include "RtsMinimapHud.h"
 #include "Engine/World.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/DirectionalLight.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Engine/SkyLight.h"
+#include "Components/SkyLightComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Kismet/GameplayStatics.h"
 #include "HAL/PlatformTime.h"
 
-// Presentation fixture: one faction-0 squad of 4 collectors on a 16x16 field.
+// Presentation fixture: the skirmish-10v10 roster (content/scenarios/skirmish-10v10.json,
+// minus its scripted commands) — 10 riflemen (faction 0, you, top-left) vs 10 conscripts
+// (faction 1, bottom-right) on a 32x24 field. Map size must match MapCellsW/H.
 // (Roster contents are a display choice; unit stats/rules come from content/ via the host.)
 static const TCHAR* InitRequest = TEXT(
 	"{\"protocolVersion\":1,\"kind\":\"init\",\"scenario\":"
-	"{\"schemaVersion\":2,\"seed\":1,\"map\":{\"width\":16,\"height\":16,\"blocked\":[]},"
+	"{\"schemaVersion\":2,\"seed\":7,\"map\":{\"width\":32,\"height\":24,\"blocked\":[]},"
 	"\"units\":["
-	"{\"unit\":\"collector\",\"at\":[4,4]},{\"unit\":\"collector\",\"at\":[5,4]},"
-	"{\"unit\":\"collector\",\"at\":[4,5]},{\"unit\":\"collector\",\"at\":[5,5]}]}}");
+	"{\"unit\":\"rifleman\",\"at\":[4,6]},{\"unit\":\"rifleman\",\"at\":[5,6]},{\"unit\":\"rifleman\",\"at\":[6,6]},"
+	"{\"unit\":\"rifleman\",\"at\":[4,7]},{\"unit\":\"rifleman\",\"at\":[5,7]},{\"unit\":\"rifleman\",\"at\":[6,7]},"
+	"{\"unit\":\"rifleman\",\"at\":[4,8]},{\"unit\":\"rifleman\",\"at\":[5,8]},{\"unit\":\"rifleman\",\"at\":[6,8]},"
+	"{\"unit\":\"rifleman\",\"at\":[5,9]},"
+	"{\"unit\":\"conscript\",\"at\":[26,15]},{\"unit\":\"conscript\",\"at\":[27,15]},{\"unit\":\"conscript\",\"at\":[28,15]},"
+	"{\"unit\":\"conscript\",\"at\":[26,16]},{\"unit\":\"conscript\",\"at\":[27,16]},{\"unit\":\"conscript\",\"at\":[28,16]},"
+	"{\"unit\":\"conscript\",\"at\":[26,17]},{\"unit\":\"conscript\",\"at\":[27,17]},{\"unit\":\"conscript\",\"at\":[28,17]},"
+	"{\"unit\":\"conscript\",\"at\":[27,18]}]}}");
 
 // Design scale: 100 UU per map cell.
-static constexpr float SimCellUU = 100.0f;
+static constexpr float SimCellUU = ARtsBridgeGameMode::CellUU;
+
+ARtsBridgeGameMode::ARtsBridgeGameMode()
+{
+	// Set here, not in DefaultEngine.ini: GlobalDefaultServerPlayerControllerClass is the
+	// *server* default and is ignored for the local player, which then got the engine's
+	// free-fly DefaultPawn + plain PlayerController (mouse-look camera, no cursor).
+	PlayerControllerClass = ARtsRtsPlayerController::StaticClass();
+	HUDClass = ARtsMinimapHud::StaticClass();
+	DefaultPawnClass = nullptr; // RTS: no avatar; the controller drives its own camera actor
+	// Must be set in the constructor: tick registration happens before StartPlay, so
+	// setting it there left the game mode never ticking (no host steps, no units).
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
+}
 
 void ARtsBridgeGameMode::StartPlay()
 {
 	Super::StartPlay();
-	PrimaryActorTick.bCanEverTick = true;
 
 	// --- Battlefield: ground plane + sun (placeholder art; real terrain is slice 5+). ---
 	FActorSpawnParameters SP;
 	SP.Name = TEXT("Battlefield");
 	if (AStaticMeshActor* Ground = GetWorld()->SpawnActor<AStaticMeshActor>(
-		FVector(8.0 * SimCellUU, 8.0 * SimCellUU, 0.0), FRotator::ZeroRotator, SP))
+		FVector(MapCellsW * 0.5 * SimCellUU, MapCellsH * 0.5 * SimCellUU, 0.0), FRotator::ZeroRotator, SP))
 	{
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> PlaneFinder(
-			TEXT("/Engine/BasicShapes/Plane.Plane"));
-		static ConstructorHelpers::FObjectFinder<UMaterialInterface> GridFinder(
-			TEXT("/Engine/EngineMaterials/WorldGridMaterial.WorldGridMaterial"));
-		if (PlaneFinder.Succeeded())
-			Ground->GetStaticMeshComponent()->SetStaticMesh(PlaneFinder.Object);
-		if (GridFinder.Succeeded())
-			Ground->GetStaticMeshComponent()->SetMaterial(0, GridFinder.Object);
-		Ground->SetActorScale3D(FVector(16.0, 16.0, 1.0)); // 16x16 cells at 100 UU (plane mesh is 100 UU)
+		// Runtime-spawned StaticMeshActors are Static mobility: SetStaticMesh/SetMaterial
+		// then silently do nothing (black void instead of ground). Make it Movable first.
+		Ground->GetStaticMeshComponent()->SetMobility(EComponentMobility::Movable);
+		// Runtime load: ConstructorHelpers::FObjectFinder is constructor-only and is a fatal
+		// error when StartPlay runs in PIE.
+		if (UStaticMesh* Plane = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Plane.Plane")))
+			Ground->GetStaticMeshComponent()->SetStaticMesh(Plane);
+		// Dark green field so faction colours (red/blue) read clearly against it.
+		if (UMaterialInterface* Base = LoadObject<UMaterialInterface>(nullptr,
+				TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial")))
+			if (UMaterialInstanceDynamic* GroundMid = UMaterialInstanceDynamic::Create(Base, Ground))
+			{
+				GroundMid->SetVectorParameterValue(TEXT("Color"), FLinearColor(0.035f, 0.07f, 0.035f));
+				Ground->GetStaticMeshComponent()->SetMaterial(0, GroundMid);
+			}
+		Ground->SetActorScale3D(FVector(MapCellsW, MapCellsH, 1.0)); // one cell = 100 UU (plane mesh is 100 UU)
 		Ground->SetActorEnableCollision(true);
 	}
+	// Lights spawned at runtime into an unbuilt level must be Movable to light anything.
 	if (ADirectionalLight* Sun = GetWorld()->SpawnActor<ADirectionalLight>(FVector::ZeroVector, FRotator(-45.0f, 30.0f, 0.0f)))
-		Sun->GetComponent()->SetIntensity(8.0f);
-	GetWorld()->SpawnActor<ASkyLight>(FVector::ZeroVector, FRotator::ZeroRotator);
+	{
+		Sun->GetComponent()->SetMobility(EComponentMobility::Movable);
+		Sun->GetComponent()->SetIntensity(2.5f); // 8 blew out to white with fixed exposure
+	}
+	if (ASkyLight* Sky = GetWorld()->SpawnActor<ASkyLight>(FVector::ZeroVector, FRotator::ZeroRotator))
+		Sky->GetLightComponent()->SetMobility(EComponentMobility::Movable);
 
 	// --- Player: RTS camera + RTS input scheme on the default player. ---
 	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
@@ -71,7 +107,7 @@ void ARtsBridgeGameMode::StartPlay()
 		return;
 	}
 	bHostAlive = true;
-	UE_LOG(LogTemp, Display, TEXT("RTS_SESSION: host up, stepping live (select: LMB/A, move: RMB)"));
+	UE_LOG(LogTemp, Display, TEXT("RTS_SESSION: host up, stepping live (select: LMB/Ctrl+A, move: RMB, minimap: bottom-left)"));
 }
 
 void ARtsBridgeGameMode::Tick(float DeltaSeconds)
@@ -148,6 +184,8 @@ void ARtsBridgeGameMode::ToggleSelectUnderCursor(const FVector2D& ScreenPos)
 	float BestDist = 60.0f; // px click tolerance
 	for (int32 i = 0; i < UnitActors.Num(); ++i)
 	{
+		if (UnitActors[i]->GetFaction() != 0)
+			continue; // you only select your own (faction 0) units
 		FVector2D Proj;
 		if (PC->ProjectWorldLocationToScreen(UnitActors[i]->GetActorLocation(), Proj))
 		{
@@ -167,8 +205,10 @@ void ARtsBridgeGameMode::SelectAll()
 	SelectedIds.Reset();
 	for (ARtsSimUnitActor* A : UnitActors)
 	{
-		SelectedIds.Add(A->GetSimUnitId());
-		A->SetSelected(true);
+		const bool bMine = A->GetFaction() == 0;
+		if (bMine)
+			SelectedIds.Add(A->GetSimUnitId());
+		A->SetSelected(bMine);
 	}
 }
 
@@ -195,6 +235,21 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 		}
 		A->SetSimPosition(S.X, S.Y);
 		A->SetSelected(SelectedIds.Contains(S.Id));
+	}
+
+	// First snapshot: centre the camera on your (faction-0) units, like an RTS start.
+	if (!bCameraFramedOnPlayer)
+	{
+		FVector2D Sum(0, 0);
+		int32 N = 0;
+		for (const FRtsUnitSnapshot& S : Reply.Units)
+			if (S.Faction == 0) { Sum += FVector2D(S.X, S.Y) * SimCellUU; ++N; }
+		if (N > 0)
+			if (ARtsRtsPlayerController* PC = Cast<ARtsRtsPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
+			{
+				PC->CenterCameraOn(Sum / N);
+				bCameraFramedOnPlayer = true;
+			}
 	}
 }
 

@@ -10,6 +10,7 @@ ARtsSimUnitActor::ARtsSimUnitActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+	Mesh->SetMobility(EComponentMobility::Movable); // moves every snapshot; tint set at runtime
 	RootComponent = Mesh;
 	// Engine-shipped placeholder cube; no project content needed.
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeFinder(
@@ -17,7 +18,7 @@ ARtsSimUnitActor::ARtsSimUnitActor()
 	if (CubeFinder.Succeeded())
 	{
 		Mesh->SetStaticMesh(CubeFinder.Object);
-		Mesh->SetRelativeScale3D(FVector(0.5f));
+		Mesh->SetRelativeScale3D(FVector(0.6f));
 	}
 
 	// Flat cylinder = selection ring; hidden until selected.
@@ -53,22 +54,34 @@ void ARtsSimUnitActor::SetSimPosition(double X, double Y)
 	SetActorLocation(FVector(X * SimCellUU, Y * SimCellUU, 50.0));
 }
 
-void ARtsSimUnitActor::SetFaction(int32 Faction)
+FLinearColor ARtsSimUnitActor::FactionColor(int32 InFaction)
 {
 	static const FLinearColor Palette[] = {
 		FLinearColor(0.85f, 0.25f, 0.20f), // faction 0 — red
 		FLinearColor(0.20f, 0.45f, 0.90f), // faction 1 — blue
 		FLinearColor(0.85f, 0.75f, 0.20f), // faction 2 — gold
 	};
+	return Palette[FMath::Clamp(InFaction, 0, 2)];
+}
+
+void ARtsSimUnitActor::SetFaction(int32 InFaction)
+{
+	Faction = InFaction;
 	if (!Mid)
 	{
-		UMaterialInterface* Base = Mesh->GetMaterial(0);
+		// Build the tint from the base shape material directly (runtime load), not from
+		// whatever GetMaterial(0) reports, then apply it to every slot of the cube.
+		UMaterialInterface* Base = LoadObject<UMaterialInterface>(nullptr,
+			TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
+		if (!Base)
+			Base = Mesh->GetMaterial(0);
 		if (!Base)
 			return;
 		Mid = UMaterialInstanceDynamic::Create(Base, this);
-		Mesh->SetMaterial(0, Mid);
+		for (int32 i = 0; i < FMath::Max(1, Mesh->GetNumMaterials()); ++i)
+			Mesh->SetMaterial(i, Mid);
 	}
-	Mid->SetVectorParameterValue(TEXT("Color"), Palette[FMath::Clamp(Faction, 0, 2)]);
+	Mid->SetVectorParameterValue(TEXT("Color"), FactionColor(Faction));
 }
 
 void ARtsSimUnitActor::SetSelected(bool bSelected)

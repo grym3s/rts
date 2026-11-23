@@ -13,21 +13,33 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
 - `Source/RtsBridge/Private/RtsBridgeRoundTripTest.cpp` — editor automation test
   `RtsBridge.Host.RoundTrip` (real host launch, init, tick-0 move, 120 steps).
 - `Config/DefaultEngine.ini` — GlobalDefaultGameMode = RtsBridgeGameMode;
-  GlobalDefaultServerPlayerControllerClass = RtsRtsPlayerController.
+  GlobalDefaultServerPlayerControllerClass = RtsRtsPlayerController (that alone does NOT
+  set the local player's controller — the game mode ctor sets `PlayerControllerClass`);
+  `EditorStartupMap=/Engine/Maps/Entry`.
 - `Config/DefaultInput.ini` — legacy (non-EnhancedInput) PlayerInput/InputComponent
-  classes; axis mappings MoveForward/MoveRight/CamZoom/CamRotate.
+  classes. No axis mappings: the controller reads keys directly (see below).
 
 ## Slice 4 — live gameplay loop (presentation only)
 - `RtsBridgeGameMode` — StartPlay spawns battlefield (plane+grid, sun, skylight),
-  launches host + init (fixture roster; rules still host-owned), then Tick steps the
+  launches host + init (skirmish-10v10 fixture: 32x24 map, seed 7, 10 riflemen f0
+  top-left vs 10 conscripts f1 right; rules still host-owned; camera opens on the f0
+  squad), then Tick steps the
   host at the sim cadence (20 t/s), stamping queued command bodies with the current
   tick. Any host/protocol failure: log `RTS_SESSION_HOST_FAILURE`, halt stepping —
   never fabricate state.
-- `RtsRtsCameraActor` — high-angle RTS cam: yaw-relative scroll (zoom-scaled),
-  wheel zoom 400–3000 UU, Q/E rotate, pitch clamped −80°/−25°.
-- `RtsRtsPlayerController` — LMB select-under-cursor (screen-space nearest), A =
-  select all, RMB = move selected faction-0 units (ground trace -> RequestMoveTo).
-  Talks to the game mode only; never touches sim state directly.
+- `RtsRtsCameraActor` — StarCraft-style cam: fixed north-up (yaw −90: screen right =
+  +X, screen up = −Y), orbits a ground target at `Distance` (start 1600 UU), target clamped to `MapWorldBounds()`, scroll at 1.5×Distance UU/s,
+  wheel zoom 400–5000 UU, `JumpTo` for minimap. No rotation.
+- `RtsRtsPlayerController` — cursor always shown. Keys polled with `IsInputKeyDown`
+  (WASD/arrows) + 8 px screen-edge scroll (only while the viewport has focus); wheel via
+  `BindKey` — no config mappings. LMB: on minimap jump/drag camera, else
+  select-under-cursor (screen-space nearest, own faction 0 only); Ctrl+A = select all
+  faction-0 units (A is scroll); RMB = move selected faction-0 units to the
+  minimap point or ground trace (-> RequestMoveTo). Game mode only; never sim state.
+- `RtsMinimapHud` (HUDClass, set in the game mode ctor) — canvas-drawn minimap,
+  bottom-left: field, faction-coloured unit dots (selected = white outline), camera
+  footprint (viewport corners deprojected to Z=0). `MinimapToWorld` for clicks. Map
+  size comes from `ARtsBridgeGameMode::MapCellsW/H`, which must match the init map.
 - `RtsSimUnitActor` — cube tinted per faction via BasicShapeMaterial `Color` param
   (dynamic MID) + green cylinder selection ring; position ONLY from host snapshots
   at 100 UU per map cell.
@@ -63,6 +75,13 @@ Publish the host first: `dotnet publish tools/sim-host/SimHost.csproj -c Release
 - Windows: `CreatePipe(..., bWritePipeLocal)` picks which end is NOT inheritable (Unix
   ignores the flag). The stdin pipe needs `true`, or `CreateProc` asserts "PipeReadChild
   is not inheritable". `CreateProc` Parms must be non-null (`TEXT("")`), or `check(Parms)` fires.
+- `ConstructorHelpers::FObjectFinder` is constructor-only (fatal at runtime) — use
+  `LoadObject` in StartPlay/BeginPlay.
+- Actor tick flags must be set in the constructor; setting them in StartPlay is too late.
+- No pawn ⇒ set `bAutoManageActiveCameraTarget = false` or the engine resets the view
+  target to the controller (black screen).
+- Runtime-spawned meshes/lights need `Movable` mobility, or they don't render/light.
+  Tint BasicShapeMaterial via a dynamic MID built from the `LoadObject`ed material.
 - Running the editor can rewrite `Config/DefaultInput.ini` to EnhancedInput classes;
   this project uses legacy input — revert that diff, don't commit it.
 

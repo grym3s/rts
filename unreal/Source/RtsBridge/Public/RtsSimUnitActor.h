@@ -21,6 +21,9 @@ public:
 	void SetSimPosition(double X, double Y);
 
 	void SetFaction(int32 Faction);
+	int32 GetFaction() const { return Faction; }
+	/** Shared faction palette (unit tint + minimap dots). */
+	static FLinearColor FactionColor(int32 Faction);
 	void SetSelected(bool bSelected);
 	int32 GetSimUnitId() const { return SimUnitId; }
 	void SetSimUnitId(int32 Id) { SimUnitId = Id; }
@@ -36,4 +39,5 @@ private:
 	TObjectPtr<UMaterialInstanceDynamic> Mid;
 
 	int32 SimUnitId = INDEX_NONE;
+	int32 Faction = 0;
 };
