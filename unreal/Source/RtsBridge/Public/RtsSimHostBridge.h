@@ -77,6 +77,7 @@ private:
 	FProcHandle ProcHandle;
 	void* WriteParent = nullptr;  // we write requests -> host stdin
 	void* ReadParent = nullptr;   // host stdout -> we read responses
+	void* ErrParent = nullptr;    // host stderr -> logged, never parsed
 	bool bPipeOpen = false;
 
 	/** Read until one complete '\n'-terminated line or deadline; false on timeout/host-exit. */
@@ -85,4 +86,7 @@ private:
 	bool TakeLine(FString& OutLine);
 	/** Host stdout bytes not yet consumed as a line (survive across reads). */
 	TArray<uint8> PendingBytes;
+	/** Log host stderr lines (Verbose); keeps diagnostics out of the reply stream. */
+	void DrainStdErr();
+	TArray<uint8> ErrBytes;
 };

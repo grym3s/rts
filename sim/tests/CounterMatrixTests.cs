@@ -93,10 +93,10 @@ public class CounterMatrixTests
         var mbt = units.Spawn(w.Ids.Next(), new FixVec2(Fix64.FromInt(3), Fix64.FromInt(2)), Fix64.One, Fix64.Ratio(3, 10),
             new UnitProfile(1, Fix64.FromInt(100), Fix64.FromInt(8), Fix64.FromInt(8), Fix64.FromInt(4), 1, ArmorClass.Heavy, DamageType.Ap));
 
-        FightOneTick(w, units, at, mbt); // AT fires first (lower id)
+        // AT fires first (lower id); the idle MBT guards (T05) and answers in the same tick
+        FightOneTick(w, units, at, mbt);
         Assert.True(Math.Abs(mbt.Hp.ToDouble() - 88.0) < 1e-6);  // 8 x 1.5 = 12
-        FightOneTick(w, units, mbt, at); // mirror answer: 8 x 0.5 = 4
-        Assert.True(Math.Abs(at.Hp.ToDouble() - 96.0) < 1e-6);
+        Assert.True(Math.Abs(at.Hp.ToDouble() - 96.0) < 1e-6);   // mirror answer: 8 x 0.5 = 4
     }
 
     [Fact]

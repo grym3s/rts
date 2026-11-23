@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "seed": 5,
+  "ticks": 900,
+  "map": { "width": 32, "height": 24, "blocked": [] },
+  "units": [
+    { "unit": "conscript", "at": [24, 11] },
+    { "unit": "conscript", "at": [25, 11] },
+    { "unit": "conscript", "at": [26, 11] },
+    { "unit": "conscript", "at": [24, 12] },
+    { "unit": "conscript", "at": [25, 12] },
+    { "unit": "conscript", "at": [26, 12] },
+    { "unit": "rifleman", "at": [4, 4] },
+    { "unit": "rifleman", "at": [5, 4] },
+    { "unit": "rifleman", "at": [3, 18] },
+    { "unit": "rifleman", "at": [4, 18] },
+    { "unit": "rifleman", "at": [5, 18] },
+    { "unit": "rifleman", "at": [6, 18] },
+    { "unit": "rifleman", "at": [3, 19] },
+    { "unit": "rifleman", "at": [4, 19] },
+    { "unit": "rifleman", "at": [5, 19] },
+    { "unit": "rifleman", "at": [6, 19] }
+  ],
+  "commands": [
+    { "tick": 1, "faction": 0, "type": "move", "units": [6, 7], "target": [19, 8] },
+    { "tick": 140, "faction": 0, "type": "move", "units": [6, 7], "target": [2, 2] },
+    { "tick": 420, "faction": 0, "type": "attack-move", "units": [8, 9, 10, 11, 12, 13, 14, 15], "target": [25, 12] }
+  ]
+}

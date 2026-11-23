@@ -43,31 +43,49 @@ public static class OrderSystem
                     break;
                 case MoveCommand m:
                     foreach (var unit in m.Units)
+                    {
                         orders[unit] = new MoveOrder(m.Target, new List<FixVec2>(), m.Tick);
+                        // a plain move overrides any fight; otherwise combat's chase re-paths it
+                        if (unitOf != null && unitOf(unit) is { } u) Disengage(u);
+                    }
                     break;
                 case AttackMoveCommand am:
                     foreach (var unit in am.Units)
                     {
                         orders[unit] = new MoveOrder(am.Target, new List<FixVec2>(), am.Tick);
-                        if (unitOf != null && unitOf(unit) is { } u) u.AttackMoving = true;
+                        if (unitOf != null && unitOf(unit) is { } u)
+                        {
+                            Disengage(u);
+                            u.AttackMoving = true;
+                        }
                     }
                     break;
                 case AttackCommand a:
                     foreach (var unit in a.Units)
-                        if (unitOf != null && unitOf(unit) is { } u) u.TargetId = a.Target;
+                    {
+                        if (unitOf == null || unitOf(unit) is not { } u) continue;
+                        orders.Remove(unit); // stand and fire when in range; combat issues the chase
+                        Disengage(u);
+                        u.TargetId = a.Target;
+                    }
                     break;
                 case StopCommand:
                     foreach (var unit in ((StopCommand)c).Units)
                     {
                         orders.Remove(unit);
-                        if (unitOf != null && unitOf(unit) is { } u)
-                        {
-                            u.TargetId = EntityId.None;
-                            u.AttackMoving = false;
-                        }
+                        if (unitOf != null && unitOf(unit) is { } u) Disengage(u);
                     }
                     break;
             }
         }
+    }
+
+    /// <summary>Every player order ends the unit's current fight: target, attack-move and guard state (T05).</summary>
+    private static void Disengage(Rts.Sim.World.Unit u)
+    {
+        u.TargetId = EntityId.None;
+        u.AttackMoving = false;
+        u.Guarding = false;
+        u.Returning = false;
     }
 }

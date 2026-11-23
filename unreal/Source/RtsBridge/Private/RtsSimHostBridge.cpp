@@ -55,16 +55,29 @@ bool URtsSimHostBridge::StartAndInit(const FString& InitRequestJson, FString& Ou
 		OutError = TEXT("CreatePipe(stdout) failed");
 		return false;
 	}
+	// stderr gets its own pipe. Without it Windows hands the child our stdout pipe for
+	// stderr too, and a sim diagnostic (e.g. "UNREACHABLE u=12") lands in the middle of a
+	// JSON reply line, which then fails to parse and kills the session.
+	void* ErrChildR = nullptr;
+	void* ErrChildW = nullptr;
+	if (!FPlatformProcess::CreatePipe(ErrChildR, ErrChildW, /*bWritePipeLocal=*/false))
+	{
+		FPlatformProcess::ClosePipe(ToChildR, ToChildW);
+		FPlatformProcess::ClosePipe(FromChildR, FromChildW);
+		OutError = TEXT("CreatePipe(stderr) failed");
+		return false;
+	}
 
 	uint32 Pid = 0;
 	const FString HostDir = FPaths::GetPath(HostBin);
 	// Parms must be non-null: Windows CreateProcInternal does check(Parms).
 	ProcHandle = FPlatformProcess::CreateProc(*HostBin, TEXT(""), false, false, false, &Pid, 0,
-		*HostDir, FromChildW /*-> child stdout*/, ToChildR /*-> child stdin*/);
+		*HostDir, FromChildW /*-> child stdout*/, ToChildR /*-> child stdin*/, ErrChildW /*-> child stderr*/);
 	if (!ProcHandle.IsValid())
 	{
 		FPlatformProcess::ClosePipe(ToChildR, ToChildW);
 		FPlatformProcess::ClosePipe(FromChildR, FromChildW);
+		FPlatformProcess::ClosePipe(ErrChildR, ErrChildW);
 		ToChildW = FromChildR = nullptr;
 		OutError = TEXT("CreateProc failed for sim host");
 		return false;
@@ -75,6 +88,9 @@ bool URtsSimHostBridge::StartAndInit(const FString& InitRequestJson, FString& Ou
 	ToChildR = nullptr;
 	FPlatformProcess::ClosePipe(nullptr, FromChildW);
 	FromChildW = nullptr;
+	FPlatformProcess::ClosePipe(nullptr, ErrChildW);
+	ErrChildW = nullptr;
+	ErrParent = ErrChildR;
 	WriteParent = ToChildW;
 	ReadParent = FromChildR;
 	bPipeOpen = true;
@@ -206,6 +222,7 @@ bool URtsSimHostBridge::ReadResponseLine(FString& OutLine, double TimeoutSeconds
 	TArray<uint8> Chunk;
 	while (true)
 	{
+		DrainStdErr();
 		if (TakeLine(OutLine))
 			return true;
 		Chunk.Reset();
@@ -258,10 +275,40 @@ void URtsSimHostBridge::Shutdown()
 		FPlatformProcess::ClosePipe(ReadParent, nullptr);
 		ReadParent = nullptr;
 	}
+	if (ErrParent)
+	{
+		DrainStdErr();
+		FPlatformProcess::ClosePipe(ErrParent, nullptr);
+		ErrParent = nullptr;
+	}
 }
 
 void URtsSimHostBridge::BeginDestroy()
 {
 	Shutdown();
 	Super::BeginDestroy();
+}
+
+void URtsSimHostBridge::DrainStdErr()
+{
+	// Read whatever the host wrote to stderr and log it line by line. Draining also keeps
+	// the child from blocking on a full stderr pipe.
+	if (!ErrParent)
+		return;
+	TArray<uint8> Chunk;
+	while (FPlatformProcess::ReadPipeToArray(ErrParent, Chunk) && Chunk.Num() > 0)
+	{
+		ErrBytes.Append(Chunk);
+		Chunk.Reset();
+	}
+	int32 Nl = INDEX_NONE;
+	while ((Nl = ErrBytes.Find(uint8('\n'))) != INDEX_NONE)
+	{
+		const FUTF8ToTCHAR Conv(reinterpret_cast<const ANSICHAR*>(ErrBytes.GetData()), Nl);
+		FString Line(Conv.Length(), Conv.Get());
+		Line.TrimEndInline();
+		if (!Line.IsEmpty())
+			UE_LOG(LogTemp, Verbose, TEXT("RTS_HOST_STDERR: %s"), *Line);
+		ErrBytes.RemoveAt(0, Nl + 1, EAllowShrinking::No);
+	}
 }

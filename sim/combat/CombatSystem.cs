@@ -18,7 +18,12 @@ public static class CombatSystem
 
             // auto-acquire for attack-move: nearest living enemy in sight, first wins on ties (store order)
             if (u.AttackMoving && !HasLiveTarget(u, units))
-                u.TargetId = Acquire(u, units);
+            {
+                if (orders.ContainsKey(u.Id)) u.TargetId = Acquire(u, units);
+                else u.AttackMoving = false; // route finished: from here on the unit guards where it stopped
+            }
+
+            if (u.Damage.Raw != 0) Guard(u, units, orders, tick);
 
             if (u.CooldownRemaining > 0) u.CooldownRemaining--;
 
@@ -47,6 +52,10 @@ public static class CombatSystem
                     u.CooldownRemaining = u.CooldownTicks;
                 }
             }
+            else if (u.Speed.Raw == 0)
+            {
+                if (u.Guarding) { u.TargetId = EntityId.None; u.Guarding = false; } // static guard: out of reach
+            }
             else if (!u.AttackMoving)
             {
                 // chase: walk to the target unless already pathing there
@@ -55,6 +64,55 @@ public static class CombatSystem
                     orders[u.Id] = new MoveOrder(target.Position, new List<FixVec2>(), tick);
             }
         }
+    }
+
+    /// <summary>Leash: a guard gives up a chase once it is this many sight ranges from its anchor.</summary>
+    private static readonly Fix64 LeashSights = Fix64.Ratio(3, 2);
+
+    /// <summary>T05 hold / chase / return. A unit with no order and no target holds its spot and
+    /// engages the nearest enemy in sight (becoming Guarding, anchored where it stood). It chases
+    /// until the leash or until nothing is left to fight in sight, then walks back (Returning,
+    /// no acquiring on the way) and holds again. Any player order clears all of this.</summary>
+    private static void Guard(Unit u, UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick)
+    {
+        var hasOrder = orders.ContainsKey(u.Id);
+        if (u.Returning)
+        {
+            if (hasOrder) return;
+            u.Returning = false; // home: hold again
+        }
+        if (u.AttackMoving) return;
+
+        var hasLive = HasLiveTarget(u, units);
+        if (u.Guarding)
+        {
+            var leash = u.Sight * LeashSights;
+            if ((u.Position - u.GuardAnchor).LengthSquared > leash * leash)
+            {
+                ReturnToAnchor(u, orders, tick);
+                return;
+            }
+            if (hasLive) return;
+            var next = Acquire(u, units);
+            if (next != EntityId.None) { u.TargetId = next; return; }
+            ReturnToAnchor(u, orders, tick);
+            return;
+        }
+
+        if (hasOrder || hasLive) return; // under a player order or an explicit attack
+        var found = Acquire(u, units);
+        if (found == EntityId.None) return;
+        u.GuardAnchor = u.Position;
+        u.Guarding = true;
+        u.TargetId = found;
+    }
+
+    private static void ReturnToAnchor(Unit u, Dictionary<EntityId, MoveOrder> orders, int tick)
+    {
+        u.TargetId = EntityId.None;
+        u.Guarding = false;
+        u.Returning = true;
+        orders[u.Id] = new MoveOrder(u.GuardAnchor, new List<FixVec2>(), tick);
     }
 
     private static bool HasLiveTarget(Unit u, UnitStore units)

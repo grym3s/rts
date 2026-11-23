@@ -63,6 +63,86 @@ public class CombatTests
     }
 
     [Fact]
+    public void IdleUnitHoldsWhenNothingInSight()
+    {
+        var (w, units, orders) = World();
+        var g = units.Spawn(w.Ids.Next(), new FixVec2(Fix64.FromInt(2), Fix64.FromInt(2)), Fix64.One, Fix64.FromInt(1), Profile(1));
+        units.Spawn(w.Ids.Next(), new FixVec2(Fix64.FromInt(20), Fix64.FromInt(2)), Fix64.One, Fix64.FromInt(1), Profile(0, dmg: 0));
+
+        for (var i = 0; i < 20; i++) w.Step(Array.Empty<Command>());
+        Assert.False(g.Guarding);
+        Assert.False(orders.ContainsKey(g.Id));
+        Assert.Equal(Fix64.FromInt(2), g.Position.X);
+    }
+
+    [Fact]
+    public void GuardChasesIntruderInSightAndReturnsWhenItDies()
+    {
+        var (w, units, orders) = World();
+        var anchor = new FixVec2(Fix64.FromInt(2), Fix64.FromInt(2));
+        var g = units.Spawn(w.Ids.Next(), anchor, Fix64.One, Fix64.FromInt(1), Profile(1, dmg: 20, cd: 2));
+        // in sight (8) but out of reach (range 4 + radii 2): the guard must walk to it
+        var intruder = units.Spawn(w.Ids.Next(), new FixVec2(Fix64.FromInt(9), Fix64.FromInt(2)), Fix64.One, Fix64.FromInt(1), Profile(0, hp: 40, dmg: 0));
+
+        w.Step(Array.Empty<Command>());
+        Assert.True(g.Guarding);
+        Assert.Equal(intruder.Id, g.TargetId);
+        Assert.Equal(anchor, g.GuardAnchor);
+        Assert.True(orders.ContainsKey(g.Id)); // chasing
+
+        for (var i = 0; i < 40 && units.Find(intruder.Id) != null; i++) w.Step(Array.Empty<Command>());
+        Assert.Null(units.Find(intruder.Id));
+        w.Step(Array.Empty<Command>());
+        Assert.True(g.Returning);
+
+        for (var i = 0; i < 40 && g.Returning; i++) w.Step(Array.Empty<Command>());
+        Assert.False(g.Returning);
+        Assert.True((g.Position - anchor).Length < Fix64.One); // back on its spot
+    }
+
+    [Fact]
+    public void GuardGivesUpChaseAtLeashAndWalksHome()
+    {
+        var (w, units, orders) = World();
+        var anchor = new FixVec2(Fix64.FromInt(2), Fix64.FromInt(2));
+        // slow guard, weapon never reaches (range 0), sight 4 -> leash 6 cells from anchor
+        var g = units.Spawn(w.Ids.Next(), anchor, Fix64.One, Fix64.Ratio(3, 10), Profile(1, range: 0, sight: 4));
+        var bait = units.Spawn(w.Ids.Next(), new FixVec2(Fix64.FromInt(5), Fix64.FromInt(2)), Fix64.One, Fix64.Ratio(3, 10), Profile(0, dmg: 0));
+        // bait runs away along the row
+        w.Step(new Command[] { new MoveCommand(w.Tick, 0, new[] { bait.Id }, new FixVec2(Fix64.FromInt(22), Fix64.FromInt(2)), false) });
+        Assert.True(g.Guarding);
+
+        var maxOut = Fix64.Zero;
+        for (var i = 0; i < 200 && !g.Returning; i++)
+        {
+            w.Step(Array.Empty<Command>());
+            maxOut = Fix64.Max(maxOut, (g.Position - anchor).Length);
+        }
+        Assert.True(g.Returning);
+        Assert.True(maxOut <= Fix64.FromInt(7)); // leash 6 plus at most one step
+        for (var i = 0; i < 200 && g.Returning; i++) w.Step(Array.Empty<Command>());
+        Assert.True((g.Position - anchor).Length < Fix64.One);
+        Assert.False(orders.ContainsKey(g.Id));
+    }
+
+    [Fact]
+    public void MoveOrderOverridesGuardAndAttack()
+    {
+        var (w, units, orders) = World();
+        var a = units.Spawn(w.Ids.Next(), new FixVec2(Fix64.FromInt(2), Fix64.FromInt(2)), Fix64.One, Fix64.FromInt(1), Profile(0));
+        var e = units.Spawn(w.Ids.Next(), new FixVec2(Fix64.FromInt(8), Fix64.FromInt(2)), Fix64.One, Fix64.FromInt(1), Profile(1, dmg: 0, sight: 0));
+        w.Step(Array.Empty<Command>());
+        Assert.True(a.Guarding);
+
+        var dest = new FixVec2(Fix64.FromInt(2), Fix64.FromInt(20));
+        w.Step(new Command[] { new MoveCommand(w.Tick, 0, new[] { a.Id }, dest, false) });
+        Assert.False(a.Guarding);
+        Assert.Equal(EntityId.None, a.TargetId);
+        Assert.True(orders.TryGetValue(a.Id, out var o) && o.Target == dest);
+        Assert.True(e.Hp.Raw > 0);
+    }
+
+    [Fact]
     public void AttackMoveAcquiresNearestEnemyAndResumesRoute()
     {
         var (w, units, orders) = World();
@@ -85,8 +165,9 @@ public class CombatTests
     public void StopClearsTargetAndOrder()
     {
         var (w, units, orders) = World();
+        // b beyond sight (8): after Stop, a idles and has nothing to guard against
         var a = units.Spawn(w.Ids.Next(), FixVec2.Zero, Fix64.One, Fix64.FromInt(1), Profile(0));
-        var b = units.Spawn(w.Ids.Next(), new FixVec2(Fix64.FromInt(3), Fix64.Zero), Fix64.One, Fix64.FromInt(1), Profile(1, dmg: 0));
+        var b = units.Spawn(w.Ids.Next(), new FixVec2(Fix64.FromInt(12), Fix64.Zero), Fix64.One, Fix64.FromInt(1), Profile(1, dmg: 0));
 
         w.Step(new Command[] { new AttackCommand(w.Tick, 0, new[] { a.Id }, b.Id, false) });
         Assert.NotEqual(EntityId.None, a.TargetId);

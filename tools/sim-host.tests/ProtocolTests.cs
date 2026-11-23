@@ -282,9 +282,10 @@ public class ProtocolTests
     /// scenario-runner run.</summary>
     [Theory]
     [InlineData("chokepoint-30.json", "1727e6d2adb5efb8")]
-    [InlineData("skirmish-10v10.json", "0fbba65f760574ce")]
-    [InlineData("tri-point-30.json", "7e1eb94ae7d983f3")]
-    [InlineData("counters-6v4.json", "a418be859c7550c7")]
+    [InlineData("skirmish-10v10.json", "e97bc24d4f7fd6c3")] // re-pinned for T05 guard (idle units hold, chase, return): 0fbba65f760574ce -> e97bc24d4f7fd6c3
+    [InlineData("tri-point-30.json", "5526cd76fdce4754")] // re-pinned for T05 guard (idle units hold, chase, return): 7e1eb94ae7d983f3 -> 5526cd76fdce4754
+    [InlineData("counters-6v4.json", "39ac951e73e99076")] // re-pinned for T05 guard (idle units hold, chase, return): a418be859c7550c7 -> 39ac951e73e99076
+    [InlineData("guard-hold.json", "e7a820c12422dad2")]
     [InlineData("economy-2h.json", "05829563b6901d19")]
     [InlineData("produce-1t1.json", "d854ebb325482ab9")] // re-pinned for power gate: 780adc3094385fcf -> d854ebb325482ab9
     public void Host_replay_matches_scenario_runner_golden_hash(string scenarioFile, string expectedHex)

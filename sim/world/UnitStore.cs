@@ -79,6 +79,13 @@ public sealed class Unit
     public EntityId TargetId { get; set; } = EntityId.None;
     /// <summary>True for units under an AttackMove order: auto-engage enemies along the route.</summary>
     public bool AttackMoving { get; set; }
+    /// <summary>Guard (T05): an idle unit that auto-engaged. It chases within a leash of
+    /// GuardAnchor, then walks back (Returning) and holds there again. Cleared by any order.</summary>
+    public bool Guarding { get; set; }
+    /// <summary>Walking back to GuardAnchor after a guard chase; does not acquire on the way.</summary>
+    public bool Returning { get; set; }
+    /// <summary>Where a guarding unit was standing when it engaged.</summary>
+    public FixVec2 GuardAnchor { get; set; }
 
     public Unit(EntityId id, FixVec2 position, Fix64 speed, Fix64 radius, UnitProfile? profile = null)
     {
