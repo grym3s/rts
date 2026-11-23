@@ -70,11 +70,25 @@ T08 built the water version of Tri-Point (`content/maps/tri-point.json`, generat
 - [ ] **T28 Captures: Seam radars and the central rig.** Engineer-touch capture (consumed, instant), the Tri-Point control states (Neutral, Occupied, Contested, Held, Fortified) with weighted majority, income and the reveal rules from the map design.
 - [ ] **T29 Bring in the rest of the 79 units by domain,** after T25 (and their owned mechanics: Marking, Conscription, Phase) — infantry and vehicles first, then naval, then air.
 
+## Base building, production and economy (added 2026-11-24)
+
+The sim already has credits, finite veins, the harvester loop, `place` / `train` / `cancel` with a queue cap of 5 and prerequisites, and the power parity gate. What it lacks: buildings don't block cells, refineries are fixed scenario points rather than entities, and there is no construction-yard deploy. Unreal shows none of it. Sim tasks re-pin golden hashes in the same PR.
+
+- [ ] **T30 [blocks others] Host snapshot carries the economy.** Snapshots only send units (id, faction, x, y). Add each faction's credits and power, buildings (type, cells, hp, build progress), production queues, and vein amounts left. Protocol change, so bump or extend protocol v1 and update `tools/sim-host` tests. *.NET only.*
+- [ ] **T31 Buildings have footprints and block cells.** A placed building occupies its footprint on the nav grid; `place` is refused on blocked, occupied or out-of-radius cells; units path around it; when it dies its cells free up and paths re-plan. Buildings take damage and can be destroyed (same targetable-structure work as bridges in T26). *.NET only.*
+- [ ] **T32 Construction yard deploy and build radius.** An MCV-style unit deploys into the construction yard; new buildings must be placed within a radius of your existing buildings. *.NET only.*
+- [ ] **T33 Refineries and harvesters as real entities.** A refinery is a building you place, not a scenario point. Harvesters gather from a vein, return to the nearest friendly refinery, unload, repeat; they re-route when it dies and can be killed or raided. Credits rise on each unload. *.NET only.*
+- [ ] **T34 Resource fields on Tri-Point.** Put veins on the map per the map design (main, natural and contested fields), in the map file and the generator, with their amounts. Re-pin the Tri-Point hash.
+- [ ] **T35 Unreal: credits, power and resource display.** Top bar with credits and power (used / produced, red when negative). Driven only by T30 snapshots.
+- [ ] **T36 Unreal: build menu and building placement** (after T30, T31). Sidebar with what you can build (greyed when prereqs, power or credits are missing); a ghost footprint follows the cursor, green or red for valid; LMB sends `place`, RMB cancels. Buildings drawn from snapshots with a construction progress state.
+- [ ] **T37 Unreal: unit production queue.** Select a production building, click a unit to `train` (shift for 5), right-click to `cancel`; show queue and progress. Rally point by right-clicking ground with the building selected (needs a small sim command too).
+- [ ] **T38 Unreal: harvesting.** Draw veins (shrinking as they empty), refineries and harvesters with a carrying state; right-click a vein with harvesters selected to send them there.
+
 ---
 
 ## After the demo (not in scope)
 
-- Economy and production in the UI: placing buildings and training units. The sim already has these.
+- Economy and production polish beyond T30–T38 (sell, repair, superweapons, tech tiers).
 - Power, the other factions and fog of war.
 - **Multiplayer (lockstep).** Nothing to build now: the tick-stamped, faction-tagged Commands, fixed-point maths and pinned replay hashes keep it possible. Two things will need changing when it starts:
   - Unreal assumes the player is faction 0 and stamps each order with the current tick, but lockstep needs orders stamped a few ticks ahead (input delay).
