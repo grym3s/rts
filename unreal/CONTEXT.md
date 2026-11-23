@@ -50,9 +50,17 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   bottom-left: field, faction-coloured unit dots (selected = white outline), camera
   footprint (viewport corners deprojected to Z=0). `MinimapToWorld` for clicks. Map
   size comes from `ARtsBridgeGameMode::MapCellsW/H`, which must match the init map.
+  Order feedback (T12, pillar 1), drawn the same frame the order is queued and only if
+  it was: move = green ground ping, attack-move = orange ping, attack = red ring on the
+  target unit, stop = white ring on each stopped unit; 0.6 s, ground pings also on the
+  minimap. Canvas lines only — no assets.
 - `RtsSimUnitActor` — cube tinted per faction via BasicShapeMaterial `Color` param
   (dynamic MID) + green cylinder selection ring; position ONLY from host snapshots
-  at 100 UU per map cell.
+  at 100 UU per map cell. Ticks to glide from its drawn position to the latest snapshot
+  over one sim tick (render lags ≤ 50 ms, never extrapolates) and turns toward its
+  motion. New ids snap (`SnapToSimPosition`).
+- Game mode keeps actors in `ActorsById`: snapshot rows match actors by sim id, never
+  by index (an index match would hand a dead unit's actor to another and glide it).
 - `RtsBridge.Build.cs` needs `InputCore` (EKeys).
 
 ## Build (installed engine at ~/.local/opt/UnrealEngine-5.8.3)

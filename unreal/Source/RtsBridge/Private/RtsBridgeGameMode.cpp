@@ -179,25 +179,25 @@ static FString MapPointJson(const FVector& World)
 	return FString::Printf(TEXT("[%.4f,%.4f]"), World.X / SimCellUU, World.Y / SimCellUU);
 }
 
-void ARtsBridgeGameMode::RequestMoveTo(const FVector& WorldDestination)
+bool ARtsBridgeGameMode::RequestMoveTo(const FVector& WorldDestination)
 {
-	QueueOrderForSelection(TEXT("move"), MapPointJson(WorldDestination));
+	return QueueOrderForSelection(TEXT("move"), MapPointJson(WorldDestination));
 }
 
-void ARtsBridgeGameMode::RequestAttackMoveTo(const FVector& WorldDestination)
+bool ARtsBridgeGameMode::RequestAttackMoveTo(const FVector& WorldDestination)
 {
-	QueueOrderForSelection(TEXT("attack-move"), MapPointJson(WorldDestination));
+	return QueueOrderForSelection(TEXT("attack-move"), MapPointJson(WorldDestination));
 }
 
-void ARtsBridgeGameMode::RequestAttackUnit(int32 TargetSimId)
+bool ARtsBridgeGameMode::RequestAttackUnit(int32 TargetSimId)
 {
 	// Host contract: `attack` target is an integer entity id, never a coordinate.
-	QueueOrderForSelection(TEXT("attack"), FString::Printf(TEXT("%d"), TargetSimId));
+	return QueueOrderForSelection(TEXT("attack"), FString::Printf(TEXT("%d"), TargetSimId));
 }
 
-void ARtsBridgeGameMode::RequestStop()
+bool ARtsBridgeGameMode::RequestStop()
 {
-	QueueOrderForSelection(TEXT("stop"), FString());
+	return QueueOrderForSelection(TEXT("stop"), FString());
 }
 
 int32 ARtsBridgeGameMode::PickOwnUnitAt(const FVector2D& ScreenPos) const
@@ -306,31 +306,38 @@ bool ARtsBridgeGameMode::SelectionCentroid(FVector2D& OutWorldXY) const
 
 void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 {
-	while (UnitActors.Num() < Reply.Units.Num())
+	// Match actors to snapshot rows by sim id: new ids spawn (placed exactly, no glide),
+	// known ids get a new interpolation target, missing ids are destroyed.
+	TSet<int32> Alive;
+	UnitActors.Reset(Reply.Units.Num());
+	for (const FRtsUnitSnapshot& S : Reply.Units)
 	{
-		ARtsSimUnitActor* A = GetWorld()->SpawnActor<ARtsSimUnitActor>();
+		Alive.Add(S.Id);
+		ARtsSimUnitActor* A = FindUnitActor(S.Id);
 		if (!A)
-			return;
-		UnitActors.Add(A);
-	}
-	while (UnitActors.Num() > Reply.Units.Num())
-		UnitActors.Pop()->Destroy();
-
-	for (int32 i = 0; i < Reply.Units.Num(); ++i)
-	{
-		const FRtsUnitSnapshot& S = Reply.Units[i];
-		ARtsSimUnitActor* A = UnitActors[i];
-		if (A->GetSimUnitId() != S.Id)
 		{
+			A = GetWorld()->SpawnActor<ARtsSimUnitActor>();
+			if (!A)
+				continue;
 			A->SetSimUnitId(S.Id);
 			A->SetFaction(S.Faction);
+			A->SnapToSimPosition(S.X, S.Y);
+			ActorsById.Add(S.Id, A);
 		}
-		A->SetSimPosition(S.X, S.Y);
+		else
+		{
+			A->SetSimPosition(S.X, S.Y);
+		}
+		UnitActors.Add(A);
 	}
-	// Units that left the roster (deaths, later) drop out of the selection and groups.
-	TSet<int32> Alive;
-	for (const FRtsUnitSnapshot& S : Reply.Units)
-		Alive.Add(S.Id);
+	for (auto It = ActorsById.CreateIterator(); It; ++It)
+		if (!Alive.Contains(It.Key()))
+		{
+			if (It.Value())
+				It.Value()->Destroy();
+			It.RemoveCurrent();
+		}
+	// Units that left the roster (deaths) drop out of the selection and groups.
 	Selection.Prune([&Alive](int32 Id) { return Alive.Contains(Id); });
 	RefreshSelectionRings();
 

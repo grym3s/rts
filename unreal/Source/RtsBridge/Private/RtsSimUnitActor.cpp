@@ -8,7 +8,8 @@ static constexpr float SimCellUU = 100.0f;
 
 ARtsSimUnitActor::ARtsSimUnitActor()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true; // interpolation between snapshots
+	PrimaryActorTick.bStartWithTickEnabled = true;
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	Mesh->SetMobility(EComponentMobility::Movable); // moves every snapshot; tint set at runtime
 	RootComponent = Mesh;
@@ -48,10 +49,40 @@ ARtsSimUnitActor::ARtsSimUnitActor()
 	}
 }
 
-void ARtsSimUnitActor::SetSimPosition(double X, double Y)
+static FVector SimToWorld(double X, double Y)
 {
 	// Sim map X -> world X, map Y -> world Y, height stays on the ground plane (slice 4).
-	SetActorLocation(FVector(X * SimCellUU, Y * SimCellUU, 50.0));
+	return FVector(X * SimCellUU, Y * SimCellUU, 50.0);
+}
+
+void ARtsSimUnitActor::SnapToSimPosition(double X, double Y)
+{
+	InterpFrom = InterpTo = SimToWorld(X, Y);
+	InterpElapsed = SimTickSeconds;
+	SetActorLocation(InterpTo);
+}
+
+void ARtsSimUnitActor::SetSimPosition(double X, double Y)
+{
+	// Start the glide from where the unit is drawn now (not the previous snapshot), so
+	// two snapshots in one frame (a hitch) never make it jump back.
+	InterpFrom = GetActorLocation();
+	InterpTo = SimToWorld(X, Y);
+	InterpElapsed = 0.0f;
+	const FVector D = InterpTo - InterpFrom;
+	if (D.SizeSquared2D() > 1.0) // ~1 UU per tick: actually moving, face the motion
+		TargetYaw = FMath::RadiansToDegrees(FMath::Atan2(D.Y, D.X));
+}
+
+void ARtsSimUnitActor::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	InterpElapsed = FMath::Min(InterpElapsed + DeltaSeconds, SimTickSeconds);
+	const float Alpha = InterpElapsed / SimTickSeconds;
+	const FRotator Cur = GetActorRotation();
+	const FRotator Want(0.0f, TargetYaw, 0.0f);
+	SetActorLocationAndRotation(FMath::Lerp(InterpFrom, InterpTo, Alpha),
+		FMath::RInterpTo(Cur, Want, DeltaSeconds, TurnSpeed));
 }
 
 FLinearColor ARtsSimUnitActor::FactionColor(int32 InFaction)

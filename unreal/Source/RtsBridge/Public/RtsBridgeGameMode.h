@@ -23,10 +23,10 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	/** Player-side entry points (called by ARtsRtsPlayerController). */
-	void RequestMoveTo(const FVector& WorldDestination);   // move selected (faction 0)
-	void RequestAttackMoveTo(const FVector& WorldDestination); // attack-move selected
-	void RequestAttackUnit(int32 TargetSimId);             // attack one unit (sim id)
-	void RequestStop();                                    // stop selected
+	bool RequestMoveTo(const FVector& WorldDestination);   // move selected (faction 0)
+	bool RequestAttackMoveTo(const FVector& WorldDestination); // attack-move selected
+	bool RequestAttackUnit(int32 TargetSimId);             // attack one unit (sim id)
+	bool RequestStop();                                    // stop selected
 	/** Sim id of a non-own unit within click tolerance of ScreenPos, or INDEX_NONE. */
 	int32 PickEnemyUnitAt(const FVector2D& ScreenPos) const;
 	bool HasSelection() const { return Selection.GetSelected().Num() > 0; }
@@ -52,6 +52,12 @@ public:
 	/** Read-only views for the HUD/minimap (presentation of host snapshots). */
 	const TArray<TObjectPtr<ARtsSimUnitActor>>& GetUnitActors() const { return UnitActors; }
 	bool IsSelected(int32 SimUnitId) const { return Selection.Contains(SimUnitId); }
+	const TSet<int32>& GetSelectedIds() const { return Selection.GetSelected(); }
+	ARtsSimUnitActor* FindUnitActor(int32 SimUnitId) const
+	{
+		const TObjectPtr<ARtsSimUnitActor>* A = ActorsById.Find(SimUnitId);
+		return A ? A->Get() : nullptr;
+	}
 
 private:
 	UPROPERTY()
@@ -59,6 +65,11 @@ private:
 
 	UPROPERTY()
 	TArray<TObjectPtr<ARtsSimUnitActor>> UnitActors;
+
+	// Actors are keyed by sim id, so a death never hands one unit's actor to another
+	// (that would glide it across the map under interpolation). UnitActors = snapshot order.
+	UPROPERTY()
+	TMap<int32, TObjectPtr<ARtsSimUnitActor>> ActorsById;
 
 	FRtsSelection Selection;
 	// Command bodies (tick-less) queued by input; Tick stamps the current tick and sends them.

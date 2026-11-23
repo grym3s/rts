@@ -192,23 +192,32 @@ void ARtsRtsPlayerController::OnAttackMoveKey()
 void ARtsRtsPlayerController::OnStopKey()
 {
 	SetAttackMoveArmed(false);
-	if (ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>())
-		GM->RequestStop();
+	ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
+	if (!GM || !GM->RequestStop())
+		return;
+	if (ARtsMinimapHud* Hud = MinimapHud())
+		for (const int32 Id : GM->GetSelectedIds())
+			Hud->AddUnitMarker(Id, ARtsMinimapHud::EOrderMarker::Stop);
 }
-
 
 bool ARtsRtsPlayerController::IssueOrderAtCursor(bool bAttack)
 {
+	using EMarker = ARtsMinimapHud::EOrderMarker;
 	ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
 	if (!GM || !GM->IsHostAlive())
 		return false; // no local fallback: a dead host issues nothing
+	ARtsMinimapHud* Hud = MinimapHud();
+	// Marker only when the order was actually queued (selection non-empty, host alive).
+	auto PointOrder = [&](const FVector& P)
+	{
+		const bool bQueued = bAttack ? GM->RequestAttackMoveTo(P) : GM->RequestMoveTo(P);
+		if (bQueued && Hud)
+			Hud->AddGroundMarker(FVector2D(P.X, P.Y), bAttack ? EMarker::AttackMove : EMarker::Move);
+		return bQueued;
+	};
 	FVector2D W;
 	if (MouseOnMinimap(W))
-	{
-		const FVector P(W.X, W.Y, 0.0);
-		bAttack ? GM->RequestAttackMoveTo(P) : GM->RequestMoveTo(P);
-		return true;
-	}
+		return PointOrder(FVector(W.X, W.Y, 0.0));
 	// An enemy under the cursor is a direct attack, for both RMB and attack-move clicks.
 	float MX, MY;
 	if (GetMousePosition(MX, MY))
@@ -216,15 +225,16 @@ bool ARtsRtsPlayerController::IssueOrderAtCursor(bool bAttack)
 		const int32 Enemy = GM->PickEnemyUnitAt(FVector2D(MX, MY));
 		if (Enemy != INDEX_NONE)
 		{
-			GM->RequestAttackUnit(Enemy);
-			return true;
+			const bool bQueued = GM->RequestAttackUnit(Enemy);
+			if (bQueued && Hud)
+				Hud->AddUnitMarker(Enemy, EMarker::Attack);
+			return bQueued;
 		}
 	}
 	FHitResult Hit;
 	if (!GetHitResultUnderCursor(ECC_Visibility, false, Hit))
 		return false;
-	bAttack ? GM->RequestAttackMoveTo(Hit.Location) : GM->RequestMoveTo(Hit.Location);
-	return true;
+	return PointOrder(Hit.Location);
 }
 
 void ARtsRtsPlayerController::OnRightClick()

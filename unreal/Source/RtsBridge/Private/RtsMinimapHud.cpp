@@ -48,6 +48,95 @@ bool ARtsMinimapHud::MinimapToWorld(const FVector2D& ScreenPos, FVector2D& OutWo
 	return true;
 }
 
+FLinearColor ARtsMinimapHud::MarkerColor(EOrderMarker Kind)
+{
+	switch (Kind)
+	{
+	case EOrderMarker::Move:       return FLinearColor(0.3f, 1.0f, 0.4f, 1.0f);  // green
+	case EOrderMarker::AttackMove: return FLinearColor(1.0f, 0.55f, 0.1f, 1.0f); // orange
+	case EOrderMarker::Attack:     return FLinearColor(1.0f, 0.15f, 0.1f, 1.0f); // red
+	default:                       return FLinearColor(0.9f, 0.9f, 0.9f, 1.0f);  // stop: white
+	}
+}
+
+void ARtsMinimapHud::AddGroundMarker(const FVector2D& WorldXY, EOrderMarker Kind)
+{
+	FOrderMarker M;
+	M.WorldXY = WorldXY;
+	M.Kind = Kind;
+	M.StartTime = GetWorld() ? GetWorld()->GetRealTimeSeconds() : 0.0;
+	Markers.Add(M);
+}
+
+void ARtsMinimapHud::AddUnitMarker(int32 SimUnitId, EOrderMarker Kind)
+{
+	FOrderMarker M;
+	M.UnitId = SimUnitId;
+	M.Kind = Kind;
+	M.StartTime = GetWorld() ? GetWorld()->GetRealTimeSeconds() : 0.0;
+	Markers.Add(M);
+}
+
+void ARtsMinimapHud::DrawGroundCircle(const FVector2D& C, float RadiusUU, const FLinearColor& Color, float Thickness)
+{
+	if (!PlayerOwner)
+		return;
+	constexpr int32 Segs = 24;
+	FVector2D Pts[Segs];
+	for (int32 i = 0; i < Segs; ++i)
+	{
+		const float A = 2.0f * PI * i / Segs;
+		const FVector W(C.X + RadiusUU * FMath::Cos(A), C.Y + RadiusUU * FMath::Sin(A), 2.0);
+		if (!PlayerOwner->ProjectWorldLocationToScreen(W, Pts[i]))
+			return;
+	}
+	for (int32 i = 0; i < Segs; ++i)
+	{
+		const FVector2D& P = Pts[i];
+		const FVector2D& Q = Pts[(i + 1) % Segs];
+		DrawLine(P.X, P.Y, Q.X, Q.Y, Color, Thickness);
+	}
+}
+
+void ARtsMinimapHud::DrawMarkers(const FBox2D& MinimapR)
+{
+	const double Now = GetWorld() ? GetWorld()->GetRealTimeSeconds() : 0.0;
+	Markers.RemoveAll([Now](const FOrderMarker& M) { return Now - M.StartTime > MarkerSeconds; });
+	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	for (const FOrderMarker& M : Markers)
+	{
+		FVector2D XY = M.WorldXY;
+		float UnitRadius = 0.0f;
+		if (M.UnitId != INDEX_NONE)
+		{
+			const ARtsSimUnitActor* U = GM ? GM->FindUnitActor(M.UnitId) : nullptr;
+			if (!U)
+				continue; // target gone (died): nothing to point at
+			XY = FVector2D(U->GetActorLocation().X, U->GetActorLocation().Y);
+			UnitRadius = 55.0f;
+		}
+		const float T = float((Now - M.StartTime) / MarkerSeconds); // 0..1
+		FLinearColor Col = MarkerColor(M.Kind);
+		Col.A = 1.0f - T;
+		if (UnitRadius > 0.0f)
+		{
+			// Ring around the unit, pulsing in from slightly larger.
+			DrawGroundCircle(XY, UnitRadius * (1.4f - 0.4f * T), Col, 2.5f);
+		}
+		else
+		{
+			// Ground ping: ring contracts to the point, inner dot stays.
+			DrawGroundCircle(XY, FMath::Lerp(70.0f, 15.0f, T), Col, 2.5f);
+			DrawGroundCircle(XY, 8.0f, Col, 2.0f);
+			// Same ping on the minimap, so minimap orders are acknowledged where you look.
+			const FVector2D P = WorldToMinimap(MinimapR, XY);
+			const float R = FMath::Lerp(9.0f, 3.0f, T);
+			DrawLine(P.X - R, P.Y, P.X + R, P.Y, Col, 2.0f);
+			DrawLine(P.X, P.Y - R, P.X, P.Y + R, Col, 2.0f);
+		}
+	}
+}
+
 void ARtsMinimapHud::DrawHUD()
 {
 	Super::DrawHUD();
@@ -94,6 +183,8 @@ void ARtsMinimapHud::DrawHUD()
 			DrawRect(ARtsSimUnitActor::FactionColor(U->GetFaction()), P.X - Dot * 0.5f, P.Y - Dot * 0.5f, Dot, Dot);
 		}
 	}
+
+	DrawMarkers(R);
 
 	// Camera view footprint: viewport corners projected onto the ground plane (Z = 0),
 	// then clipped to the map so the box is cut at the edge instead of squashed onto it.
