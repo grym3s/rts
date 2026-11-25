@@ -250,6 +250,13 @@ bool ARtsRtsPlayerController::IssueOrderAtCursor(bool bAttack)
 	FHitResult Hit;
 	if (!GetHitResultUnderCursor(ECC_Visibility, false, Hit))
 		return false;
+	// T26: a bridge under the cursor: engineers mend it; Ctrl+RMB or an attack-move click shoots it.
+	if (GM->RequestBridgeAt(Hit.Location, bAttack || IsCtrlDown()))
+	{
+		if (Hud)
+			Hud->AddGroundMarker(FVector2D(Hit.Location.X, Hit.Location.Y), EMarker::Attack);
+		return true;
+	}
 	// T38: RMB on a vein with harvesters selected sends them there (the rest just move).
 	if (!bAttack && GM->RequestHarvestAt(Hit.Location))
 	{

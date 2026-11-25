@@ -256,6 +256,7 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				UO->TryGetBoolField(TEXT("carrying"), U.bCarrying);
 				UO->TryGetNumberField(TEXT("loadCapacity"), U.LoadCapacity);
 				UO->TryGetStringField(TEXT("domain"), U.Domain); // T25: absent = land
+				UO->TryGetBoolField(TEXT("engineer"), U.bEngineer); // T26: absent = no
 				// T37: rally point [x, y] Q32.32 raw, present only on buildings that have one.
 				const TArray<TSharedPtr<FJsonValue>>* RallyArr = nullptr;
 				if (UO->TryGetArrayField(TEXT("rally"), RallyArr) && RallyArr->Num() == 2)
@@ -297,6 +298,31 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				V.Y = RawVY / 4294967296.0;
 				VO->TryGetNumberField(TEXT("pool"), V.Pool);
 				OutReply.Veins.Add(V);
+			}
+		const TArray<TSharedPtr<FJsonValue>>* BridgesArr = nullptr;
+		if ((*StateObj)->TryGetArrayField(TEXT("bridges"), BridgesArr))
+			for (const TSharedPtr<FJsonValue>& BV : *BridgesArr)
+			{
+				const TSharedPtr<FJsonObject> BO = BV->AsObject();
+				if (!BO.IsValid())
+					continue;
+				FRtsBridgeSnapshot B;
+				BO->TryGetNumberField(TEXT("id"), B.Id);
+				double RawHp = 0.0, RawMax = 0.0;
+				BO->TryGetNumberField(TEXT("hp"), RawHp);
+				BO->TryGetNumberField(TEXT("maxHp"), RawMax);
+				B.Hp = RawHp / 4294967296.0;
+				B.MaxHp = RawMax / 4294967296.0;
+				BO->TryGetBoolField(TEXT("broken"), B.bBroken);
+				const TArray<TSharedPtr<FJsonValue>>* CellsArr = nullptr;
+				if (BO->TryGetArrayField(TEXT("cells"), CellsArr))
+					for (const TSharedPtr<FJsonValue>& CV : *CellsArr)
+					{
+						const TArray<TSharedPtr<FJsonValue>>& XY = CV->AsArray();
+						if (XY.Num() == 2)
+							B.Cells.Add(FIntPoint(int32(XY[0]->AsNumber()), int32(XY[1]->AsNumber())));
+					}
+				OutReply.Bridges.Add(MoveTemp(B));
 			}
 	}
 

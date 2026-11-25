@@ -12,6 +12,7 @@
 class URtsSimHostBridge;
 class ARtsSimUnitActor;
 class ARtsVeinActor;
+class ARtsTerrainActor;
 struct FRtsHostReply;
 
 UCLASS()
@@ -86,6 +87,15 @@ public:
 		return nullptr;
 	}
 	const TArray<FRtsVeinSnapshot>& GetVeins() const { return Veins; }
+	/** T26: bridges from the latest snapshot; the terrain version bumps when one falls or is mended. */
+	const TArray<FRtsBridgeSnapshot>& GetBridges() const { return Bridges; }
+	int32 GetTerrainVersion() const { return TerrainVersion; }
+	/** Bridge whose cell is under this world point, or INDEX_NONE. */
+	int32 BridgeAt(const FVector& WorldPoint) const;
+	/** T26: an order on a bridge cell. Selected engineers repair a damaged/fallen bridge; with
+	 *  bAttack (Ctrl+RMB or attack-move click) selected armed units shoot it. False = not a bridge
+	 *  job (the click falls through to a move). */
+	bool RequestBridgeAt(const FVector& WorldPoint, bool bAttack);
 	/** The latest snapshot row of a unit (building/queue/harvest fields), or null. */
 	const FRtsUnitSnapshot* GetUnitRow(int32 SimUnitId) const { return RowsById.Find(SimUnitId); }
 	const TMap<int32, FRtsUnitSnapshot>& GetUnitRows() const { return RowsById; }
@@ -184,6 +194,10 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<ARtsVeinActor> VeinActor; // T38
+	UPROPERTY()
+	TObjectPtr<ARtsTerrainActor> TerrainActor; // T26: rebuilt when a bridge falls or is mended
+	TArray<FRtsBridgeSnapshot> Bridges;
+	int32 TerrainVersion = 0;
 
 	// Actors are keyed by sim id, so a death never hands one unit's actor to another
 	// (that would glide it across the map under interpolation). UnitActors = snapshot order.

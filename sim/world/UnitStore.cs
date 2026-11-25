@@ -45,7 +45,7 @@ public sealed record UnitProfile(int Faction, Fix64 Hp, Fix64 Sight,
     Fix64 Damage, Fix64 Range, int CooldownTicks,
     ArmorClass Armor = ArmorClass.Infantry, DamageType DamageType = DamageType.SmallArms,
     bool Harvest = false, string? DeploysTo = null,
-    MoveDomain Domain = MoveDomain.Land, TargetMask Targets = TargetMask.All);
+    MoveDomain Domain = MoveDomain.Land, TargetMask Targets = TargetMask.All, bool Engineer = false);
 
 /// <summary>Mutable unit state owned by the world.</summary>
 public sealed class Unit
@@ -75,6 +75,11 @@ public sealed class Unit
     public MoveDomain Domain { get; }
     /// <summary>T25: domains its weapon can engage. All for hand-built test profiles.</summary>
     public TargetMask Targets { get; }
+    /// <summary>T26: an engineer (role `engineer`): repairs bridges in one touch and is consumed.</summary>
+    public bool Engineer { get; }
+    /// <summary>T26: bridge this unit is attacking or repairing (BridgeStore id); -1 = none.
+    /// Set by a `bridge` command, cleared by any other order (sim/combat owns it after that).</summary>
+    public int BridgeTarget { get; set; } = -1;
     /// <summary>Harvest load in whole credits; Carrying = full, trip to refinery.</summary>
     public int Load { get; set; }
     public bool Carrying { get; set; }
@@ -113,5 +118,6 @@ public sealed class Unit
         DeploysTo = profile?.DeploysTo;
         Domain = profile?.Domain ?? MoveDomain.Land;
         Targets = profile?.Targets ?? TargetMask.All;
+        Engineer = profile?.Engineer ?? false;
     }
 }

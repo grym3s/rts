@@ -12,11 +12,11 @@ public sealed class UnitCatalog
         ArmorClass Armor, DamageType DamageType, bool Harvest,
         int Cost, int BuildTicks, string BuiltFrom, string? DeploysTo = null, string Name = "",
         Rts.Sim.World.MoveDomain Domain = Rts.Sim.World.MoveDomain.Land,
-        Rts.Sim.World.TargetMask Targets = Rts.Sim.World.TargetMask.None)
+        Rts.Sim.World.TargetMask Targets = Rts.Sim.World.TargetMask.None, bool Engineer = false)
     {
         /// <summary>The spawn-time stat block (every spawner builds the same one).</summary>
         public Rts.Sim.World.UnitProfile Profile() => new(Faction, Hp, Sight, Damage, Range, CooldownTicks,
-            Armor, DamageType, Harvest, DeploysTo, Domain, Targets);
+            Armor, DamageType, Harvest, DeploysTo, Domain, Targets, Engineer);
     }
 
     /// <summary>True when unitId names a unit this building (catalog id) fields:
@@ -77,7 +77,7 @@ public sealed class UnitCatalog
                 root.GetProperty("builtFrom").GetString()!,
                 root.TryGetProperty("deploysTo", out var dep) ? dep.GetString() : null,
                 root.TryGetProperty("name", out var nm) ? nm.GetString() ?? "" : "",
-                domain, targets);
+                domain, targets, root.GetProperty("role").GetString() == "engineer");
         }
         return cat;
     }

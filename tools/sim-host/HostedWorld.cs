@@ -27,6 +27,8 @@ public sealed class HostedWorld
     public required UnitCatalog UnitsCatalog { get; init; }
     public required BuildingCatalog BuildingsCatalog { get; init; }
     public required PowerStore Power { get; init; }
+    /// <summary>T26: the map's bridges and their hit points. Owned by sim/combat's BridgeSystem.</summary>
+    public required BridgeStore Bridges { get; init; }
 
     /// <summary>Roster at load time. The scenario runner resolves a command with no explicit
     /// `units` against THIS list (computed once at scenario load), not the live roster —
@@ -44,6 +46,7 @@ public sealed class HostedWorld
 
         var seed = scenario.GetProperty("seed").GetUInt64();
         var map = GameMap.FromJson(scenario.GetProperty("map")); // T25: terrain rows and/or blocked rects
+        var bridges = BridgeStore.FromMap(map); // T26: `=` groups, each with its own hit points
 
         var catalog = UnitCatalog.LoadFromDirectory(Path.Combine(repoRoot, "content", "units"));
         var world = new SimWorld(seed);
@@ -93,6 +96,7 @@ public sealed class HostedWorld
         world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
         world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick, map, catalog.IsRefinery));
         world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick, w));
+        world.Systems.Add((w, due) => BridgeSystem.Step(bridges, map, units, orders, w.Tick, w)); // T26: still step 7
         world.Systems.Add((w, due) => units.DespawnDead());
         var match = new Rts.Sim.Match.MatchState();
         world.Systems.Add((w, due) => Rts.Sim.Match.MatchSystem.Step(w, units, match));
@@ -100,6 +104,7 @@ public sealed class HostedWorld
         world.HashMixers.Add(econ.Hash);
         world.HashMixers.Add(h => Rts.Sim.Production.ProductionStore.Hash(units, h));
         world.HashMixers.Add(power.Hash);
+        world.HashMixers.Add(bridges.Hash); // T26: adds nothing until a bridge is hit
 
         return new HostedWorld
         {
@@ -112,6 +117,7 @@ public sealed class HostedWorld
             UnitsCatalog = catalog,
             BuildingsCatalog = buildingsCat,
             Power = power,
+            Bridges = bridges,
             _initialRoster = roster
         };
     }
@@ -153,6 +159,7 @@ public sealed class HostedWorld
                 "deploy" => new DeployCommand(tick, faction, new EntityId(c.GetProperty("unit").GetInt32())),
                 "cancel" => new CancelProductionCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("index").GetInt32()),
                 "harvest" => new HarvestCommand(tick, faction, unitIds, c.GetProperty("vein").GetInt32()),
+                "bridge" => new BridgeCommand(tick, faction, unitIds, c.GetProperty("bridge").GetInt32()),
                 "rally" => new RallyCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()),
                     new FixVec2(Fix64.FromDouble(c.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(c.GetProperty("at")[1].GetDouble()))),
                 var t => throw new ProtocolException("unknown_command_type", $"unknown command type '{t}'"),
@@ -252,7 +259,8 @@ public sealed class HostedWorld
                 u.Building is { } bh ? BuildingsCatalog.Get(bh.Id).FootprintH : 0,
                 u.Building?.Rally is { } rp ? new[] { rp.X.Raw, rp.Y.Raw } : null,
                 u.Harvest ? Rts.Sim.Economy.EconomySystem.Capacity : 0,
-                u.Domain == Rts.Sim.World.MoveDomain.Land ? null : Rts.Sim.World.Domains.Name(u.Domain)));
+                u.Domain == Rts.Sim.World.MoveDomain.Land ? null : Rts.Sim.World.Domains.Name(u.Domain),
+                u.Engineer ? true : null));
         }
 
         var factions = new List<HostFaction>(2);
@@ -271,6 +279,9 @@ public sealed class HostedWorld
             Match = new HostMatch(Match.Over, Match.Winner, Match.EndTick),
             Veins = veins,
             Refineries = refineries,
+            Bridges = Bridges.Bridges.Count == 0 ? null : Bridges.Bridges
+                .Select(b => new HostBridge(b.Id, b.Hp.Raw, b.MaxHp.Raw, b.Broken, b.Cells.Select(c => new[] { c.X, c.Y }).ToList()))
+                .ToList(),
         };
     }
 
@@ -288,6 +299,9 @@ public sealed class HostedWorld
         SimEventKind.Shot => "shot",
         SimEventKind.Death => "death",
         SimEventKind.MatchEnded => "match_end",
+        SimEventKind.BridgeHit => "bridge_hit",
+        SimEventKind.BridgeDown => "bridge_down",
+        SimEventKind.BridgeRepaired => "bridge_repaired",
         _ => throw new ArgumentOutOfRangeException(nameof(k), k, "no wire name"),
     };
 }

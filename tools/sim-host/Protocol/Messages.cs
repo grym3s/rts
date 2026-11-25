@@ -67,6 +67,8 @@ public sealed record HostState
     /// <summary>T30: veins with their remaining pools, and refinery drop-off points.</summary>
     public IReadOnlyList<HostVein>? Veins { get; init; }
     public IReadOnlyList<HostRefinery>? Refineries { get; init; }
+    /// <summary>T26: the map's bridges (absent when it has none).</summary>
+    public IReadOnlyList<HostBridge>? Bridges { get; init; }
     /// <summary>T20 debug block, present only when the step asked for it.</summary>
     public HostDebug? Debug { get; init; }
 }
@@ -97,7 +99,8 @@ public sealed record HostUnit(
     string? DeploysTo = null, int FootprintW = 0, int FootprintH = 0,
     long[]? Rally = null, // T37: [x, y] Q32.32 raw, buildings with a rally point only
     int LoadCapacity = 0, // T38: a harvester's full load (credits), 0 for everything else
-    string? Domain = null); // T25: "naval" / "hover" / "air"; absent = land (and buildings)
+    string? Domain = null, // T25: "naval" / "hover" / "air"; absent = land (and buildings)
+    bool? Engineer = null); // T26: true for engineers (repair bridges); absent otherwise
 
 /// <summary>T30: credits and the power ledger (net = supply − draw; low power when net &lt; 0).</summary>
 public sealed record HostFaction(int Faction, int Credits, int PowerSupply = 0, int PowerDraw = 0);
@@ -107,6 +110,10 @@ public sealed record HostVein(int Id, long X, long Y, int Pool);
 
 /// <summary>T30: a refinery drop-off point (scenario-placed until T33 makes them buildings).</summary>
 public sealed record HostRefinery(int Faction, long X, long Y);
+
+/// <summary>T26: a bridge: id (the `bridge` command's target), hp / maxHp (Q32.32 raw), broken
+/// (its cells are water: ground units can't cross, ships pass), cells [[x, y], ...].</summary>
+public sealed record HostBridge(int Id, long Hp, long MaxHp, bool Broken, IReadOnlyList<int[]> Cells);
 
 public sealed record HostMatch(bool Over, int Winner, int EndTick);
 

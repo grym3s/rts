@@ -89,6 +89,7 @@ public static class CombatSystem
             u.Returning = false; // home: hold again
         }
         if (u.AttackMoving) return;
+        if (u.BridgeTarget >= 0) return; // T26: a bridge job is a player order: no auto-acquiring
 
         var hasLive = HasLiveTarget(u, units);
         if (u.Guarding)

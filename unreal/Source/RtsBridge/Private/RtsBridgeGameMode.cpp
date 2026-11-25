@@ -67,8 +67,9 @@ void ARtsBridgeGameMode::StartPlay()
 	// --- Battlefield: tiles (water plane + land/cliff/bridge boxes) + sun. ---
 	FActorSpawnParameters SP;
 	SP.Name = TEXT("Battlefield");
-	if (ARtsTerrainActor* Terrain = GetWorld()->SpawnActor<ARtsTerrainActor>(FVector::ZeroVector, FRotator::ZeroRotator, SP))
-		Terrain->Build(TerrainRows, SimCellUU);
+	TerrainActor = GetWorld()->SpawnActor<ARtsTerrainActor>(FVector::ZeroVector, FRotator::ZeroRotator, SP);
+	if (TerrainActor)
+		TerrainActor->Build(TerrainRows, SimCellUU);
 	FActorSpawnParameters VP;
 	VP.Name = TEXT("Veins");
 	VeinActor = GetWorld()->SpawnActor<ARtsVeinActor>(FVector::ZeroVector, FRotator::ZeroRotator, VP);
@@ -356,6 +357,26 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 	Veins = Reply.Veins;
 	if (VeinActor)
 		VeinActor->UpdateVeins(Veins, SimCellUU);
+	// T26: a fallen bridge's cells draw as water, a mended one's as bridge again.
+	bool bTerrainChanged = false;
+	for (const FRtsBridgeSnapshot& B : Reply.Bridges)
+		for (const FIntPoint& C : B.Cells)
+			if (TerrainRows.IsValidIndex(C.Y) && C.X >= 0 && C.X < TerrainRows[C.Y].Len())
+			{
+				const TCHAR Want = B.bBroken ? TEXT('~') : TEXT('=');
+				if (TerrainRows[C.Y][C.X] != Want)
+				{
+					TerrainRows[C.Y][C.X] = Want;
+					bTerrainChanged = true;
+				}
+			}
+	Bridges = Reply.Bridges;
+	if (bTerrainChanged)
+	{
+		++TerrainVersion;
+		if (TerrainActor)
+			TerrainActor->Build(TerrainRows, SimCellUU);
+	}
 	RowsById.Reset();
 	for (const FRtsUnitSnapshot& S : Reply.Units)
 		RowsById.Add(S.Id, S);
@@ -402,6 +423,25 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 					const ARtsSimUnitActor* To = FindUnitActor(E.Target);
 					if (From && To)
 						Hud->AddTracer(From->GetActorLocation(), To->GetActorLocation(), From->GetFaction());
+				}
+				else if (E.Kind == TEXT("bridge_hit")) // T26: subject = shooter, target = bridge id
+				{
+					const ARtsSimUnitActor* From = FindUnitActor(E.Subject);
+					const FRtsBridgeSnapshot* B = Bridges.FindByPredicate([&E](const FRtsBridgeSnapshot& X) { return X.Id == E.Target; });
+					if (From && B && B->Cells.Num() > 0)
+					{
+						// aim at the bridge cell nearest the shooter
+						const FVector L = From->GetActorLocation();
+						FVector Best = FVector::ZeroVector;
+						double BestD = TNumericLimits<double>::Max();
+						for (const FIntPoint& C : B->Cells)
+						{
+							const FVector P((C.X + 0.5) * SimCellUU, (C.Y + 0.5) * SimCellUU, 20.0);
+							const double D = FVector::DistSquared2D(P, L);
+							if (D < BestD) { BestD = D; Best = P; }
+						}
+						Hud->AddTracer(L, Best, From->GetFaction());
+					}
 				}
 	DyingActors.RemoveAll([](const TWeakObjectPtr<ARtsSimUnitActor>& D) { return !D.IsValid(); });
 	for (auto It = ActorsById.CreateIterator(); It; ++It)
@@ -781,6 +821,42 @@ int32 ARtsBridgeGameMode::VeinAt(const FVector& WorldPoint) const
 		}
 	}
 	return Best;
+}
+
+int32 ARtsBridgeGameMode::BridgeAt(const FVector& WorldPoint) const
+{
+	const int32 X = FMath::FloorToInt(WorldPoint.X / SimCellUU);
+	const int32 Y = FMath::FloorToInt(WorldPoint.Y / SimCellUU);
+	for (const FRtsBridgeSnapshot& B : Bridges)
+		if (B.Covers(X, Y))
+			return B.Id;
+	return INDEX_NONE;
+}
+
+bool ARtsBridgeGameMode::RequestBridgeAt(const FVector& WorldPoint, bool bAttack)
+{
+	if (!bHostAlive || IsMatchScreenUp())
+		return false;
+	const int32 Id = BridgeAt(WorldPoint);
+	const FRtsBridgeSnapshot* B = Bridges.FindByPredicate([Id](const FRtsBridgeSnapshot& X) { return X.Id == Id; });
+	if (!B)
+		return false;
+	// Engineers mend a damaged or fallen bridge; armed units shoot a standing one on a forced attack.
+	FString Ids;
+	for (const int32 Sel : Selection.GetSelected())
+		if (const FRtsUnitSnapshot* R = RowsById.Find(Sel))
+		{
+			if (R->Faction != 0 || R->IsBuilding())
+				continue;
+			const bool bFix = R->bEngineer && B->IsDamaged();
+			const bool bShoot = bAttack && !R->bEngineer && !B->bBroken;
+			if (bFix || bShoot)
+				Ids += (Ids.IsEmpty() ? TEXT("") : TEXT(",")) + FString::FromInt(Sel);
+		}
+	if (Ids.IsEmpty())
+		return false; // nobody here can work on it: an ordinary move
+	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"bridge\",\"units\":[%s],\"bridge\":%d"), *Ids, Id));
+	return true;
 }
 
 bool ARtsBridgeGameMode::RequestHarvestAt(const FVector& WorldPoint)

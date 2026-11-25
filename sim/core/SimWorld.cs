@@ -9,6 +9,12 @@ public enum SimEventKind
     Death,
     /// <summary>The match ended this tick; Faction is the winner, -1 for a draw (everyone died together).</summary>
     MatchEnded,
+    /// <summary>T26: Subject (a unit) hit bridge Target (bridge id) for Amount.</summary>
+    BridgeHit,
+    /// <summary>T26: bridge Subject (bridge id) collapsed; Target is the unit that dropped it.</summary>
+    BridgeDown,
+    /// <summary>T26: bridge Subject (bridge id) was repaired to full by engineer Target (consumed).</summary>
+    BridgeRepaired,
 }
 
 /// <summary>Something that happened during a tick, for the presentation layer / replay consumers.

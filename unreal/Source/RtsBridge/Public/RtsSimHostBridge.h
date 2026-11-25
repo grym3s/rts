@@ -91,6 +91,10 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	FString Domain = TEXT("land");
 
+	/** T26: an engineer (repairs bridges in one touch, used up doing it). */
+	UPROPERTY(BlueprintReadOnly)
+	bool bEngineer = false;
+
 	UPROPERTY(BlueprintReadOnly)
 	bool bCarrying = false;
 
@@ -117,6 +121,32 @@ public:
 	int32 PowerDraw = 0;
 
 	bool IsLowPower() const { return PowerSupply - PowerDraw < 0; }
+};
+
+/** T26: a bridge (map cells) and its hit points; broken = its cells are water now. */
+USTRUCT(BlueprintType)
+struct FRtsBridgeSnapshot
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadOnly)
+	int32 Id = INDEX_NONE;
+
+	UPROPERTY(BlueprintReadOnly)
+	double Hp = 0.0;
+
+	UPROPERTY(BlueprintReadOnly)
+	double MaxHp = 0.0;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bBroken = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FIntPoint> Cells;
+
+	bool Covers(int32 X, int32 Y) const { return Cells.Contains(FIntPoint(X, Y)); }
+	bool IsDamaged() const { return bBroken || Hp < MaxHp; }
 };
 
 /** T30: a resource vein (map coords) and the credits left in it. */
@@ -258,6 +288,10 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FRtsVeinSnapshot> Veins;
+
+	/** T26: the map's bridges (empty when it has none). */
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FRtsBridgeSnapshot> Bridges;
 
 	/** Events of the step this reply answers (empty for init/reset). */
 	UPROPERTY(BlueprintReadOnly)

@@ -22,4 +22,15 @@ Targeting (T25): `CanHit` = the weapon's `targets` (unit file `weapon.targets`: 
 weapon without the field is ground-only) include the target's domain — air needs `air`, naval needs
 `sea`, hover is hit by `ground` or `sea`, land units and buildings need `ground`. Acquire skips what
 it can't hit; an explicit attack on one is dropped. Hand-built test profiles hit everything.
+Bridges (T26, `BridgeSystem.Step`, right after CombatSystem in step 7): bridges live in
+`../world` `BridgeStore`, not the roster — no faction, never auto-acquired, never counted by the
+match. A unit with `BridgeTarget` (set by a `bridge` command) and no unit target works on it:
+armed units that can hit ground walk into `Range + radius + 0.5` of the nearest bridge cell and
+fire on cooldown (`Damage × DamageMatrix[type, Structure]`, floor 1; event `BridgeHit`); at 0 hp
+it collapses (event `BridgeDown`): cells turn to water (`GameMap.SetBridgeIntact`, ships still
+pass, paths across re-plan), land units standing on it die (`Death`, killer = the last shooter),
+attackers drop the job. Engineers (`Unit.Engineer`, role `engineer`) walk to a damaged or fallen
+bridge and within 1.5 cells mend it to full in one touch and are consumed (event
+`BridgeRepaired`); on a sound bridge they drop the job. A bridge job is an order: no guard
+auto-acquire while it lasts. Static guns never chase a bridge. Tests: `../tests/BridgeTests.cs`.
 Not modelled yet: projectiles, targeting priorities, multi-shot, domain (ground/air) targeting flags.

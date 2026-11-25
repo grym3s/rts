@@ -72,6 +72,15 @@ public static class OrderSystem
                         u.TargetId = a.Target;
                     }
                     break;
+                case BridgeCommand bc:
+                    foreach (var unit in bc.Units)
+                    {
+                        if (unitOf == null || unitOf(unit) is not { } u || u.Faction != bc.Faction) continue;
+                        orders.Remove(unit); // BridgeSystem walks it there
+                        Disengage(u);
+                        u.BridgeTarget = bc.Bridge;
+                    }
+                    break;
                 case StopCommand:
                     foreach (var unit in ((StopCommand)c).Units)
                     {
@@ -90,5 +99,6 @@ public static class OrderSystem
         u.AttackMoving = false;
         u.Guarding = false;
         u.Returning = false;
+        u.BridgeTarget = -1;
     }
 }

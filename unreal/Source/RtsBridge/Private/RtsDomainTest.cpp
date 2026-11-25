@@ -8,13 +8,13 @@
 
 namespace
 {
-	// 16 x 4: land x < 8, sea x >= 8.
+	// 16 x 4: land x < 8, sea x >= 8, a bridge along the bottom row's sea half (T26).
 	const TCHAR* DomainInit = TEXT(
 		"{\"protocolVersion\":1,\"kind\":\"init\",\"scenario\":"
 		"{\"schemaVersion\":2,\"seed\":1,\"map\":{\"width\":16,\"height\":4,\"terrain\":"
-		"[\"........~~~~~~~~\",\"........~~~~~~~~\",\"........~~~~~~~~\",\"........~~~~~~~~\"]},"
+		"[\"........~~~~~~~~\",\"........~~~~~~~~\",\"........~~~~~~~~\",\"........========\"]},"
 		"\"units\":[{\"unit\":\"rifleman\",\"at\":[2.5,1.5]},{\"unit\":\"cutter\",\"at\":[12.5,1.5]},"
-		"{\"unit\":\"falcon\",\"at\":[4.5,2.5]}]}}");
+		"{\"unit\":\"falcon\",\"at\":[4.5,2.5]},{\"unit\":\"engineer\",\"at\":[1.5,0.5]}]}}");
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRtsDomainTest, "RtsBridge.Host.Domain",
@@ -34,8 +34,10 @@ bool FRtsDomainTest::RunTest(const FString& Parameters)
 		return false;
 	}
 	const FRtsHostReply& Init = Bridge->GetInitReply();
-	if (TestEqual(TEXT("three units"), Init.Units.Num(), 3))
+	if (TestEqual(TEXT("four units"), Init.Units.Num(), 4))
 	{
+		TestFalse(TEXT("rifleman is no engineer"), Init.Units[0].bEngineer);
+		TestTrue(TEXT("engineer flagged"), Init.Units[3].bEngineer);
 		TestEqual(TEXT("rifleman walks"), Init.Units[0].Domain, FString(TEXT("land")));
 		TestEqual(TEXT("cutter sails"), Init.Units[1].Domain, FString(TEXT("naval")));
 		TestEqual(TEXT("falcon flies"), Init.Units[2].Domain, FString(TEXT("air")));
@@ -43,6 +45,13 @@ bool FRtsDomainTest::RunTest(const FString& Parameters)
 	const FRtsUnitType* Cutter = Init.UnitTypes.FindByPredicate([](const FRtsUnitType& U) { return U.Id == TEXT("cutter"); });
 	if (TestNotNull(TEXT("catalog has the cutter"), Cutter))
 		TestEqual(TEXT("catalog domain"), Cutter->Domain, FString(TEXT("naval")));
+	if (TestEqual(TEXT("one bridge"), Init.Bridges.Num(), 1))
+	{
+		const FRtsBridgeSnapshot& B = Init.Bridges[0];
+		TestEqual(TEXT("bridge cells"), B.Cells.Num(), 8);
+		TestTrue(TEXT("covers its cell"), B.Covers(8, 3) && !B.Covers(8, 2));
+		TestTrue(TEXT("standing, full hp"), !B.bBroken && B.Hp > 0.0 && !B.IsDamaged());
+	}
 	Bridge->Shutdown();
 	return true;
 }

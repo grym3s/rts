@@ -123,6 +123,7 @@ private:
 	void DrawCentredText(const FString& Text, UFont* Font, float CentreX, float Y, float Scale, const FLinearColor& Color);
 	/** Terrain image, one texel per cell, built once from the game mode's tile rows. */
 	UPROPERTY() TObjectPtr<UTexture2D> TerrainTex;
+	int32 TerrainTexVersion = -1; // T26: GM terrain version the texture was built from
 	UTexture2D* GetTerrainTexture();
 	static constexpr double MarkerSeconds = 0.6;
 	static FLinearColor MarkerColor(EOrderMarker Kind);

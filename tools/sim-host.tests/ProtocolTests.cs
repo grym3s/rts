@@ -504,6 +504,39 @@ public class ProtocolTests
         Assert.True(Ask("coalition-shipyard", 13, 6).Allowed);
     }
 
+    // ---------- destructible bridges (T26) ----------
+
+    [Fact]
+    public void A_bridge_command_shoots_a_bridge_down_and_the_snapshot_and_events_say_so()
+    {
+        // 12 x 3: channel at x 5..6, bridged on row 1.
+        const string rows = "\".....~~.....\",\".....==.....\",\".....~~.....\"";
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle($$$"""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":12,"height":3,"terrain":[{{{rows}}}]},"units":[{"unit":"lancer-mbt","at":[1.5,1.5]},{"unit":"engineer","at":[0.5,0.5]}]}}"""));
+        Assert.True(init.Ok, init.Error);
+        var bridge = Assert.Single(init.State!.Bridges!);
+        Assert.Equal(0, bridge.Id);
+        Assert.False(bridge.Broken);
+        Assert.Equal(bridge.MaxHp, bridge.Hp);
+        Assert.Equal(new[] { 5, 1 }, bridge.Cells[0]);
+        Assert.Equal(new bool?[] { null, true }, init.State.Units.Select(u => u.Engineer).ToArray());
+
+        var tank = init.State.Units[0].Id;
+        var r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":0,"commands":[{"tick":0,"faction":0,"type":"bridge","units":[{{tank}}],"bridge":0}]}"""));
+        Assert.True(r.Ok, r.Error);
+        var kinds = new HashSet<string>();
+        for (var t = 1; t < 2000 && !(r.State!.Bridges![0].Broken); t++)
+        {
+            r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":{{t}},"commands":[]}"""));
+            Assert.True(r.Ok, r.Error);
+            foreach (var e in r.Events ?? []) kinds.Add(e.Kind);
+        }
+        Assert.True(r.State!.Bridges![0].Broken);
+        Assert.Equal(0, r.State.Bridges[0].Hp);
+        Assert.Contains("bridge_hit", kinds);
+        Assert.Contains("bridge_down", kinds);
+    }
+
     // ---------- MCV deploy (T32) ----------
 
     [Fact]

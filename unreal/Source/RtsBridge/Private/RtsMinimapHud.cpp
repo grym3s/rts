@@ -54,11 +54,12 @@ bool ARtsMinimapHud::MinimapToWorld(const FVector2D& ScreenPos, FVector2D& OutWo
 
 UTexture2D* ARtsMinimapHud::GetTerrainTexture()
 {
-	if (TerrainTex)
-		return TerrainTex;
 	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (TerrainTex && (!GM || GM->GetTerrainVersion() == TerrainTexVersion))
+		return TerrainTex;
 	if (!GM || GM->GetTerrainRows().Num() == 0)
 		return nullptr;
+	TerrainTexVersion = GM->GetTerrainVersion(); // T26: a bridge fell or was mended
 	const TArray<FString>& Rows = GM->GetTerrainRows();
 	const int32 H = Rows.Num(), W = Rows[0].Len();
 	UTexture2D* Tex = UTexture2D::CreateTransient(W, H, PF_B8G8R8A8);
@@ -336,6 +337,22 @@ void ARtsMinimapHud::DrawHealthBars()
 		const float X = S.X - W * 0.5f, Y = S.Y - H * 0.5f;
 		DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.75f), X - 1.0f, Y - 1.0f, W + 2.0f, H + 2.0f);
 		DrawRect(Fill, X, Y, W * F, H);
+	}
+	// T26: damaged (still standing) bridges get a wider bar over their middle cell.
+	const float C = ARtsBridgeGameMode::CellUU;
+	for (const FRtsBridgeSnapshot& B : GM->GetBridges())
+	{
+		if (B.bBroken || B.Hp >= B.MaxHp || B.Cells.Num() == 0 || B.MaxHp <= 0.0)
+			continue;
+		const FIntPoint Mid = B.Cells[B.Cells.Num() / 2];
+		const FVector S = Project(FVector((Mid.X + 0.5f) * C, (Mid.Y + 0.5f) * C, 60.0f));
+		if (S.Z <= 0.0)
+			continue;
+		const float F = float(B.Hp / B.MaxHp);
+		const float BW = 50.0f;
+		const float X = S.X - BW * 0.5f, Y = S.Y - H * 0.5f;
+		DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.75f), X - 1.0f, Y - 1.0f, BW + 2.0f, H + 2.0f);
+		DrawRect(FLinearColor(0.85f, 0.6f, 0.3f), X, Y, BW * F, H);
 	}
 }
 

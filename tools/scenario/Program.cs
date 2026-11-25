@@ -31,6 +31,7 @@ var ticks = doc.GetProperty("ticks").GetInt32();
 
 // --- map ---
 var map = GameMap.FromJson(doc.GetProperty("map")); // T25: terrain rows and/or blocked rects
+var bridges = BridgeStore.FromMap(map); // T26: `=` groups, each with its own hit points
 
 // --- units (spawn order == EntityId order) ---
 var catalog = UnitCatalog.LoadFromDirectory(Path.Combine(repoRoot, "content", "units"));
@@ -79,6 +80,7 @@ world.Systems.Add((w, due) => Rts.Sim.Production.ProductionSystem.Step(
 world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
 world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick, map, catalog.IsRefinery));
 world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick, w));
+world.Systems.Add((w, due) => BridgeSystem.Step(bridges, map, units, orders, w.Tick, w)); // T26: still step 7
 world.Systems.Add((w, due) => units.DespawnDead());
 var match = new Rts.Sim.Match.MatchState();
 world.Systems.Add((w, due) => Rts.Sim.Match.MatchSystem.Step(w, units, match));
@@ -86,6 +88,7 @@ world.HashMixers.Add(units.Hash);
 world.HashMixers.Add(econ.Hash);
 world.HashMixers.Add(h => Rts.Sim.Production.ProductionStore.Hash(units, h));
 world.HashMixers.Add(power.Hash);
+world.HashMixers.Add(bridges.Hash); // T26: adds nothing until a bridge is hit
 
 // --- commands ---
 var commands = new List<Command>();
@@ -114,6 +117,7 @@ if (doc.TryGetProperty("commands", out var cmds))
             "deploy" => new DeployCommand(tick, faction, new EntityId(c.GetProperty("unit").GetInt32())),
             "cancel" => new CancelProductionCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("index").GetInt32()),
             "harvest" => new HarvestCommand(tick, faction, unitIds, c.GetProperty("vein").GetInt32()),
+            "bridge" => new BridgeCommand(tick, faction, unitIds, c.GetProperty("bridge").GetInt32()),
             "rally" => new RallyCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()),
                 new FixVec2(Fix64.FromDouble(c.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(c.GetProperty("at")[1].GetDouble()))),
             var t => throw new InvalidDataException($"unknown command type '{t}'")

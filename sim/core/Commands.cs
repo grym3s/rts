@@ -51,3 +51,6 @@ public sealed record RallyCommand(int Tick, int Faction, EntityId BuildingId, Fi
 /// empty or part-filled one walks there now, a carrying one delivers first and then returns to it.
 /// Ignored for a dry or unknown vein and for units that are not your live harvesters.</summary>
 public sealed record HarvestCommand(int Tick, int Faction, EntityId[] Units, int Vein) : Command(Tick, Faction);
+
+/// <summary>T26: work on bridge `Bridge` (BridgeStore id): armed units attack it, engineers repair it.</summary>
+public sealed record BridgeCommand(int Tick, int Faction, EntityId[] Units, int Bridge) : Command(Tick, Faction);

@@ -12,7 +12,7 @@ Never: references Godot or any engine; uses floats; reads wall-clock time.
 4. production: build queues, spawn units (`production/`, live)
 5. navigation: path + avoidance + movement (`navigation/`, live)
 6. deposit: credit arrivals after movement (`economy/`, live)
-7. combat: acquire, fire, damage, death (`combat/`, live)
+7. combat: acquire, fire, damage, death (`combat/`, live); then bridges (T26 `BridgeSystem`: attack, collapse, engineer repair)
 8. cleanup: despawn dead
 9. match: decide win / lose (`match/`, live)
 

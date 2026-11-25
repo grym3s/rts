@@ -84,6 +84,14 @@ public sealed class GameMap
         return true;
     }
 
+    /// <summary>T26: a bridge stands (cells are Bridge) or has fallen (cells are Water: ships pass,
+    /// ground units don't). Bumps StructureEpoch so paths across it re-check.</summary>
+    public void SetBridgeIntact(IEnumerable<(int X, int Y)> cells, bool intact)
+    {
+        foreach (var (x, y) in cells) _terrain[y * Width + x] = intact ? Terrain.Bridge : Terrain.Water;
+        StructureEpoch++;
+    }
+
     /// <summary>T25: every cell of the rect is in bounds and of terrain `t`.</summary>
     public bool AllTerrain(int x0, int y0, int w, int h, Terrain t)
     {

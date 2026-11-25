@@ -28,6 +28,12 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   T25: unit rows and unit types add `Domain` (land / naval / hover / air); aircraft are drawn
   `ARtsSimUnitActor::AirZ` above the ground (`SetAirborne`). Test: `RtsBridge.Host.Domain` (domain
   parse from a terrain-row scenario; water / shore reason texts).
+  T26: `Bridges` (id, hp, cells, broken) and `bEngineer` on unit rows. The game mode patches its
+  terrain rows when a bridge falls (`~`) or is mended (`=`), rebuilds the terrain actor and bumps
+  `GetTerrainVersion` (the minimap re-renders). Orders: RMB on a damaged/fallen bridge sends
+  selected engineers to mend it; Ctrl+RMB or an attack-move click on a standing bridge sends
+  selected armed units to shoot it (`RequestBridgeAt`). Damaged bridges get an orange HP bar,
+  `bridge_hit` events draw tracers. Test: `RtsBridge.Host.Domain` also checks bridge + engineer parse.
 - `Source/RtsBridge/Private/RtsBridgeRoundTripTest.cpp` — editor automation test
   `RtsBridge.Host.RoundTrip` (real host launch, init, tick-0 move, 120 steps).
 - `Config/DefaultEngine.ini` — GlobalDefaultGameMode = RtsBridgeGameMode;
