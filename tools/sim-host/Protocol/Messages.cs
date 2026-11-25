@@ -23,6 +23,11 @@ public sealed record HostRequest
 
     /// <summary>step: true = include `state.debug` (T20 overlays). Opt-in, so normal play pays nothing.</summary>
     public bool Debug { get; init; }
+
+    /// <summary>query (T36): a read-only question about the current world, never advancing it.
+    /// `{"type":"place","faction":0,"building":"coalition-reactor","at":[x,y]}` asks whether
+    /// that `place` would be accepted now and where its footprint would land.</summary>
+    public JsonElement? Query { get; init; }
 }
 
 /// <summary>Response envelope. ok=true carries the completed tick, read-only state snapshot and
@@ -36,6 +41,10 @@ public sealed record HostResponse
     public IReadOnlyList<HostEvent>? Events { get; init; }
     public string? Error { get; init; }
     public string? Code { get; init; }
+    /// <summary>init only (T36): the building and unit catalogs, for build menus.</summary>
+    public HostCatalog? Catalog { get; init; }
+    /// <summary>query only (T36): the answer.</summary>
+    public HostQueryResult? Query { get; init; }
 
     public static HostResponse Fail(string code, string error) =>
         new() { Ok = false, Code = code, Error = error };
@@ -98,6 +107,18 @@ public sealed record HostRefinery(int Faction, long X, long Y);
 
 public sealed record HostMatch(bool Over, int Winner, int EndTick);
 
+/// <summary>T36 catalogs (init only). Buildings: footprint in cells, power + supply / − draw,
+/// prereq = building id or null. Units: builtFrom = producing building id.</summary>
+public sealed record HostCatalog(IReadOnlyList<HostBuildingType> Buildings, IReadOnlyList<HostUnitType> Units);
+public sealed record HostBuildingType(string Id, string Name, int Faction, string Category, int Cost, int BuildTicks,
+    string? Prereq, int Power, int FootprintW, int FootprintH);
+public sealed record HostUnitType(string Id, string Name, int Faction, int Cost, int BuildTicks, string BuiltFrom,
+    string? DeploysTo, bool Harvest);
+
+/// <summary>T36 `place` query answer: allowed, else reason (wrong_faction, prereq, blocked,
+/// occupied, radius, credits); the footprint rect in cells either way.</summary>
+public sealed record HostQueryResult(bool Allowed, string Reason, int X, int Y, int W, int H);
+
 /// <summary>T20 overlays. StepMicros = wall time of the World.Step that produced this snapshot.
 /// Per unit: State (idle, move, attack-move, attack, guard, returning), Target (-1 = none) and the
 /// remaining path as [x, y] Q32.32 raw pairs (capped at MaxPathPoints). Presentation only; never hashed.</summary>
@@ -148,9 +169,10 @@ public static class Codec
             Commands = kind == "step" && root.TryGetProperty("commands", out var cmds) && cmds.ValueKind == JsonValueKind.Array
                 ? cmds.Clone() : null,
             Debug = kind == "step" && root.TryGetProperty("debug", out var dbg) && GetBool(dbg, "debug"),
+            Query = kind == "query" ? GetObject(root, "query") : null,
         };
 
-        if (kind is not ("init" or "step" or "reset"))
+        if (kind is not ("init" or "step" or "reset" or "query"))
             throw new ProtocolException("unknown_kind", $"kind '{kind}' not supported");
 
         // Kind-specific shape validation (version is checked by the host so it can echo its own).
@@ -165,6 +187,10 @@ public static class Codec
         else if (kind == "reset")
         {
             Require(root, allowedReset);
+        }
+        else if (kind == "query")
+        {
+            Require(root, allowedQuery);
         }
         else
         {
@@ -186,6 +212,7 @@ public static class Codec
     private static readonly string[] allowedInit = ["protocolVersion", "kind", "scenario"];
     private static readonly string[] allowedStep = ["protocolVersion", "kind", "tick", "commands", "debug"];
     private static readonly string[] allowedReset = ["protocolVersion", "kind"];
+    private static readonly string[] allowedQuery = ["protocolVersion", "kind", "query"];
 
     public static string Encode(HostResponse resp) => JsonSerializer.Serialize(resp, WriteOptions);
 

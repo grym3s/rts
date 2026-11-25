@@ -10,7 +10,7 @@ public sealed class UnitCatalog
     public record SpawnParams(string Id, Fix64 Speed, Fix64 Radius, Fix64 Hp, Fix64 Sight,
         int Faction, Fix64 Damage, Fix64 Range, int CooldownTicks,
         ArmorClass Armor, DamageType DamageType, bool Harvest,
-        int Cost, int BuildTicks, string BuiltFrom, string? DeploysTo = null);
+        int Cost, int BuildTicks, string BuiltFrom, string? DeploysTo = null, string Name = "");
 
     /// <summary>True when unitId names a unit this building (catalog id) fields:
     /// canon link is the unit's `builtFrom` (content/CONTEXT.md), nothing else.</summary>
@@ -49,7 +49,8 @@ public sealed class UnitCatalog
                 root.GetProperty("cost").GetInt32(),
                 root.GetProperty("buildTimeSeconds").GetInt32() * Rts.Sim.Core.SimWorld.TicksPerSecond,
                 root.GetProperty("builtFrom").GetString()!,
-                root.TryGetProperty("deploysTo", out var dep) ? dep.GetString() : null);
+                root.TryGetProperty("deploysTo", out var dep) ? dep.GetString() : null,
+                root.TryGetProperty("name", out var nm) ? nm.GetString() ?? "" : "");
         }
         return cat;
     }
@@ -62,6 +63,9 @@ public sealed class UnitCatalog
 
     /// <summary>T33: true when this building is a harvester drop-off (some harvester is built from it).</summary>
     public bool IsRefinery(string buildingCatalogId) => HarvesterFor(buildingCatalogId) != null;
+
+    /// <summary>All unit types, ordinal id order (T36: the host lists them for the build menus).</summary>
+    public IEnumerable<SpawnParams> All => _byId.Values.OrderBy(p => p.Id, StringComparer.Ordinal);
 
     public SpawnParams Get(string id) =>
         _byId.TryGetValue(id, out var p) ? p : throw new KeyNotFoundException($"unit '{id}' not in catalog");

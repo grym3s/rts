@@ -284,6 +284,28 @@ const scenario = {
 writeFileSync(join(repo, 'content', 'scenarios', 'tri-point-30.json'), JSON.stringify(scenario, null, 1) + '\n');
 console.log(`tri-point: ${W}x${H}, ${rects.length} blocked rects, ${scenario.units.length} units, ${fields.length} fields`);
 
+// ---- skirmish start (T36): the canon opening, one MCV each on its main ---------------------
+// economy.md: 5000 credits and one undeployed MCV. Unreal loads this without its commands; the
+// commands are a scripted opening for the CI golden (both deploy, Coalition adds a reactor).
+const centreOf = p => { const c = cell(p); return [c.x + 0.5, c.y + 0.5]; };
+const ahead = (n, d) => { const f = unit(n.main, n.natural); return [Math.floor(n.main.x + f.x * d), Math.floor(n.main.y + f.y * d)]; };
+const skirmish = {
+  schemaVersion: 2,
+  seed: 5,
+  ticks: 900,
+  map: { width: W, height: H, blocked: rects },
+  veins: fields.flatMap(fl => fl.veins),
+  units: [{ unit: 'mobile-command', at: centreOf(coalition.main) }, { unit: 'foundry-crawler', at: centreOf(hegemony.main) }],
+  commands: [
+    { tick: 1, faction: 0, type: 'deploy', unit: 0 },
+    { tick: 1, faction: 1, type: 'deploy', unit: 1 },
+    { tick: 205, faction: 0, type: 'place', building: 'coalition-reactor', at: ahead(coalition, 4) },
+  ],
+  assert: { buildingCountIs: { count: 3 } },
+};
+writeFileSync(join(repo, 'content', 'scenarios', 'tri-point-skirmish.json'), JSON.stringify(skirmish, null, 1) + '\n');
+console.log(`tri-point-skirmish: MCVs at ${skirmish.units.map(u => u.at.join(',')).join(' / ')}`);
+
 // ---- preview ------------------------------------------------------------------------------
 if (previewPath) {
   const col = { '.': '#4f7a3a', '~': '#1f4e79', '#': '#6b6257', '=': '#a0784a' };

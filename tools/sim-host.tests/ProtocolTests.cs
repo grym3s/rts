@@ -332,6 +332,7 @@ public class ProtocolTests
     [InlineData("chokepoint-30.json", "1727e6d2adb5efb8")]
     [InlineData("skirmish-10v10.json", "e97bc24d4f7fd6c3")] // re-pinned for T05 guard (idle units hold, chase, return): 0fbba65f760574ce -> e97bc24d4f7fd6c3
     [InlineData("tri-point-30.json", "c209ac08ca9974f4")] // re-pinned for T34 fields: 5526cd76fdce4754 -> c209ac08ca9974f4 (ore pools hashed; same battle)
+    [InlineData("tri-point-skirmish.json", "67de1d03ad12b797")] // T36 skirmish start (MCV deploy + reactor)
     [InlineData("counters-6v4.json", "39ac951e73e99076")] // re-pinned for T05 guard (idle units hold, chase, return): a418be859c7550c7 -> 39ac951e73e99076
     [InlineData("guard-hold.json", "e7a820c12422dad2")]
     [InlineData("match-end.json", "3c75053acd9d4698")]
@@ -412,6 +413,64 @@ public class ProtocolTests
         Assert.Equal(3, fields.Count(f => f.GetProperty("kind").GetString() == "main"));
         Assert.Equal(3, fields.Count(f => f.GetProperty("kind").GetString() == "natural"));
         Assert.Equal(3, fields.Count(f => f.GetProperty("kind").GetString() == "contested"));
+    }
+
+    // ---------- build menu support (T36): catalog on init, read-only place query ----------
+
+    [Fact]
+    public void Init_carries_the_catalogs_for_build_menus()
+    {
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":8,"height":8,"blocked":[]}}}"""));
+        Assert.True(init.Ok, init.Error);
+        var yard = init.Catalog!.Buildings.Single(b => b.Id == "coalition-construction-yard");
+        Assert.Equal("Construction Yard", yard.Name);
+        Assert.Equal((3, 3), (yard.FootprintW, yard.FootprintH));
+        Assert.Null(yard.Prereq);
+        var barracks = init.Catalog.Buildings.Single(b => b.Id == "coalition-barracks");
+        Assert.Equal("coalition-construction-yard", barracks.Prereq);
+        Assert.Equal(1, init.Catalog.Buildings.Single(b => b.Id == "hegemony-conscription-hall").Faction);
+        var rifle = init.Catalog.Units.Single(u => u.Id == "rifleman");
+        Assert.Equal("coalition-barracks", rifle.BuiltFrom);
+        Assert.True(init.Catalog.Units.Single(u => u.Id == "collector").Harvest);
+        Assert.Equal("coalition-construction-yard", init.Catalog.Units.Single(u => u.Id == "mobile-command").DeploysTo);
+
+        var step = Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":0,"commands":[]}"""));
+        Assert.Null(step.Catalog); // init only
+    }
+
+    [Fact]
+    public void Place_query_answers_with_the_sims_verdict_and_never_advances_the_world()
+    {
+        var s = new SimHostSession(RepoRoot());
+        Assert.True(Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":40,"height":40,"blocked":[[20,0,20,39]]},"veins":[{"at":[12.5,5.5],"pool":5000}]}}""")).Ok);
+        HostQueryResult Ask(string building, double x, double y)
+        {
+            var r = Resp(s.Handle($$$"""{"protocolVersion":1,"kind":"query","query":{"type":"place","faction":0,"building":"{{{building}}}","at":[{{{x}}},{{{y}}}]}}"""));
+            Assert.True(r.Ok, r.Error);
+            Assert.Null(r.State);
+            return r.Query!;
+        }
+
+        Assert.Equal("prereq", Ask("coalition-reactor", 9, 5).Reason);
+        var yardQ = Ask("coalition-construction-yard", 5, 5);
+        Assert.True(yardQ.Allowed);
+        Assert.Equal((4, 4, 3, 3), (yardQ.X, yardQ.Y, yardQ.W, yardQ.H));
+        Assert.Equal("wrong_faction", Ask("hegemony-construction-yard", 5, 5).Reason);
+
+        // the query did not advance: tick 0 is still next
+        Assert.True(Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":0,"commands":[{"tick":0,"faction":0,"type":"place","building":"coalition-construction-yard","at":[5,5]}]}""")).Ok);
+        for (var t = 1; t <= 205; t++)
+            Assert.True(Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":{{t}},"commands":[]}""")).Ok);
+
+        Assert.True(Ask("coalition-reactor", 9, 5).Allowed);
+        Assert.Equal("blocked", Ask("coalition-reactor", 5, 5).Reason);   // on the yard
+        Assert.Equal("blocked", Ask("coalition-reactor", 12, 5).Reason);  // covers the ore at (12,5)
+        Assert.Equal("blocked", Ask("coalition-reactor", 20, 10).Reason); // the wall
+        Assert.Equal("radius", Ask("coalition-reactor", 30, 30).Reason);
+        // 2500 left after the yard: spend 2200, then a 400 reactor is short
+        Assert.True(Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":206,"commands":[{"tick":206,"faction":0,"type":"spend","amount":2200}]}""")).Ok);
+        Assert.Equal("credits", Ask("coalition-reactor", 9, 5).Reason);
     }
 
     // ---------- MCV deploy (T32) ----------

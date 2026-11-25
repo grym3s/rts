@@ -179,6 +179,34 @@ public sealed class HostedWorld
     /// Step (SimWorld flushes the buffer at step start).</summary>
     /// <summary>T20: per-unit state, target and remaining path for the debug overlays.
     /// Reads sim state only; State names mirror the guard/order flags in sim/combat and sim/orders.</summary>
+    /// <summary>T36: both catalogs for the build menus (init only). Ordinal id order.</summary>
+    public HostCatalog CatalogBlock() => new(
+        BuildingsCatalog.All.OrderBy(b => b.Id, StringComparer.Ordinal)
+            .Select(b => new HostBuildingType(b.Id, b.Name, b.Faction, b.Category, b.Cost, b.BuildTicks, b.Prereq, b.Power, b.FootprintW, b.FootprintH))
+            .ToList(),
+        UnitsCatalog.All
+            .Select(u => new HostUnitType(u.Id, u.Name, u.Faction, u.Cost, u.BuildTicks, u.BuiltFrom, u.DeploysTo, u.Harvest))
+            .ToList());
+
+    /// <summary>T36: would `place` of this building at `at` be accepted right now? The sim's own
+    /// check (ProductionSystem.CheckPlace), read-only.</summary>
+    public HostQueryResult QueryPlace(int faction, string buildingId, FixVec2 at)
+    {
+        var (verdict, x, y, w, h) = Rts.Sim.Production.ProductionSystem.CheckPlace(
+            BuildingsCatalog, Units, Map, faction, buildingId, at, Econ.Credits(faction));
+        var reason = verdict switch
+        {
+            Rts.Sim.Production.ProductionSystem.PlaceVerdict.Ok => "ok",
+            Rts.Sim.Production.ProductionSystem.PlaceVerdict.WrongFaction => "wrong_faction",
+            Rts.Sim.Production.ProductionSystem.PlaceVerdict.Prereq => "prereq",
+            Rts.Sim.Production.ProductionSystem.PlaceVerdict.Blocked => "blocked",
+            Rts.Sim.Production.ProductionSystem.PlaceVerdict.Occupied => "occupied",
+            Rts.Sim.Production.ProductionSystem.PlaceVerdict.Radius => "radius",
+            _ => "credits",
+        };
+        return new HostQueryResult(verdict == Rts.Sim.Production.ProductionSystem.PlaceVerdict.Ok, reason, x, y, w, h);
+    }
+
     public HostDebug DebugBlock(long stepMicros)
     {
         var list = new List<HostDebugUnit>(Units.Units.Count);

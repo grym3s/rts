@@ -93,22 +93,42 @@ public static class ProductionSystem
         return (tick & 1) != (buildingId.Value & 1);
     }
 
-    private static void Place(BuildingCatalog buildings, UnitStore units, Rts.Sim.World.GameMap map,
-        EntityIdAllocator ids, PlaceBuildingCommand p, TryOp spend)
+    /// <summary>Why a placement would be refused, in the order `place` checks (T36: the host's
+    /// read-only `query` answers with this so the build ghost never re-implements the rules).</summary>
+    public enum PlaceVerdict { Ok, WrongFaction, Prereq, Blocked, Occupied, Radius, Credits }
+
+    /// <summary>The `place` rules as a pure check: faction, prereq chain, footprint in bounds on
+    /// open terrain with no building or ore (Blocked) and no live unit (Occupied), build radius
+    /// (not for a construction yard), then credits. Also returns the footprint rect.</summary>
+    public static (PlaceVerdict Verdict, int X, int Y, int W, int H) CheckPlace(BuildingCatalog buildings, UnitStore units,
+        Rts.Sim.World.GameMap map, int faction, string buildingId, FixVec2 at, int credits)
     {
-        var bp = buildings.Get(p.BuildingId);
-        if (bp.Faction != p.Faction) return;
-        if (!ProductionRules.PrereqSatisfied(buildings, p.BuildingId,
-                req => units.Units.Any(u => u.Faction == p.Faction && u.Hp.Raw > 0 && u.Building?.Id == req)))
-            return;
+        var bp = buildings.Get(buildingId);
+        var (ox, oy) = BuildingCatalog.FootprintOrigin(Cell(at.X), Cell(at.Y), bp.FootprintW, bp.FootprintH);
+        (PlaceVerdict, int, int, int, int) R(PlaceVerdict v) => (v, ox, oy, bp.FootprintW, bp.FootprintH);
+        if (bp.Faction != faction) return R(PlaceVerdict.WrongFaction);
+        if (!ProductionRules.PrereqSatisfied(buildings, buildingId,
+                req => units.Units.Any(u => u.Faction == faction && u.Hp.Raw > 0 && u.Building?.Id == req)))
+            return R(PlaceVerdict.Prereq);
         // T31: the whole footprint must be in bounds, on open terrain, free of other buildings
-        // and of units (a unit standing there would be sealed in).
-        var (ox, oy) = BuildingCatalog.FootprintOrigin(Cell(p.Cell.X), Cell(p.Cell.Y), bp.FootprintW, bp.FootprintH);
-        if (!FootprintClear(units, map, ox, oy, bp.FootprintW, bp.FootprintH, EntityId.None)) return;
+        // and ore, and of units (a unit standing there would be sealed in).
+        if (!map.CanOccupy(ox, oy, bp.FootprintW, bp.FootprintH)) return R(PlaceVerdict.Blocked);
+        if (!FootprintClear(units, map, ox, oy, bp.FootprintW, bp.FootprintH, EntityId.None)) return R(PlaceVerdict.Occupied);
         // T32: build radius. Anything but a construction yard must come within BuildRadius of one
         // of the faction's own live buildings. (A yard by `place` is the scenario bootstrap; in
         // play yards come from deploying the MCV, see Deploy.)
-        if (bp.Category != "construction-yard" && !InBuildRadius(units, map, p.Faction, ox, oy, bp.FootprintW, bp.FootprintH)) return;
+        if (bp.Category != "construction-yard" && !InBuildRadius(units, map, faction, ox, oy, bp.FootprintW, bp.FootprintH))
+            return R(PlaceVerdict.Radius);
+        if (credits < bp.Cost) return R(PlaceVerdict.Credits);
+        return R(PlaceVerdict.Ok);
+    }
+
+    private static void Place(BuildingCatalog buildings, UnitStore units, Rts.Sim.World.GameMap map,
+        EntityIdAllocator ids, PlaceBuildingCommand p, TryOp spend)
+    {
+        var (verdict, ox, oy, _, _) = CheckPlace(buildings, units, map, p.Faction, p.BuildingId, p.Cell, int.MaxValue);
+        if (verdict != PlaceVerdict.Ok) return;
+        var bp = buildings.Get(p.BuildingId);
         if (!spend(p.Faction, bp.Cost)) return; // money last: every earlier failure costs nothing
         SpawnBuilding(units, map, ids, bp, p.Faction, ox, oy);
     }

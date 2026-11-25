@@ -43,6 +43,7 @@ public sealed class SimHostSession(string repoRoot)
                 "init" => Init(req),
                 "step" => Step(req),
                 "reset" => Reset(),
+                "query" => Query(req),
                 _ => Codec.Encode(HostResponse.Fail("unknown_kind", $"kind '{req.Kind}'")),
             };
         }
@@ -76,7 +77,23 @@ public sealed class SimHostSession(string repoRoot)
             Tick = _world.World.Tick,
             State = _world.Snapshot(),
             Events = [],
+            Catalog = _world.CatalogBlock(),
         });
+    }
+
+    /// <summary>T36: answer a read-only question about the current world. Never advances it.</summary>
+    private string Query(HostRequest req)
+    {
+        if (_world is null)
+            return Codec.Encode(HostResponse.Fail("not_initialized", "send init before query"));
+        var q = req.Query!.Value;
+        var type = q.TryGetProperty("type", out var t) ? t.GetString() : null;
+        if (type != "place")
+            throw new ProtocolException("malformed_request", $"unknown query type '{type}'");
+        var at = q.GetProperty("at");
+        var result = _world.QueryPlace(q.GetProperty("faction").GetInt32(), q.GetProperty("building").GetString()!,
+            new FixVec2(Fix64.FromDouble(at[0].GetDouble()), Fix64.FromDouble(at[1].GetDouble())));
+        return Codec.Encode(new HostResponse { Ok = true, Tick = _world.World.Tick, Events = [], Query = result });
     }
 
     /// <summary>T07: drop the world so the next init starts a fresh match. The rebuilt world is
