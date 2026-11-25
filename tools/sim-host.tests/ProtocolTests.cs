@@ -551,6 +551,16 @@ public class ProtocolTests
         Assert.Equal(["rifleman"], queued.ProductionQueue!);
         Assert.True(queued.QueueHeadTotal > 0);
         Assert.InRange(queued.QueueHeadRemaining, 1, queued.QueueHeadTotal);
+        Assert.Null(queued.Rally);
+
+        // T37: rally point on the snapshot; the rifleman walks there once trained.
+        Step(t, $$"""[{"tick":{{t}},"faction":0,"type":"rally","building":{{barracks.Id}},"at":[18.5,18.5]}]""");
+        t++;
+        var rallied = Step(t++).State!.Units.Single(u => u.Id == barracks.Id);
+        Assert.Equal(new[] { (long)(18.5 * 4294967296.0), (long)(18.5 * 4294967296.0) }, rallied.Rally!);
+        for (var i = 0; i < 500; i++) last = Step(t++);
+        var rifle = last.State!.Units.Single(u => u.BuildingId == null && u.Faction == 0 && !u.Harvest);
+        Assert.Equal((18, 18), ((int)(rifle.X >> 32), (int)(rifle.Y >> 32)));
     }
 
     // ---------- debug overlays (T20) ----------

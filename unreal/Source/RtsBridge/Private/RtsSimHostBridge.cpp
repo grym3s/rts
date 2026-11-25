@@ -254,6 +254,14 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				UO->TryGetBoolField(TEXT("harvest"), U.bHarvester);
 				UO->TryGetNumberField(TEXT("load"), U.Load);
 				UO->TryGetBoolField(TEXT("carrying"), U.bCarrying);
+				// T37: rally point [x, y] Q32.32 raw, present only on buildings that have one.
+				const TArray<TSharedPtr<FJsonValue>>* RallyArr = nullptr;
+				if (UO->TryGetArrayField(TEXT("rally"), RallyArr) && RallyArr->Num() == 2)
+				{
+					U.bHasRally = true;
+					U.RallyX = (*RallyArr)[0]->AsNumber() / 4294967296.0;
+					U.RallyY = (*RallyArr)[1]->AsNumber() / 4294967296.0;
+				}
 				OutReply.Units.Add(U);
 			}
 		}

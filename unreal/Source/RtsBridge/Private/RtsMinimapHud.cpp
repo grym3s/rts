@@ -180,9 +180,11 @@ void ARtsMinimapHud::DrawHUD()
 	DrawHealthBars();
 	DrawDebugOverlays();
 	DrawConstructionBars();
+	DrawRallyPoints();
 	DrawPlacementGhost();
 	DrawEconomyBar();
 	DrawBuildMenu();
+	DrawProductionPanel();
 
 	// Box-select drag rectangle (screen space, under the minimap).
 	if (const ARtsRtsPlayerController* RPC = Cast<ARtsRtsPlayerController>(PlayerOwner))
@@ -855,5 +857,154 @@ void ARtsMinimapHud::DrawConstructionBars()
 		const float X = S.X - W * 0.5f, Y = S.Y - H * 0.5f;
 		DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.75f), X - 1.0f, Y - 1.0f, W + 2.0f, H + 2.0f);
 		DrawRect(FLinearColor(0.35f, 0.75f, 1.0f), X, Y, W * F, H);
+	}
+}
+
+// ---- T37: production panel and rally points --------------------------------------------------
+
+namespace
+{
+	constexpr int32 ProdCols = 4;
+	constexpr float ProdBtnW = 104.0f, ProdBtnH = 44.0f, ProdGap = 4.0f, ProdPad = 8.0f, ProdHeader = 24.0f;
+	constexpr float ProdSlotW = 80.0f, ProdSlotH = 30.0f, ProdBottom = 10.0f;
+}
+
+ARtsMinimapHud::FProductionLayout ARtsMinimapHud::ProductionLayout(const FVector2D& Vp, int32 NumUnits)
+{
+	FProductionLayout L;
+	const int32 Rows = FMath::Max(1, (NumUnits + ProdCols - 1) / ProdCols);
+	const float W = ProdPad * 2.0f + ProdCols * ProdBtnW + (ProdCols - 1) * ProdGap;
+	const float H = ProdHeader + Rows * (ProdBtnH + ProdGap) + ProdSlotH + ProdPad * 2.0f;
+	const FVector2D Min((Vp.X - W) * 0.5f, Vp.Y - ProdBottom - H);
+	L.Panel = FBox2D(Min, Min + FVector2D(W, H));
+	for (int32 i = 0; i < NumUnits; ++i)
+	{
+		const float X = Min.X + ProdPad + (i % ProdCols) * (ProdBtnW + ProdGap);
+		const float Y = Min.Y + ProdHeader + (i / ProdCols) * (ProdBtnH + ProdGap);
+		L.Units.Add(FBox2D(FVector2D(X, Y), FVector2D(X + ProdBtnW, Y + ProdBtnH)));
+	}
+	const float QY = Min.Y + ProdHeader + Rows * (ProdBtnH + ProdGap) + ProdPad * 0.5f;
+	for (int32 i = 0; i < ProductionQueueSlots; ++i)
+	{
+		const float X = Min.X + ProdPad + i * (ProdSlotW + ProdGap);
+		L.Queue.Add(FBox2D(FVector2D(X, QY), FVector2D(X + ProdSlotW, QY + ProdSlotH)));
+	}
+	return L;
+}
+
+ARtsMinimapHud::EProductionHit ARtsMinimapHud::ProductionHit(const FVector2D& Vp, int32 NumUnits, const FVector2D& Pos, int32& OutIndex)
+{
+	OutIndex = INDEX_NONE;
+	const FProductionLayout L = ProductionLayout(Vp, NumUnits);
+	if (!L.Panel.IsInside(Pos))
+		return EProductionHit::None;
+	for (int32 i = 0; i < L.Units.Num(); ++i)
+		if (L.Units[i].IsInside(Pos))
+		{
+			OutIndex = i;
+			return EProductionHit::Unit;
+		}
+	for (int32 i = 0; i < L.Queue.Num(); ++i)
+		if (L.Queue[i].IsInside(Pos))
+		{
+			OutIndex = i;
+			return EProductionHit::Queue;
+		}
+	return EProductionHit::Panel;
+}
+
+void ARtsMinimapHud::DrawProductionPanel()
+{
+	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (!GM || !Canvas || GM->IsMatchScreenUp())
+		return;
+	const int32 ProducerId = GM->GetSelectedProducer();
+	const FRtsUnitSnapshot* B = ProducerId != INDEX_NONE ? GM->GetUnitRow(ProducerId) : nullptr;
+	if (!B)
+		return;
+	const TArray<FRtsUnitType> Types = GM->TrainableAt(B->BuildingId);
+	const FVector2D Vp(Canvas->SizeX, Canvas->SizeY);
+	const FProductionLayout L = ProductionLayout(Vp, Types.Num());
+	const FVector2D PS = L.Panel.GetSize();
+	DrawRect(FLinearColor(0.03f, 0.04f, 0.06f, 0.85f), L.Panel.Min.X, L.Panel.Min.Y, PS.X, PS.Y);
+	UFont* Font = GEngine ? GEngine->GetMediumFont() : nullptr;
+	UFont* Small = GEngine ? GEngine->GetSmallFont() : nullptr;
+	const FRtsBuildingType* BT = GM->FindBuildingType(B->BuildingId);
+	const bool bBuilding = B->ConstructionRemaining > 0;
+	const FString Title = (BT && !BT->Name.IsEmpty() ? BT->Name : B->BuildingId)
+		+ (bBuilding ? TEXT("  (under construction)") : TEXT("  -  LMB train, Shift x5, RMB cancel"));
+	DrawText(Title, FLinearColor(0.9f, 0.9f, 0.9f), L.Panel.Min.X + ProdPad, L.Panel.Min.Y + 4.0f, Small, 1.0f);
+
+	const FRtsFactionSnapshot* F = GM->GetFactionState(0);
+	const int32 Credits = F ? F->Credits : 0;
+	const bool bFull = B->ProductionQueue.Num() >= ProductionQueueSlots;
+	float MX = -1.0f, MY = -1.0f;
+	if (PlayerOwner)
+		PlayerOwner->GetMousePosition(MX, MY);
+	const FVector2D Mouse(MX, MY);
+	for (int32 i = 0; i < Types.Num(); ++i)
+	{
+		const FRtsUnitType& U = Types[i];
+		const FBox2D& R = L.Units[i];
+		const FVector2D S = R.GetSize();
+		const bool bOn = !bBuilding && !bFull && Credits >= U.Cost;
+		const int32 Queued = B->ProductionQueue.FilterByPredicate([&U](const FString& Q) { return Q == U.Id; }).Num();
+		FLinearColor Fill = bOn ? FLinearColor(0.14f, 0.17f, 0.22f, 0.95f) : FLinearColor(0.08f, 0.08f, 0.09f, 0.9f);
+		if (bOn && R.IsInside(Mouse))
+			Fill = FLinearColor(0.24f, 0.29f, 0.36f, 0.95f);
+		DrawRect(Fill, R.Min.X, R.Min.Y, S.X, S.Y);
+		const FLinearColor TextCol = bOn ? FLinearColor::White : FLinearColor(0.5f, 0.5f, 0.5f);
+		DrawText(U.Name.IsEmpty() ? U.Id : U.Name, TextCol, R.Min.X + 4.0f, R.Min.Y + 3.0f, Small, 1.0f);
+		DrawText(FString::Printf(TEXT("$%d"), U.Cost), Credits >= U.Cost ? FLinearColor(1.0f, 0.86f, 0.35f) : FLinearColor(1.0f, 0.4f, 0.3f),
+			R.Min.X + 4.0f, R.Min.Y + 22.0f, Small, 1.0f);
+		if (Queued > 0)
+		{
+			const FString QText = FString::Printf(TEXT("x%d"), Queued);
+			float QW = 0.0f, QH = 0.0f;
+			GetTextSize(QText, QW, QH, Font, 1.0f);
+			DrawText(QText, FLinearColor(0.4f, 1.0f, 0.45f), R.Max.X - 4.0f - QW, R.Min.Y + 20.0f, Font, 1.0f);
+		}
+	}
+	for (int32 i = 0; i < L.Queue.Num(); ++i)
+	{
+		const FBox2D& R = L.Queue[i];
+		const FVector2D S = R.GetSize();
+		const bool bHas = B->ProductionQueue.IsValidIndex(i);
+		DrawRect(bHas ? FLinearColor(0.12f, 0.2f, 0.14f, 0.95f) : FLinearColor(0.06f, 0.06f, 0.07f, 0.8f), R.Min.X, R.Min.Y, S.X, S.Y);
+		if (!bHas)
+			continue;
+		const FRtsUnitType* QT = Types.FindByPredicate([&](const FRtsUnitType& U) { return U.Id == B->ProductionQueue[i]; });
+		const FString Label = QT && !QT->Name.IsEmpty() ? QT->Name : B->ProductionQueue[i];
+		DrawText(Label.Left(11), FLinearColor::White, R.Min.X + 3.0f, R.Min.Y + 2.0f, Small, 1.0f);
+		if (i == 0 && B->QueueHeadTotal > 0)
+		{
+			const float P = 1.0f - float(B->QueueHeadRemaining) / float(B->QueueHeadTotal);
+			DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.75f), R.Min.X + 2.0f, R.Max.Y - 7.0f, S.X - 4.0f, 5.0f);
+			DrawRect(FLinearColor(0.35f, 0.75f, 1.0f), R.Min.X + 2.0f, R.Max.Y - 7.0f, (S.X - 4.0f) * P, 5.0f);
+		}
+	}
+}
+
+void ARtsMinimapHud::DrawRallyPoints()
+{
+	// A line from each selected own building to its rally point, and a flag post there.
+	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (!GM)
+		return;
+	const float C = ARtsBridgeGameMode::CellUU;
+	const FLinearColor Col(1.0f, 0.85f, 0.25f, 0.9f);
+	for (const int32 Id : GM->GetSelectedIds())
+	{
+		const FRtsUnitSnapshot* R = GM->GetUnitRow(Id);
+		if (!R || !R->bHasRally || R->Faction != 0)
+			continue;
+		const FVector From = Project(FVector(R->X * C, R->Y * C, 5.0f));
+		const FVector To = Project(FVector(R->RallyX * C, R->RallyY * C, 5.0f));
+		const FVector Top = Project(FVector(R->RallyX * C, R->RallyY * C, 120.0f));
+		if (From.Z <= 0.0 || To.Z <= 0.0 || Top.Z <= 0.0)
+			continue;
+		DrawLine(From.X, From.Y, To.X, To.Y, FLinearColor(Col.R, Col.G, Col.B, 0.5f), 1.5f);
+		DrawLine(To.X, To.Y, Top.X, Top.Y, Col, 2.0f);
+		DrawRect(Col, Top.X, Top.Y, 14.0f, 9.0f);
 	}
 }

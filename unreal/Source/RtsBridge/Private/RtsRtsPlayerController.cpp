@@ -224,7 +224,9 @@ bool ARtsRtsPlayerController::IssueOrderAtCursor(bool bAttack)
 	// Marker only when the order was actually queued (selection non-empty, host alive).
 	auto PointOrder = [&](const FVector& P)
 	{
-		const bool bQueued = bAttack ? GM->RequestAttackMoveTo(P) : GM->RequestMoveTo(P);
+		bool bQueued = bAttack ? GM->RequestAttackMoveTo(P) : GM->RequestMoveTo(P);
+		if (!bAttack)
+			bQueued |= GM->RequestRallySelected(P); // T37: selected buildings take it as their rally point
 		if (bQueued && Hud)
 			Hud->AddGroundMarker(FVector2D(P.X, P.Y), bAttack ? EMarker::AttackMove : EMarker::Move);
 		return bQueued;
@@ -260,6 +262,8 @@ void ARtsRtsPlayerController::OnRightClick()
 		SetPlacing(FString()); // RMB cancels placement
 		return;
 	}
+	if (HandleProductionClick(/*bRight=*/true))
+		return;
 	if (bAttackMoveArmed)
 	{
 		SetAttackMoveArmed(false); // RMB cancels a pending attack-move
@@ -273,6 +277,8 @@ void ARtsRtsPlayerController::OnLeftClick()
 	if (HandleMatchScreenClick())
 		return;
 	if (HandleBuildMenuClick())
+		return;
+	if (HandleProductionClick(/*bRight=*/false))
 		return;
 	if (!PlacingBuildingId.IsEmpty())
 	{
@@ -461,4 +467,36 @@ void ARtsRtsPlayerController::OnDeployKey()
 {
 	if (ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>())
 		GM->RequestDeploySelected();
+}
+
+// ---- T37: production panel -----------------------------------------------------------------
+
+bool ARtsRtsPlayerController::HandleProductionClick(bool bRight)
+{
+	ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
+	float MX, MY;
+	if (!GM || !GetMousePosition(MX, MY))
+		return false;
+	const int32 ProducerId = GM->GetSelectedProducer();
+	const FRtsUnitSnapshot* B = ProducerId != INDEX_NONE ? GM->GetUnitRow(ProducerId) : nullptr;
+	if (!B)
+		return false;
+	const TArray<FRtsUnitType> Types = GM->TrainableAt(B->BuildingId);
+	int32 VX = 0, VY = 0;
+	GetViewportSize(VX, VY);
+	int32 Index = INDEX_NONE;
+	const ARtsMinimapHud::EProductionHit Hit = ARtsMinimapHud::ProductionHit(FVector2D(VX, VY), Types.Num(), FVector2D(MX, MY), Index);
+	if (Hit == ARtsMinimapHud::EProductionHit::None)
+		return false;
+	bLeftDownOnView = false;
+	if (Hit == ARtsMinimapHud::EProductionHit::Unit && Types.IsValidIndex(Index))
+	{
+		if (bRight)
+			GM->RequestCancelLastOf(ProducerId, Types[Index].Id);
+		else
+			GM->RequestTrain(ProducerId, Types[Index].Id, IsShiftDown() ? 5 : 1);
+	}
+	else if (Hit == ARtsMinimapHud::EProductionHit::Queue && bRight && B->ProductionQueue.IsValidIndex(Index))
+		GM->RequestCancel(ProducerId, Index);
+	return true; // the panel swallows the click
 }

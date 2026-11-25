@@ -42,3 +42,7 @@ public sealed record CancelProductionCommand(int Tick, int Faction, EntityId Bui
 /// yard where it stands — free (paid when trained), the yard's footprint must be clear, the yard
 /// then builds for its BuildTicks like any placed building. Rejected whole otherwise.</summary>
 public sealed record DeployCommand(int Tick, int Faction, EntityId Unit) : Command(Tick, Faction);
+
+/// <summary>Step-1 command (T37): set a producing building's rally point. Units it trains from
+/// then on walk there (a plain move order) as they spawn. Own, live buildings only.</summary>
+public sealed record RallyCommand(int Tick, int Faction, EntityId BuildingId, FixVec2 Target) : Command(Tick, Faction);

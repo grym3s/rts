@@ -73,6 +73,19 @@ public:
 	/** Short player-facing text for a placement verdict reason from the host. */
 	static FString PlaceReasonText(const FString& Reason);
 
+	/** T37 production panel (bottom centre, the selected producing building): a row of unit
+	 *  buttons and a row of queue slots (head first). Static and pure for the hit test. */
+	struct FProductionLayout
+	{
+		FBox2D Panel;
+		TArray<FBox2D> Units;
+		TArray<FBox2D> Queue;
+	};
+	static constexpr int32 ProductionQueueSlots = 5; // ProductionStore.MaxQueue
+	static FProductionLayout ProductionLayout(const FVector2D& Viewport, int32 NumUnits);
+	enum class EProductionHit : uint8 { None, Panel, Unit, Queue };
+	static EProductionHit ProductionHit(const FVector2D& Viewport, int32 NumUnits, const FVector2D& Pos, int32& OutIndex);
+
 private:
 	struct FOrderMarker
 	{
@@ -101,6 +114,8 @@ private:
 	void DrawBuildMenu();
 	void DrawPlacementGhost();
 	void DrawConstructionBars();
+	void DrawProductionPanel();
+	void DrawRallyPoints();
 	int32 LastCredits = INT32_MIN; // T35: the +/- flash beside credits
 	int32 CreditsDelta = 0;
 	double CreditsDeltaUntil = 0.0;

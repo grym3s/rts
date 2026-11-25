@@ -15,14 +15,15 @@ public static class ProductionSystem
 {
     public delegate bool TryOp(int faction, int amount);
 
-    /// <summary>`due` = this tick's commands (the three production ones are handled here,
+    /// <summary>`due` = this tick's commands (the production ones are handled here,
     /// others ignored). Call AFTER OrderSystem.ApplyCommands in the same step-1 slot.</summary>
     public static void Step(
         BuildingCatalog buildings, UnitCatalog unitsCatalog,
         UnitStore units, Rts.Sim.World.GameMap map,
         EntityIdAllocator ids,
         IReadOnlyList<Command> due,
-        TryOp spend, TryOp refund, PowerStore? power, int tick)
+        TryOp spend, TryOp refund, PowerStore? power, int tick,
+        Action<EntityId, FixVec2>? rallyTo = null)
     {
         // T31: destroyed buildings were despawned last tick (cleanup); free their footprints
         // before anything places or paths this tick.
@@ -35,6 +36,7 @@ public static class ProductionSystem
                 case TrainCommand t: Train(unitsCatalog, units, t, spend, tick); break;
                 case DeployCommand d: Deploy(buildings, units, map, ids, d); break;
                 case CancelProductionCommand x: Cancel(unitsCatalog, units, x, refund); break;
+                case RallyCommand r: Rally(units, r); break;
             }
 
         // progress: snapshot the roster — completions append units, must not iterate live
@@ -71,15 +73,16 @@ public static class ProductionSystem
 
             var unitId = b.Queue[0];
             b.Queue.RemoveAt(0);
-            SpawnUnit(unitsCatalog.Get(unitId), map, units, ids, u.Position);
+            var trained = SpawnUnit(unitsCatalog.Get(unitId), map, units, ids, u.Position);
+            if (b.Rally is { } rally) rallyTo?.Invoke(trained.Id, rally); // T37: walk to the rally point
             if (b.Queue.Count > 0) { b.QueueHeadRemaining = unitsCatalog.Get(b.Queue[0]).BuildTicks; b.QueueEnqueuedAtTick = tick; }
         }
     }
 
-    private static void SpawnUnit(UnitCatalog.SpawnParams p, Rts.Sim.World.GameMap map, UnitStore units, EntityIdAllocator ids, FixVec2 at)
+    private static Unit SpawnUnit(UnitCatalog.SpawnParams p, Rts.Sim.World.GameMap map, UnitStore units, EntityIdAllocator ids, FixVec2 at)
     {
         var cell = ProductionRules.FindSpawnCell(map, units, at);
-        units.Spawn(ids.Next(), cell, p.Speed, p.Radius,
+        return units.Spawn(ids.Next(), cell, p.Speed, p.Radius,
             new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest, p.DeploysTo));
     }
 
@@ -213,6 +216,13 @@ public static class ProductionSystem
         b.Queue.RemoveAt(x.Index);
         b.QueueHeadRemaining = x.Index == 0 && b.Queue.Count > 0
             ? unitsCatalog.Get(b.Queue[0]).BuildTicks : b.QueueHeadRemaining;
+    }
+
+    private static void Rally(UnitStore units, RallyCommand r)
+    {
+        if (units.Find(r.BuildingId) is not { Building: { } b } bu) return;
+        if (bu.Faction != r.Faction || bu.Hp.Raw <= 0) return;
+        b.Rally = r.Target;
     }
 
     private static int Cell(Fix64 v) => (int)(v.Raw >> Fix64.FractionBits);

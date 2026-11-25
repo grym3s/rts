@@ -130,6 +130,18 @@ public:
 	/** Select every MCV you own (the sidebar Deploy button with no MCV selected). */
 	void SelectOwnMcvs();
 
+	/** T37: the selected own building that can train something (lowest id), else INDEX_NONE. */
+	int32 GetSelectedProducer() const;
+	/** Faction-0 unit types trained at a building type, catalog order. */
+	TArray<FRtsUnitType> TrainableAt(const FString& BuildingTypeId) const;
+	/** Queue Count `train` commands (the sim caps the queue and refuses what you can't afford). */
+	bool RequestTrain(int32 BuildingSimId, const FString& UnitId, int32 Count);
+	/** `cancel` queue slot Index (refund), or the last queued unit of a type. */
+	bool RequestCancel(int32 BuildingSimId, int32 Index);
+	bool RequestCancelLastOf(int32 BuildingSimId, const FString& UnitId);
+	/** `rally` every selected own producing building at a world ground point. */
+	bool RequestRallySelected(const FVector& WorldPoint);
+
 	/** Fixture map size in cells (must match the init request's map) and world scale. */
 	// Set from the loaded scenario in StartPlay (before any HUD/camera use of them).
 	static int32 MapCellsW;

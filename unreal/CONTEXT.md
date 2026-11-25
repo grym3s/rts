@@ -21,6 +21,8 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   and the read-only `query` kind (`QueryPlace(faction, building, cell)` -> allowed, reason, footprint
   `QueryRect`). Test: `RtsBridge.Host.BuildMenu` (catalog, prereq/blocked/radius verdicts, query
   never advances the tick, sidebar layout/hit).
+  T37: per building `rally` (bHasRally, RallyX/Y in cells). Test: `RtsBridge.Host.Production` (train x2,
+  cancel refunds, rally decoded, the rifleman walks there; panel layout/hit).
 - `Source/RtsBridge/Private/RtsBridgeRoundTripTest.cpp` — editor automation test
   `RtsBridge.Host.RoundTrip` (real host launch, init, tick-0 move, 120 steps).
 - `Config/DefaultEngine.ini` — GlobalDefaultGameMode = RtsBridgeGameMode;
@@ -55,7 +57,10 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   issues `attack-move` (or `attack` on an enemy); RMB cancels. X = `stop`. Restart (T07, `RestartMatch`, no hotkey — only the T19 result screen's Play again calls it): host `reset` + `init` on the live process, relaunch if it died; clears actors, selection, groups and the result banner. A/S are
   WASD, hence F/X; Esc is left to the editor (stops PIE). T36: LMB a sidebar entry = placement mode (hand
   cursor); LMB ground queues `place` only when the query allows it (Shift keeps placing); RMB
-  cancels; the minimap still moves the camera while placing. E = `deploy` the selected MCVs. All orders go through
+  cancels; the minimap still moves the camera while placing. E = `deploy` the selected MCVs. T37:
+  clicking a building selects it; unit orders skip buildings; RMB ground with a producing building
+  selected also sends `rally` (`RequestRallySelected`); the production panel takes LMB (`train`,
+  Shift = 5) and RMB (`cancel` the last of that unit, or the clicked queue slot). All orders go through
   `QueueOrderForSelection` (game mode); never sim state.
   Test: `RtsBridge.Host.Orders` (real host accepts the exact attack/stop/attack-move bodies). `RtsBridge.Host.Restart`: reset + init replays the same hash; init without reset is refused.
 - `RtsSelection.h` (`FRtsSelection`) — pure selection + control groups 1–3 over sim
@@ -79,7 +84,10 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   change), affordability and a low-power warning from the snapshot; static `BuildMenuLayout`/
   `BuildMenuHit`); placement ghost (footprint cells under the cursor, green/red from
   `QueryPlace`, cached per cell and tick, with the reason text); construction bars (blue, over
-  buildings still building). Buildings are drawn by `ARtsSimUnitActor::SetBuildingShape` (footprint
+  buildings still building). Production panel (T37, bottom centre, `GetSelectedProducer`: the
+  building's trainable units from the catalog as buttons with cost, queued count and greying when
+  unaffordable / full / under construction; five queue slots with the head's progress; static
+  `ProductionLayout`/`ProductionHit`); rally line and flag for selected buildings. Buildings are drawn by `ARtsSimUnitActor::SetBuildingShape` (footprint
   box rising from a slab, darker until finished); box select and Ctrl+A skip buildings;
   debug overlays (T20, F4 toggles all of them via `SetDebugMask`; in PIE the editor swallows
   F1-F3 and F8/F11 are taken, and the engine's own F4 view-mode binding is removed per

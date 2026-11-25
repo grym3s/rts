@@ -66,6 +66,16 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	FString DeploysTo;
 
+	/** T37: the building's rally point in map cells (bHasRally false = none). */
+	UPROPERTY(BlueprintReadOnly)
+	bool bHasRally = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	double RallyX = 0.0;
+
+	UPROPERTY(BlueprintReadOnly)
+	double RallyY = 0.0;
+
 	/** Harvester (T33): credits aboard and whether it is heading home full. */
 	UPROPERTY(BlueprintReadOnly)
 	bool bHarvester = false;

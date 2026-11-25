@@ -16,6 +16,8 @@ public sealed class BuildingState
     public int QueueHeadRemaining { get; set; }
     /// <summary>Tick on which the queue head was enqueued (countdown starts the tick AFTER).</summary>
     public int QueueEnqueuedAtTick { get; set; }
+    /// <summary>T37: where trained units walk after spawning; null = they stay at the door.</summary>
+    public FixVec2? Rally { get; set; }
 }
 
 /// <summary>Production state that isn't per-building: nothing today (queue lives on the
@@ -31,7 +33,7 @@ public sealed class ProductionStore
     {
         var touched = false;
         foreach (var u in units.Units)
-            if (u.Building is { } b && (b.Queue.Count > 0 || b.ConstructionRemaining > 0 || b.QueueHeadRemaining > 0))
+            if (u.Building is { } b && (b.Queue.Count > 0 || b.ConstructionRemaining > 0 || b.QueueHeadRemaining > 0 || b.Rally is not null))
             { touched = true; break; }
         if (!touched) return h;
         foreach (var u in units.Units)
@@ -41,6 +43,12 @@ public sealed class ProductionStore
             h = (h ^ (uint)b.QueueHeadRemaining) * 1099511628211UL;
             foreach (var q in b.Queue)
                 foreach (var ch in q) h = ((h ^ ch) * 1099511628211UL);
+            // T37: only a set rally mixes in, so worlds without one hash as before
+            if (b.Rally is { } r)
+            {
+                h = (h ^ (ulong)r.X.Raw) * 1099511628211UL;
+                h = (h ^ (ulong)r.Y.Raw) * 1099511628211UL;
+            }
         }
         return h;
     }

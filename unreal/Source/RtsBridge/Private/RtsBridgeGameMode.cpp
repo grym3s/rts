@@ -183,10 +183,14 @@ bool ARtsBridgeGameMode::QueueOrderForSelection(const TCHAR* Type, const FString
 	FString Ids;
 	for (const int32 Id : Selection.GetSelected())
 	{
+		if (IsBuildingId(Id))
+			continue; // T37: buildings take rally points, not unit orders
 		if (Ids.Len())
 			Ids += TEXT(",");
 		Ids += FString::Printf(TEXT("%d"), Id);
 	}
+	if (Ids.IsEmpty())
+		return false;
 	// Tick-less body; Tick() wraps it as {"tick":N, <body>} when it sends.
 	FString Body = FString::Printf(TEXT("\"faction\":0,\"type\":\"%s\",\"units\":[%s]"), Type, *Ids);
 	if (!TargetJson.IsEmpty())
@@ -674,4 +678,70 @@ void ARtsBridgeGameMode::SelectOwnMcvs()
 			Ids.Add(P.Key);
 	Selection.SetAll(Ids);
 	RefreshSelectionRings();
+}
+
+// ---- T37: production queue and rally ---------------------------------------------------------
+
+TArray<FRtsUnitType> ARtsBridgeGameMode::TrainableAt(const FString& BuildingTypeId) const
+{
+	TArray<FRtsUnitType> Out;
+	for (const FRtsUnitType& U : UnitTypes)
+		if (U.Faction == 0 && U.BuiltFrom == BuildingTypeId)
+			Out.Add(U);
+	return Out;
+}
+
+int32 ARtsBridgeGameMode::GetSelectedProducer() const
+{
+	int32 Best = INDEX_NONE;
+	for (const int32 Id : Selection.GetSelected())
+		if (const FRtsUnitSnapshot* R = RowsById.Find(Id))
+			if (R->Faction == 0 && R->IsBuilding() && (Best == INDEX_NONE || Id < Best)
+				&& UnitTypes.ContainsByPredicate([R](const FRtsUnitType& U) { return U.Faction == 0 && U.BuiltFrom == R->BuildingId; }))
+				Best = Id;
+	return Best;
+}
+
+bool ARtsBridgeGameMode::RequestTrain(int32 BuildingSimId, const FString& UnitId, int32 Count)
+{
+	if (!bHostAlive || IsMatchScreenUp() || Count <= 0)
+		return false;
+	for (int32 i = 0; i < Count; ++i)
+		PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"train\",\"building\":%d,\"unit\":\"%s\""),
+			BuildingSimId, *UnitId));
+	return true;
+}
+
+bool ARtsBridgeGameMode::RequestCancel(int32 BuildingSimId, int32 Index)
+{
+	if (!bHostAlive || IsMatchScreenUp() || Index < 0)
+		return false;
+	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"cancel\",\"building\":%d,\"index\":%d"),
+		BuildingSimId, Index));
+	return true;
+}
+
+bool ARtsBridgeGameMode::RequestCancelLastOf(int32 BuildingSimId, const FString& UnitId)
+{
+	const FRtsUnitSnapshot* R = RowsById.Find(BuildingSimId);
+	if (!R)
+		return false;
+	const int32 Index = R->ProductionQueue.FindLast(UnitId);
+	return Index != INDEX_NONE && RequestCancel(BuildingSimId, Index);
+}
+
+bool ARtsBridgeGameMode::RequestRallySelected(const FVector& WorldPoint)
+{
+	if (!bHostAlive || IsMatchScreenUp())
+		return false;
+	bool bAny = false;
+	for (const int32 Id : Selection.GetSelected())
+		if (const FRtsUnitSnapshot* R = RowsById.Find(Id))
+			if (R->Faction == 0 && R->IsBuilding() && TrainableAt(R->BuildingId).Num() > 0)
+			{
+				PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"rally\",\"building\":%d,\"at\":%s"),
+					Id, *MapPointJson(WorldPoint)));
+				bAny = true;
+			}
+	return bAny;
 }

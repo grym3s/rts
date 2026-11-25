@@ -33,6 +33,10 @@ Refineries (T33): a finished building that some harvester is `builtFrom` ships o
 (canon, economy.md); no footprint may cover a vein cell (`GameMap.MarkResource`). Trained and
 shipped units stand at the centre of their spawn cell (a corner spawn straddled four cells and
 wedged against footprints).
+Rally (T37): `RallyCommand` sets `BuildingState.Rally` on an own, live building; each unit it then
+trains is handed to the `rallyTo` callback (the last `Step` parameter; hosts give it a plain move
+order), so production never depends on sim/orders. Shipped harvesters ignore it. The rally mixes into
+`ProductionStore.Hash` only once set, so worlds without one hash as before. Tests: `sim/tests/RallyTests.cs`.
 Known limits (2026-11-25): scenarios still bootstrap yards by `place` (and a player could too, for
 its cost); one queue per
 building; construction is not interruptible.

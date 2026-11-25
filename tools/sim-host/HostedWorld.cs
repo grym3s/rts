@@ -91,7 +91,8 @@ public sealed class HostedWorld
         world.Systems.Add((w, due) => Rts.Sim.Production.ProductionSystem.Step(
             buildingsCat, catalog, units, map, w.Ids, due,
             (f, a) => econ.TrySpend(f, a),
-            (f, a) => { econ.Deposit(f, a); return true; }, power, w.Tick));
+            (f, a) => { econ.Deposit(f, a); return true; }, power, w.Tick,
+            (id, at) => orders[id] = new MoveOrder(at, new List<FixVec2>(), w.Tick)));
         world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
         world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick, map, catalog.IsRefinery));
         world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick, w));
@@ -154,6 +155,8 @@ public sealed class HostedWorld
                 "train" => new TrainCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("unit").GetString()!),
                 "deploy" => new DeployCommand(tick, faction, new EntityId(c.GetProperty("unit").GetInt32())),
                 "cancel" => new CancelProductionCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("index").GetInt32()),
+                "rally" => new RallyCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()),
+                    new FixVec2(Fix64.FromDouble(c.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(c.GetProperty("at")[1].GetDouble()))),
                 var t => throw new ProtocolException("unknown_command_type", $"unknown command type '{t}'"),
             });
         }
@@ -245,7 +248,8 @@ public sealed class HostedWorld
                 u.Building is { } bt && bt.Queue.Count > 0 ? UnitsCatalog.Get(bt.Queue[0]).BuildTicks : 0,
                 u.DeploysTo,
                 u.Building is { } bf ? BuildingsCatalog.Get(bf.Id).FootprintW : 0,
-                u.Building is { } bh ? BuildingsCatalog.Get(bh.Id).FootprintH : 0));
+                u.Building is { } bh ? BuildingsCatalog.Get(bh.Id).FootprintH : 0,
+                u.Building?.Rally is { } rp ? new[] { rp.X.Raw, rp.Y.Raw } : null));
         }
 
         var factions = new List<HostFaction>(2);

@@ -11,6 +11,8 @@
 //   T36 build sidebar (right): LMB an entry = placement mode (ghost follows the cursor, green/red
 //        with the reason); LMB ground places (Shift keeps placing); RMB cancels.
 //   E: deploy the selected MCV (the sidebar Deploy button does the same)
+//   T37 production panel (bottom centre, selected building): LMB unit = train (Shift x5), RMB unit
+//        or queue slot = cancel; RMB ground with the building selected = rally point
 // Keys are read directly (no config axis mappings), so editor rewrites of
 // Config/DefaultInput.ini cannot silently unbind the camera.
 // Everything funnels through the game mode; the controller never touches sim state.
@@ -64,6 +66,8 @@ private:
 	void OnDeployKey();
 	/** T36: LMB on the build sidebar (pick an entry, Deploy); true = the click was the sidebar's. */
 	bool HandleBuildMenuClick();
+	/** T37: LMB a unit = train (Shift x5); RMB a unit = cancel its last, RMB a queue slot = cancel it. */
+	bool HandleProductionClick(bool bRight);
 	/** T36: LMB on the ground while placing: queue it if the sim says yes. */
 	void TryPlaceAtCursor();
 	void SetPlacing(const FString& BuildingId);
