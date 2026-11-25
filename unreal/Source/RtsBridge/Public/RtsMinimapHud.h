@@ -8,6 +8,7 @@
 #include "RtsMinimapHud.generated.h"
 
 class UTexture2D;
+class UFont;
 
 UCLASS()
 class RTSBRIDGE_API ARtsMinimapHud : public AHUD
@@ -31,6 +32,18 @@ public:
 	 *  that tick, coloured by the shooter's faction. Lives TracerSeconds. */
 	void AddTracer(const FVector& From, const FVector& To, int32 ShooterFaction);
 
+	/** T19 result screen layout in viewport px: centred panel and its buttons. Static and
+	 *  pure so the hit test is unit-tested. Without restart only Quit is laid out. */
+	struct FMatchScreenLayout
+	{
+		FBox2D Panel;
+		FBox2D PlayAgain; // invalid (IsValid == false) when restart is not offered
+		FBox2D Quit;
+	};
+	static FMatchScreenLayout MatchScreenLayout(const FVector2D& Viewport, bool bCanRestart);
+	enum class EMatchScreenButton : uint8 { None, PlayAgain, Quit };
+	static EMatchScreenButton MatchScreenHit(const FVector2D& Viewport, const FVector2D& Pos, bool bCanRestart);
+
 private:
 	struct FOrderMarker
 	{
@@ -51,6 +64,9 @@ private:
 	static constexpr double TracerSeconds = 0.2;
 	static constexpr int32 MaxTracers = 256; // a 500-unit brawl stays bounded
 	void DrawTracers();
+	void DrawMatchScreen();
+	void DrawButton(const FBox2D& R, const FString& Label, bool bHover, float Alpha);
+	void DrawCentredText(const FString& Text, UFont* Font, float CentreX, float Y, float Scale, const FLinearColor& Color);
 	/** Terrain image, one texel per cell, built once from the game mode's tile rows. */
 	UPROPERTY() TObjectPtr<UTexture2D> TerrainTex;
 	UTexture2D* GetTerrainTexture();

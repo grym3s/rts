@@ -46,6 +46,21 @@ public:
 	 *  dead host: relaunch it. Clears units, selection, groups and the result banner. */
 	bool RestartMatch();
 
+	/** T19: the match result screen is showing (match over + a short beat for the last
+	 *  deaths). While up, orders are refused; only the screen's buttons act. */
+	bool IsMatchScreenUp() const;
+	/** 0..1 fade of the result screen (for the HUD). */
+	float MatchScreenAlpha() const;
+	int32 GetMatchWinner() const { return MatchWinner; }
+	int64 GetMatchEndTick() const { return MatchEndTick; }
+	/** Units each faction fielded and lost this match (from snapshots and death events). */
+	int32 GetFielded(int32 Faction) const { return Fielded.IsValidIndex(Faction) ? Fielded[Faction] : 0; }
+	int32 GetLost(int32 Faction) const { return Lost.IsValidIndex(Faction) ? Lost[Faction] : 0; }
+	/** Restart is single-player only (standalone), from this screen — never a hotkey. */
+	bool CanRestart() const;
+	/** Leave the match (ends PIE in the editor, quits a packaged game). */
+	void QuitMatch();
+
 	bool IsHostAlive() const { return bHostAlive; }
 
 	/** Fixture map size in cells (must match the init request's map) and world scale. */
@@ -97,6 +112,13 @@ private:
 	bool bHostAlive = false;
 	bool bFinished = false;
 	bool bMatchReported = false; // log/show the T06 result once
+	int32 MatchWinner = -1;
+	int64 MatchEndTick = -1;
+	double MatchOverRealTime = 0.0;
+	static constexpr double MatchScreenDelay = 1.5; // let the last deaths play
+	static constexpr double MatchScreenFade = 0.4;
+	TArray<int32> Fielded = {0, 0, 0};
+	TArray<int32> Lost = {0, 0, 0};
 	bool bCameraFramedOnPlayer = false;  // start the view on your own units (once)
 	double WaitStart = 0.0;
 	double StepAccum = 0.0; // per match (a function static leaked across PIE sessions)

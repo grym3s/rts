@@ -191,7 +191,7 @@ void ARtsRtsPlayerController::SetAttackMoveArmed(bool bArmed)
 void ARtsRtsPlayerController::OnAttackMoveKey()
 {
 	const ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
-	if (GM && GM->HasSelection())
+	if (GM && GM->HasSelection() && !GM->IsMatchScreenUp())
 		SetAttackMoveArmed(true);
 }
 
@@ -245,6 +245,8 @@ bool ARtsRtsPlayerController::IssueOrderAtCursor(bool bAttack)
 
 void ARtsRtsPlayerController::OnRightClick()
 {
+	if (MatchScreenUp())
+		return;
 	if (bAttackMoveArmed)
 	{
 		SetAttackMoveArmed(false); // RMB cancels a pending attack-move
@@ -255,6 +257,8 @@ void ARtsRtsPlayerController::OnRightClick()
 
 void ARtsRtsPlayerController::OnLeftClick()
 {
+	if (HandleMatchScreenClick())
+		return;
 	if (bAttackMoveArmed)
 	{
 		IssueOrderAtCursor(/*bAttack=*/true);
@@ -299,4 +303,32 @@ void ARtsRtsPlayerController::OnSelectAll()
 {
 	if (ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>())
 		GM->SelectAll();
+}
+
+bool ARtsRtsPlayerController::MatchScreenUp() const
+{
+	const ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
+	return GM && GM->IsMatchScreenUp();
+}
+
+bool ARtsRtsPlayerController::HandleMatchScreenClick()
+{
+	ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
+	if (!GM || !GM->IsMatchScreenUp())
+		return false;
+	// T19: the result screen swallows every left click; only its buttons act.
+	SetAttackMoveArmed(false);
+	bLeftDownOnView = false;
+	float MX, MY;
+	int32 VX = 0, VY = 0;
+	GetViewportSize(VX, VY);
+	if (!GetMousePosition(MX, MY))
+		return true;
+	switch (ARtsMinimapHud::MatchScreenHit(FVector2D(VX, VY), FVector2D(MX, MY), GM->CanRestart()))
+	{
+	case ARtsMinimapHud::EMatchScreenButton::PlayAgain: GM->RestartMatch(); break;
+	case ARtsMinimapHud::EMatchScreenButton::Quit: GM->QuitMatch(); break;
+	default: break;
+	}
+	return true;
 }

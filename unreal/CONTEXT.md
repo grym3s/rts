@@ -42,7 +42,7 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   faction-0 units (A is scroll); Ctrl+1–3 assign group, 1–3 recall, double-tap
   centres the camera on it; RMB = enemy under cursor ? `attack` (target = sim id) :
   `move` to the minimap point or ground trace. F arms attack-move (crosshair): next LMB
-  issues `attack-move` (or `attack` on an enemy); RMB cancels. X = `stop`. Restart (T07, `RestartMatch`, no hotkey — only the single-player menu, T19, calls it): host `reset` + `init` on the live process, relaunch if it died; clears actors, selection, groups and the result banner. A/S are
+  issues `attack-move` (or `attack` on an enemy); RMB cancels. X = `stop`. Restart (T07, `RestartMatch`, no hotkey — only the T19 result screen's Play again calls it): host `reset` + `init` on the live process, relaunch if it died; clears actors, selection, groups and the result banner. A/S are
   WASD, hence F/X; Esc is left to the editor (stops PIE). All orders go through
   `QueueOrderForSelection` (game mode); never sim state.
   Test: `RtsBridge.Host.Orders` (real host accepts the exact attack/stop/attack-move bodies). `RtsBridge.Host.Restart`: reset + init replays the same hash; init without reset is refused.
@@ -53,7 +53,12 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   drag rectangle; health bars (T15: over damaged or selected units, green→yellow→red,
   screen space under the minimap); shot tracers (T16, pillar 4: per `shot` event a faint
   shooter→target line in the shooter's faction tint, a travelling streak, muzzle flash and
-  hit spark, 0.2 s, capped at 256 live; endpoints read before the dead leave the roster); canvas-drawn minimap,
+  hit spark, 0.2 s, capped at 256 live; endpoints read before the dead leave the roster);
+  match result screen (T19, drawn last: 1.5 s after `state.match.over` it fades in
+  VICTORY/DEFEAT/DRAW, match time from the end tick, units lost/fielded per side from
+  snapshots + death events, and Play again (standalone only, `CanRestart`) / Quit buttons;
+  layout + hit test are static `MatchScreenLayout`/`MatchScreenHit`, test `RtsBridge.UI.MatchScreen`;
+  while up, the controller routes left clicks to it and the game mode refuses orders); canvas-drawn minimap,
   bottom-left: terrain (transient texture, one texel per cell, built once from the
   tile rows), faction-coloured unit dots (selected = white outline), camera
   footprint (viewport corners deprojected to Z=0). `MinimapToWorld` for clicks. Map

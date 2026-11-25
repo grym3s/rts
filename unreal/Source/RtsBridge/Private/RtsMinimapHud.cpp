@@ -7,6 +7,8 @@
 #include "Engine/Canvas.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
+#include "Engine/Engine.h"
+#include "Engine/Font.h"
 
 // Minimap orientation matches the camera (yaw -90): left->right = world +X, top->bottom = world +Y.
 
@@ -232,13 +234,17 @@ void ARtsMinimapHud::DrawHUD()
 		{
 			FVector Origin, Dir;
 			if (!PlayerOwner->DeprojectScreenPositionToWorld(Corners[i].X, Corners[i].Y, Origin, Dir))
-				return;
+			{
+				Poly.Reset(); // no footprint this frame (the result screen below still draws)
+				break;
+			}
 			// A ray at or above the horizon never meets the ground: cap it at a long range.
 			const double T = (Dir.Z < -1e-3) ? FMath::Min(-Origin.Z / Dir.Z, 50000.0) : 50000.0;
 			const FVector Hit = Origin + Dir * T;
 			Poly.Add(FVector2D(Hit.X, Hit.Y));
 		}
-		Poly = ClipToBox(Poly, ARtsBridgeGameMode::MapWorldBounds());
+		if (Poly.Num() == 4)
+			Poly = ClipToBox(Poly, ARtsBridgeGameMode::MapWorldBounds());
 		for (int32 i = 0; i < Poly.Num(); ++i)
 		{
 			const FVector2D A = WorldToMinimap(R, Poly[i]);
@@ -246,6 +252,8 @@ void ARtsMinimapHud::DrawHUD()
 			DrawLine(A.X, A.Y, B.X, B.Y, FLinearColor::White, 1.5f);
 		}
 	}
+
+	DrawMatchScreen(); // T19: last, over everything
 }
 
 TArray<FVector2D> ARtsMinimapHud::ClipToBox(const TArray<FVector2D>& In, const FBox2D& Box)
@@ -372,4 +380,103 @@ void ARtsMinimapHud::DrawTracers()
 			DrawLine(B.X, B.Y - S, B.X, B.Y + S, Spark, 2.0f);
 		}
 	}
+}
+
+ARtsMinimapHud::FMatchScreenLayout ARtsMinimapHud::MatchScreenLayout(const FVector2D& Viewport, bool bCanRestart)
+{
+	FMatchScreenLayout L;
+	const FVector2D PanelSize(FMath::Min(460.0, Viewport.X - 32.0), 300.0);
+	const FVector2D C = Viewport * 0.5;
+	L.Panel = FBox2D(C - PanelSize * 0.5, C + PanelSize * 0.5);
+	const FVector2D Btn(160.0, 44.0);
+	const double BtnY = L.Panel.Max.Y - 28.0 - Btn.Y;
+	const double Gap = 20.0;
+	if (bCanRestart)
+	{
+		L.PlayAgain = FBox2D(FVector2D(C.X - Gap * 0.5 - Btn.X, BtnY), FVector2D(C.X - Gap * 0.5, BtnY + Btn.Y));
+		L.Quit = FBox2D(FVector2D(C.X + Gap * 0.5, BtnY), FVector2D(C.X + Gap * 0.5 + Btn.X, BtnY + Btn.Y));
+	}
+	else
+	{
+		L.PlayAgain = FBox2D(ForceInit); // not offered
+		L.Quit = FBox2D(FVector2D(C.X - Btn.X * 0.5, BtnY), FVector2D(C.X + Btn.X * 0.5, BtnY + Btn.Y));
+	}
+	return L;
+}
+
+ARtsMinimapHud::EMatchScreenButton ARtsMinimapHud::MatchScreenHit(const FVector2D& Viewport, const FVector2D& Pos, bool bCanRestart)
+{
+	const FMatchScreenLayout L = MatchScreenLayout(Viewport, bCanRestart);
+	if (L.PlayAgain.bIsValid && L.PlayAgain.IsInside(Pos))
+		return EMatchScreenButton::PlayAgain;
+	if (L.Quit.IsInside(Pos))
+		return EMatchScreenButton::Quit;
+	return EMatchScreenButton::None;
+}
+
+void ARtsMinimapHud::DrawCentredText(const FString& Text, UFont* Font, float CentreX, float Y, float Scale, const FLinearColor& Color)
+{
+	float W = 0.0f, H = 0.0f;
+	GetTextSize(Text, W, H, Font, Scale);
+	DrawText(Text, Color, CentreX - W * 0.5f, Y, Font, Scale);
+}
+
+void ARtsMinimapHud::DrawButton(const FBox2D& R, const FString& Label, bool bHover, float Alpha)
+{
+	const FVector2D S = R.GetSize();
+	const FLinearColor Fill = bHover ? FLinearColor(0.30f, 0.34f, 0.40f, 0.95f * Alpha) : FLinearColor(0.16f, 0.18f, 0.22f, 0.95f * Alpha);
+	const FLinearColor Edge(0.85f, 0.85f, 0.85f, (bHover ? 1.0f : 0.5f) * Alpha);
+	DrawRect(Fill, R.Min.X, R.Min.Y, S.X, S.Y);
+	DrawLine(R.Min.X, R.Min.Y, R.Max.X, R.Min.Y, Edge, 1.5f);
+	DrawLine(R.Max.X, R.Min.Y, R.Max.X, R.Max.Y, Edge, 1.5f);
+	DrawLine(R.Max.X, R.Max.Y, R.Min.X, R.Max.Y, Edge, 1.5f);
+	DrawLine(R.Min.X, R.Max.Y, R.Min.X, R.Min.Y, Edge, 1.5f);
+	UFont* Font = GEngine ? GEngine->GetMediumFont() : nullptr;
+	float W = 0.0f, H = 0.0f;
+	GetTextSize(Label, W, H, Font, 1.0f);
+	DrawText(Label, FLinearColor(1, 1, 1, Alpha), R.GetCenter().X - W * 0.5f, R.GetCenter().Y - H * 0.5f, Font, 1.0f);
+}
+
+void ARtsMinimapHud::DrawMatchScreen()
+{
+	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (!GM || !GM->IsMatchScreenUp() || !Canvas)
+		return;
+	const float A = GM->MatchScreenAlpha();
+	const FVector2D Vp(Canvas->SizeX, Canvas->SizeY);
+	const bool bCanRestart = GM->CanRestart();
+	const FMatchScreenLayout L = MatchScreenLayout(Vp, bCanRestart);
+
+	// Dim the battlefield (it keeps running underneath), then the panel.
+	DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.45f * A), 0.0f, 0.0f, Vp.X, Vp.Y);
+	const FVector2D PS = L.Panel.GetSize();
+	DrawRect(FLinearColor(0.05f, 0.06f, 0.08f, 0.92f * A), L.Panel.Min.X, L.Panel.Min.Y, PS.X, PS.Y);
+
+	const int32 Winner = GM->GetMatchWinner();
+	const FString Title = Winner == 0 ? TEXT("VICTORY") : Winner < 0 ? TEXT("DRAW") : TEXT("DEFEAT");
+	const FLinearColor TitleColor = Winner == 0 ? FLinearColor(0.35f, 0.95f, 0.45f, A)
+		: Winner < 0 ? FLinearColor(0.9f, 0.85f, 0.4f, A) : FLinearColor(0.95f, 0.3f, 0.25f, A);
+	DrawRect(FLinearColor(TitleColor.R, TitleColor.G, TitleColor.B, A), L.Panel.Min.X, L.Panel.Min.Y, PS.X, 4.0f);
+	const float Cx = L.Panel.GetCenter().X;
+	UFont* Large = GEngine ? GEngine->GetLargeFont() : nullptr;
+	UFont* Medium = GEngine ? GEngine->GetMediumFont() : nullptr;
+	DrawCentredText(Title, Large, Cx, L.Panel.Min.Y + 26.0f, 2.2f, TitleColor);
+
+	// Match time from the sim's end tick (20 t/s), and each side's losses.
+	const int64 Secs = FMath::Max<int64>(0, GM->GetMatchEndTick()) / 20;
+	const FLinearColor Body(0.85f, 0.85f, 0.85f, A);
+	DrawCentredText(FString::Printf(TEXT("Match time  %lld:%02lld"), Secs / 60, Secs % 60), Medium, Cx, L.Panel.Min.Y + 104.0f, 1.0f, Body);
+	DrawCentredText(FString::Printf(TEXT("Your forces lost  %d of %d"), GM->GetLost(0), GM->GetFielded(0)), Medium, Cx, L.Panel.Min.Y + 134.0f, 1.0f, Body);
+	DrawCentredText(FString::Printf(TEXT("Enemy forces destroyed  %d of %d"), GM->GetLost(1), GM->GetFielded(1)), Medium, Cx, L.Panel.Min.Y + 160.0f, 1.0f, Body);
+
+	FVector2D Mouse(-1, -1);
+	if (PlayerOwner)
+	{
+		float MX, MY;
+		if (PlayerOwner->GetMousePosition(MX, MY))
+			Mouse = FVector2D(MX, MY);
+	}
+	if (L.PlayAgain.bIsValid)
+		DrawButton(L.PlayAgain, TEXT("Play again"), L.PlayAgain.IsInside(Mouse), A);
+	DrawButton(L.Quit, TEXT("Quit"), L.Quit.IsInside(Mouse), A);
 }

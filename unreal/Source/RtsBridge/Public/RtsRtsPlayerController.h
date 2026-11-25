@@ -6,6 +6,7 @@
 //   F then LMB: attack-move (ground/minimap) or attack (enemy); RMB cancels (Esc = stop PIE)
 //   X: stop   Ctrl+A: select all   (A/S belong to WASD, hence F/X)
 //   Ctrl+1..3: assign control group   1..3: recall (double-tap: centre camera on it)
+//   Match over (T19): result screen; only its Play again / Quit buttons take clicks
 // Keys are read directly (no config axis mappings), so editor rewrites of
 // Config/DefaultInput.ini cannot silently unbind the camera.
 // Everything funnels through the game mode; the controller never touches sim state.
@@ -56,6 +57,10 @@ private:
 	/** Order the selection at the cursor: enemy under it = attack, else (attack-)move to
 	 *  the ground/minimap point. */
 	bool IssueOrderAtCursor(bool bAttack);
+	/** T19: true while the match result screen is up (orders are refused). */
+	bool MatchScreenUp() const;
+	/** Left click while the result screen is up: run its button, swallow the click. */
+	bool HandleMatchScreenClick();
 
 	bool IsShiftDown() const;
 	bool IsCtrlDown() const;

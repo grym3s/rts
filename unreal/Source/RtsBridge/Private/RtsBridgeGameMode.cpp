@@ -18,6 +18,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "HAL/PlatformTime.h"
 #include "Engine/Engine.h"
 
@@ -150,13 +151,13 @@ void ARtsBridgeGameMode::Tick(float DeltaSeconds)
 		SyncActorsFromReply(Reply);
 		if (Reply.bMatchOver && !bMatchReported)
 		{
-			// T06 result; the real win/lose screen with restart is T19.
+			// T06 result -> T19 screen (shown by the HUD after MatchScreenDelay).
 			bMatchReported = true;
-			const FString Msg = Reply.MatchWinner == 0 ? TEXT("VICTORY") : Reply.MatchWinner < 0 ? TEXT("DRAW") : TEXT("DEFEAT");
-			UE_LOG(LogTemp, Display, TEXT("RTS_MATCH_OVER: %s (winner %d, tick %lld)"), *Msg, Reply.MatchWinner, Reply.Tick);
-			if (GEngine)
-				GEngine->AddOnScreenDebugMessage(-1, 30.0f, Reply.MatchWinner == 0 ? FColor::Green : FColor::Red,
-					FString::Printf(TEXT("%s  (match over at tick %lld)"), *Msg, Reply.Tick), true, FVector2D(3.0f, 3.0f));
+			MatchWinner = Reply.MatchWinner;
+			MatchEndTick = Reply.Tick;
+			MatchOverRealTime = FPlatformTime::Seconds();
+			const TCHAR* Msg = MatchWinner == 0 ? TEXT("VICTORY") : MatchWinner < 0 ? TEXT("DRAW") : TEXT("DEFEAT");
+			UE_LOG(LogTemp, Display, TEXT("RTS_MATCH_OVER: %s (winner %d, tick %lld)"), Msg, MatchWinner, MatchEndTick);
 		}
 	}
 }
@@ -165,6 +166,8 @@ bool ARtsBridgeGameMode::QueueOrderForSelection(const TCHAR* Type, const FString
 {
 	if (!bHostAlive || Selection.GetSelected().Num() == 0)
 		return false;
+	if (IsMatchScreenUp())
+		return false; // T19: the result screen owns input
 	FString Ids;
 	for (const int32 Id : Selection.GetSelected())
 	{
@@ -319,7 +322,11 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 	TSet<int32> Killed;
 	for (const FRtsSimEvent& E : Reply.Events)
 		if (E.Kind == TEXT("death"))
+		{
 			Killed.Add(E.Subject);
+			if (Lost.IsValidIndex(E.Faction))
+				++Lost[E.Faction];
+		}
 
 	TSet<int32> Alive;
 	UnitActors.Reset(Reply.Units.Num());
@@ -332,6 +339,8 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 			A = GetWorld()->SpawnActor<ARtsSimUnitActor>();
 			if (!A)
 				continue;
+			if (Fielded.IsValidIndex(S.Faction))
+				++Fielded[S.Faction];
 			A->SetSimUnitId(S.Id);
 			A->SetFaction(S.Faction);
 			A->SnapToSimPosition(S.X, S.Y);
@@ -449,10 +458,38 @@ bool ARtsBridgeGameMode::RestartMatch()
 	StepAccum = 0.0;
 	bMatchReported = false;
 	bCameraFramedOnPlayer = false;
+	MatchWinner = -1;
+	MatchEndTick = -1;
+	Fielded = {0, 0, 0};
+	Lost = {0, 0, 0};
 	bFinished = false;
 	bHostAlive = true;
 	if (GEngine)
 		GEngine->ClearOnScreenDebugMessages();
 	UE_LOG(LogTemp, Display, TEXT("RTS_MATCH_RESTART: new match from tick 0"));
 	return true;
+}
+
+bool ARtsBridgeGameMode::IsMatchScreenUp() const
+{
+	return bMatchReported && FPlatformTime::Seconds() - MatchOverRealTime >= MatchScreenDelay;
+}
+
+float ARtsBridgeGameMode::MatchScreenAlpha() const
+{
+	if (!bMatchReported)
+		return 0.0f;
+	const double T = FPlatformTime::Seconds() - MatchOverRealTime - MatchScreenDelay;
+	return float(FMath::Clamp(T / MatchScreenFade, 0.0, 1.0));
+}
+
+bool ARtsBridgeGameMode::CanRestart() const
+{
+	// Single player only: a standalone game (PIE counts). Never offered in a networked match.
+	return GetNetMode() == NM_Standalone && !InitRequest.IsEmpty();
+}
+
+void ARtsBridgeGameMode::QuitMatch()
+{
+	UKismetSystemLibrary::QuitGame(this, UGameplayStatics::GetPlayerController(this, 0), EQuitPreference::Quit, false);
 }
