@@ -38,6 +38,12 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   `PhaseCooldown`. The HUD puts a red pip over marked units and a cyan ring under phased ones. No
   player buttons for Phase / Conscription yet: the player is Coalition (faction 0), whose verb
   (Marking) is passive.
+  T28: unit rows add `bCanCapture`, faction rows `Trees` (`HasTree`). RMB on an enemy or neutral
+  building, or an enemy MCV, sends selected capturing engineers to take it and the rest to attack
+  it (`RequestCaptureOrAttack`; neutrals can't be attacked, so with no engineer it is a plain move).
+  A captured actor re-tints to its new owner; neutral is grey. Trainable lists ignore the unit's
+  faction (a captured barracks offers its own units); the build menu lists every tree in `Trees`.
+  Test: `RtsBridge.Host.Capture`.
 - `Source/RtsBridge/Private/RtsBridgeRoundTripTest.cpp` — editor automation test
   `RtsBridge.Host.RoundTrip` (real host launch, init, tick-0 move, 120 steps).
 - `Config/DefaultEngine.ini` — GlobalDefaultGameMode = RtsBridgeGameMode;
