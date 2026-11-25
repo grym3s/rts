@@ -27,6 +27,10 @@ public:
 	/** Marker that follows a unit (attack target, stopped units). */
 	void AddUnitMarker(int32 SimUnitId, EOrderMarker Kind);
 
+	/** T16 (pillar 4): one shot from a `shot` event — world points of shooter and target at
+	 *  that tick, coloured by the shooter's faction. Lives TracerSeconds. */
+	void AddTracer(const FVector& From, const FVector& To, int32 ShooterFaction);
+
 private:
 	struct FOrderMarker
 	{
@@ -36,6 +40,17 @@ private:
 		double StartTime = 0.0;
 	};
 	TArray<FOrderMarker> Markers;
+	struct FTracer
+	{
+		FVector From = FVector::ZeroVector;
+		FVector To = FVector::ZeroVector;
+		FLinearColor Color = FLinearColor::White;
+		double StartTime = 0.0;
+	};
+	TArray<FTracer> Tracers;
+	static constexpr double TracerSeconds = 0.2;
+	static constexpr int32 MaxTracers = 256; // a 500-unit brawl stays bounded
+	void DrawTracers();
 	/** Terrain image, one texel per cell, built once from the game mode's tile rows. */
 	UPROPERTY() TObjectPtr<UTexture2D> TerrainTex;
 	UTexture2D* GetTerrainTexture();

@@ -344,6 +344,18 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 		A->SetHealth(S.Hp, S.MaxHp);
 		UnitActors.Add(A);
 	}
+	// T16: one tracer per shot, read while both actors are still mapped (a killing shot's
+	// target leaves the roster below). Shooter faction colours it.
+	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+		if (ARtsMinimapHud* Hud = Cast<ARtsMinimapHud>(PC->GetHUD()))
+			for (const FRtsSimEvent& E : Reply.Events)
+				if (E.Kind == TEXT("shot"))
+				{
+					const ARtsSimUnitActor* From = FindUnitActor(E.Subject);
+					const ARtsSimUnitActor* To = FindUnitActor(E.Target);
+					if (From && To)
+						Hud->AddTracer(From->GetActorLocation(), To->GetActorLocation(), From->GetFaction());
+				}
 	DyingActors.RemoveAll([](const TWeakObjectPtr<ARtsSimUnitActor>& D) { return !D.IsValid(); });
 	for (auto It = ActorsById.CreateIterator(); It; ++It)
 		if (!Alive.Contains(It.Key()))

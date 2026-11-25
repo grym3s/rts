@@ -51,7 +51,9 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   Test: `RtsBridge.Selection.Rules` (no world, no host).
 - `RtsMinimapHud` (HUDClass, set in the game mode ctor) — also draws the box-select
   drag rectangle; health bars (T15: over damaged or selected units, green→yellow→red,
-  screen space under the minimap); canvas-drawn minimap,
+  screen space under the minimap); shot tracers (T16, pillar 4: per `shot` event a faint
+  shooter→target line in the shooter's faction tint, a travelling streak, muzzle flash and
+  hit spark, 0.2 s, capped at 256 live; endpoints read before the dead leave the roster); canvas-drawn minimap,
   bottom-left: terrain (transient texture, one texel per cell, built once from the
   tile rows), faction-coloured unit dots (selected = white outline), camera
   footprint (viewport corners deprojected to Z=0). `MinimapToWorld` for clicks. Map

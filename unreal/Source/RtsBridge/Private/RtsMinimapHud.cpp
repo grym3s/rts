@@ -174,6 +174,7 @@ void ARtsMinimapHud::DrawHUD()
 	if (!Canvas)
 		return;
 	const FVector2D Vp(Canvas->SizeX, Canvas->SizeY);
+	DrawTracers();
 	DrawHealthBars();
 
 	// Box-select drag rectangle (screen space, under the minimap).
@@ -312,5 +313,63 @@ void ARtsMinimapHud::DrawHealthBars()
 		const float X = S.X - W * 0.5f, Y = S.Y - H * 0.5f;
 		DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.75f), X - 1.0f, Y - 1.0f, W + 2.0f, H + 2.0f);
 		DrawRect(Fill, X, Y, W * F, H);
+	}
+}
+
+void ARtsMinimapHud::AddTracer(const FVector& From, const FVector& To, int32 ShooterFaction)
+{
+	if (Tracers.Num() >= MaxTracers)
+		Tracers.RemoveAt(0, 1, EAllowShrinking::No);
+	FTracer T;
+	// Gun height, and start/end at the cube's edge rather than its centre.
+	const FVector Up(0.0, 0.0, 15.0);
+	const FVector Dir = (To - From).GetSafeNormal2D();
+	T.From = From + Up + Dir * 30.0;
+	T.To = To + Up - Dir * 20.0;
+	// Warm white tinted toward the shooter's faction: readable on any terrain.
+	T.Color = FMath::Lerp(FLinearColor(1.0f, 0.95f, 0.8f), ARtsSimUnitActor::FactionColor(ShooterFaction), 0.45f);
+	T.StartTime = GetWorld() ? GetWorld()->GetRealTimeSeconds() : 0.0;
+	Tracers.Add(T);
+}
+
+void ARtsMinimapHud::DrawTracers()
+{
+	if (!PlayerOwner)
+		return;
+	const double Now = GetWorld() ? GetWorld()->GetRealTimeSeconds() : 0.0;
+	Tracers.RemoveAll([Now](const FTracer& T) { return Now - T.StartTime > TracerSeconds; });
+	for (const FTracer& T : Tracers)
+	{
+		FVector2D A, B;
+		if (!PlayerOwner->ProjectWorldLocationToScreen(T.From, A) || !PlayerOwner->ProjectWorldLocationToScreen(T.To, B))
+			continue;
+		const float Age = float((Now - T.StartTime) / TracerSeconds); // 0..1
+		// Faint full line: who is shooting whom, fading out.
+		FLinearColor Line = T.Color;
+		Line.A = 0.55f * (1.0f - Age);
+		DrawLine(A.X, A.Y, B.X, B.Y, Line, 1.0f);
+		// Bright streak that travels shooter -> target in the first 40% of the life.
+		const float Travel = FMath::Clamp(Age / 0.4f, 0.0f, 1.0f);
+		if (Travel < 1.0f)
+		{
+			const FVector2D Head = FMath::Lerp(A, B, Travel);
+			const FVector2D Tail = FMath::Lerp(A, B, FMath::Max(0.0f, Travel - 0.35f));
+			DrawLine(Tail.X, Tail.Y, Head.X, Head.Y, T.Color, 2.5f);
+		}
+		// Muzzle flash at the shooter (first quarter of the life).
+		if (Age < 0.25f)
+		{
+			const float S = 7.0f * (1.0f - Age * 4.0f) + 2.0f;
+			DrawRect(FLinearColor(1.0f, 0.9f, 0.5f, 0.9f), A.X - S * 0.5f, A.Y - S * 0.5f, S, S);
+		}
+		// Hit spark on the target once the streak arrives.
+		if (Travel >= 1.0f)
+		{
+			const float HitAge = (Age - 0.4f) / 0.6f; // 0..1
+			const float S = 3.0f + 6.0f * HitAge;
+			FLinearColor Spark(1.0f, 0.6f, 0.2f, 1.0f - HitAge);
+			DrawLine(B.X - S, B.Y, B.X + S, B.Y, Spark, 2.0f);
+			DrawLine(B.X, B.Y - S, B.X, B.Y + S, Spark, 2.0f);
+		}
 	}
 }

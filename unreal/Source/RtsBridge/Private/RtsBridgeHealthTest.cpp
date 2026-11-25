@@ -30,7 +30,7 @@ bool FRtsBridgeHealthTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	bool bSawFullHealth = false, bSawDamage = false, bSawShot = false;
+	bool bSawFullHealth = false, bSawDamage = false, bSawShot = false, bShotPairsOk = true;
 	bool bDeathMatchesRoster = false;
 	FRtsHostReply R;
 	for (int32 T = 0; T < 400 && !bDeathMatchesRoster; ++T)
@@ -53,6 +53,10 @@ bool FRtsBridgeHealthTest::RunTest(const FString& Parameters)
 		{
 			if (E.Kind == TEXT("shot") && E.Amount > 0.0)
 				bSawShot = true;
+			// T16 tracers draw shooter -> target: ids must be real and on opposite sides
+			// (riflemen 0..2 vs conscript 3).
+			if (E.Kind == TEXT("shot"))
+				bShotPairsOk &= (E.Subject == 3) != (E.Target == 3) && E.Subject >= 0 && E.Subject <= 3 && E.Target >= 0 && E.Target <= 3;
 			if (E.Kind == TEXT("death") && E.Subject == 3)
 			{
 				bool bStillListed = false;
@@ -66,6 +70,7 @@ bool FRtsBridgeHealthTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("units start at full health with maxHp > 0"), bSawFullHealth);
 	TestTrue(TEXT("conscript hp drops below maxHp before it dies"), bSawDamage);
 	TestTrue(TEXT("shot events carry a damage amount"), bSawShot);
+	TestTrue(TEXT("every shot names a shooter and an enemy target (tracer endpoints)"), bShotPairsOk);
 	TestTrue(TEXT("death event names the unit that left the roster"), bDeathMatchesRoster);
 
 	Bridge->Shutdown();
