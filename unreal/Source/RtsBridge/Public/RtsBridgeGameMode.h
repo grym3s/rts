@@ -41,7 +41,8 @@ public:
 	/** World-XY centroid of the selected units (for double-tap "jump to group"). */
 	bool SelectionCentroid(FVector2D& OutWorldXY) const;
 
-	/** T07: start the same match over. Live host: `reset` + `init` on the same process;
+	/** T07: start the same match over. No hotkey by design: only the single-player
+	 *  win/lose / pause menu (T19) calls this. Live host: `reset` + `init` on the same process;
 	 *  dead host: relaunch it. Clears units, selection, groups and the result banner. */
 	bool RestartMatch();
 

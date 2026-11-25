@@ -52,7 +52,6 @@ private:
 	void OnGroupKey(int32 Group);
 	void OnAttackMoveKey();
 	void OnStopKey();
-	void OnRestartKey();
 	void SetAttackMoveArmed(bool bArmed);
 	/** Order the selection at the cursor: enemy under it = attack, else (attack-)move to
 	 *  the ground/minimap point. */

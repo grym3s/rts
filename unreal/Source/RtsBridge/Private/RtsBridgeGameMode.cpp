@@ -101,7 +101,7 @@ void ARtsBridgeGameMode::StartPlay()
 		return;
 	}
 	bHostAlive = true;
-	UE_LOG(LogTemp, Display, TEXT("RTS_SESSION: host up, stepping live (select: LMB click/drag, Shift adds, Ctrl+A, groups Ctrl+1-3/1-3, move: RMB (enemy = attack), attack-move: F+LMB, stop: X, restart: Ctrl+R, minimap: bottom-left)"));
+	UE_LOG(LogTemp, Display, TEXT("RTS_SESSION: host up, stepping live (select: LMB click/drag, Shift adds, Ctrl+A, groups Ctrl+1-3/1-3, move: RMB (enemy = attack), attack-move: F+LMB, stop: X, minimap: bottom-left)"));
 }
 
 void ARtsBridgeGameMode::Tick(float DeltaSeconds)

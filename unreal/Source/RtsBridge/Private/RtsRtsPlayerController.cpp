@@ -47,9 +47,6 @@ void ARtsRtsPlayerController::SetupInputComponent()
 	// A and S are camera keys (WASD), so attack-move is F and stop is X.
 	PIC->BindKey(EKeys::F, IE_Pressed, this, &ARtsRtsPlayerController::OnAttackMoveKey);
 	PIC->BindKey(EKeys::X, IE_Pressed, this, &ARtsRtsPlayerController::OnStopKey);
-	// T07: Ctrl+R restarts the match (the win/lose screen button is T19).
-	PIC->BindKey(FInputChord(EKeys::R, /*bShift=*/false, /*bCtrl=*/true, /*bAlt=*/false, /*bCmd=*/false),
-		IE_Pressed, this, &ARtsRtsPlayerController::OnRestartKey);
 }
 
 bool ARtsRtsPlayerController::IsShiftDown() const
@@ -302,11 +299,4 @@ void ARtsRtsPlayerController::OnSelectAll()
 {
 	if (ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>())
 		GM->SelectAll();
-}
-
-void ARtsRtsPlayerController::OnRestartKey()
-{
-	SetAttackMoveArmed(false);
-	if (ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>())
-		GM->RestartMatch();
 }
