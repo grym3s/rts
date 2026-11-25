@@ -94,13 +94,14 @@ void ARtsBridgeGameMode::StartPlay()
 	// --- Host: launch + init. Failure is reported, not faked. ---
 	Bridge = NewObject<URtsSimHostBridge>(this);
 	FString Err;
-	if (!Bridge->StartAndInit(Setup.InitRequest, Err))
+	InitRequest = Setup.InitRequest;
+	if (!Bridge->StartAndInit(InitRequest, Err))
 	{
 		FailHost(FString::Printf(TEXT("HOST START FAILED: %s"), *Err));
 		return;
 	}
 	bHostAlive = true;
-	UE_LOG(LogTemp, Display, TEXT("RTS_SESSION: host up, stepping live (select: LMB click/drag, Shift adds, Ctrl+A, groups Ctrl+1-3/1-3, move: RMB (enemy = attack), attack-move: F+LMB, stop: X, minimap: bottom-left)"));
+	UE_LOG(LogTemp, Display, TEXT("RTS_SESSION: host up, stepping live (select: LMB click/drag, Shift adds, Ctrl+A, groups Ctrl+1-3/1-3, move: RMB (enemy = attack), attack-move: F+LMB, stop: X, restart: Ctrl+R, minimap: bottom-left)"));
 }
 
 void ARtsBridgeGameMode::Tick(float DeltaSeconds)
@@ -370,4 +371,55 @@ void ARtsBridgeGameMode::FailHost(const FString& Reason)
 		Bridge->Shutdown();
 	// Design doc: host failure must be visible, never silently replaced by local rules.
 	UE_LOG(LogTemp, Error, TEXT("RTS_SESSION_HOST_FAILURE: %s"), *Reason);
+}
+
+bool ARtsBridgeGameMode::RestartMatch()
+{
+	if (InitRequest.IsEmpty())
+		return false; // content never loaded; nothing to replay
+	if (!Bridge)
+		Bridge = NewObject<URtsSimHostBridge>(this);
+
+	FString Err;
+	bool bInit = false;
+	if (bHostAlive)
+	{
+		// Same process: drop the world, then init it again. The host rebuilds it purely
+		// from the scenario, so this replays exactly like a fresh launch (host tests).
+		FRtsHostReply Reply;
+		bInit = Bridge->Step(TEXT("{\"protocolVersion\":1,\"kind\":\"reset\"}"), 5.0, Reply) && Reply.bOk
+			&& Bridge->Step(InitRequest, 10.0, Reply) && Reply.bOk;
+		if (!bInit)
+			Err = Reply.Error;
+	}
+	if (!bInit)
+	{
+		// Host dead (or reset refused): relaunch it cleanly.
+		Bridge->Shutdown();
+		bInit = Bridge->StartAndInit(InitRequest, Err);
+	}
+	if (!bInit)
+	{
+		FailHost(FString::Printf(TEXT("RESTART FAILED: %s"), *Err));
+		return false;
+	}
+
+	for (auto& Pair : ActorsById)
+		if (Pair.Value)
+			Pair.Value->Destroy();
+	ActorsById.Reset();
+	UnitActors.Reset();
+	Selection.Prune([](int32) { return false; }); // selection and control groups
+	RefreshSelectionRings();
+	PendingCommandBodies.Reset();
+	NextTickToSend = 0;
+	StepAccum = 0.0;
+	bMatchReported = false;
+	bCameraFramedOnPlayer = false;
+	bFinished = false;
+	bHostAlive = true;
+	if (GEngine)
+		GEngine->ClearOnScreenDebugMessages();
+	UE_LOG(LogTemp, Display, TEXT("RTS_MATCH_RESTART: new match from tick 0"));
+	return true;
 }

@@ -40,10 +40,10 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   faction-0 units (A is scroll); Ctrl+1–3 assign group, 1–3 recall, double-tap
   centres the camera on it; RMB = enemy under cursor ? `attack` (target = sim id) :
   `move` to the minimap point or ground trace. F arms attack-move (crosshair): next LMB
-  issues `attack-move` (or `attack` on an enemy); RMB cancels. X = `stop`. A/S are
+  issues `attack-move` (or `attack` on an enemy); RMB cancels. X = `stop`. Ctrl+R = restart the match (T07, `RestartMatch`: host `reset` + `init` on the live process, relaunch if it died; clears actors, selection, groups and the result banner). A/S are
   WASD, hence F/X; Esc is left to the editor (stops PIE). All orders go through
   `QueueOrderForSelection` (game mode); never sim state.
-  Test: `RtsBridge.Host.Orders` (real host accepts the exact attack/stop/attack-move bodies).
+  Test: `RtsBridge.Host.Orders` (real host accepts the exact attack/stop/attack-move bodies). `RtsBridge.Host.Restart`: reset + init replays the same hash; init without reset is refused.
 - `RtsSelection.h` (`FRtsSelection`) — pure selection + control groups 1–3 over sim
   ids, port of `game/selection/SelectionController`; pruned against every snapshot.
   Test: `RtsBridge.Selection.Rules` (no world, no host).

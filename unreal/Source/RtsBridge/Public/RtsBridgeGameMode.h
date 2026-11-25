@@ -41,6 +41,10 @@ public:
 	/** World-XY centroid of the selected units (for double-tap "jump to group"). */
 	bool SelectionCentroid(FVector2D& OutWorldXY) const;
 
+	/** T07: start the same match over. Live host: `reset` + `init` on the same process;
+	 *  dead host: relaunch it. Clears units, selection, groups and the result banner. */
+	bool RestartMatch();
+
 	bool IsHostAlive() const { return bHostAlive; }
 
 	/** Fixture map size in cells (must match the init request's map) and world scale. */
@@ -79,6 +83,8 @@ private:
 	TMap<int32, TObjectPtr<ARtsSimUnitActor>> ActorsById;
 
 	FRtsSelection Selection;
+	/** The host init line for this match (kept so a restart can replay it). */
+	FString InitRequest;
 	TArray<FString> TerrainRows;
 	// Command bodies (tick-less) queued by input; Tick stamps the current tick and sends them.
 	TArray<FString> PendingCommandBodies;

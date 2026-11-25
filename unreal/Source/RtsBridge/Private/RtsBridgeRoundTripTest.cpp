@@ -65,4 +65,56 @@ bool FRtsBridgeRoundTripTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+// T07: restart on the same process. reset + init must replay the match exactly
+// (same hash after the same steps), and a second init without reset is refused.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRtsBridgeRestartTest, "RtsBridge.Host.Restart",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRtsBridgeRestartTest::RunTest(const FString& Parameters)
+{
+	URtsSimHostBridge* Bridge = NewObject<URtsSimHostBridge>();
+	FString Err;
+	if (!TestTrue(TEXT("start + init"), Bridge->StartAndInit(RoundTripInit, Err)))
+	{
+		AddError(Err);
+		Bridge->Shutdown();
+		return false;
+	}
+
+	auto Play = [&](FString& OutHash) -> bool
+	{
+		FRtsHostReply R;
+		for (int32 T = 0; T < 30; ++T)
+		{
+			const FString Cmds = T == 0
+				? TEXT("[{\"tick\":0,\"faction\":0,\"type\":\"move\",\"target\":[10,5]}]")
+				: TEXT("[]");
+			const FString Step = FString::Printf(
+				TEXT("{\"protocolVersion\":1,\"kind\":\"step\",\"tick\":%d,\"commands\":%s}"), T, *Cmds);
+			if (!Bridge->Step(Step, 5.0, R) || !R.bOk)
+			{
+				AddError(FString::Printf(TEXT("step %d: %s"), T, *R.Error));
+				return false;
+			}
+		}
+		OutHash = R.Hash;
+		return true;
+	};
+
+	FString First, Second;
+	bool bOk = Play(First);
+
+	FRtsHostReply R;
+	bOk &= TestTrue(TEXT("second init without reset is refused"),
+		Bridge->Step(RoundTripInit, 5.0, R) && !R.bOk);
+	bOk &= TestTrue(TEXT("reset accepted"),
+		Bridge->Step(TEXT("{\"protocolVersion\":1,\"kind\":\"reset\"}"), 5.0, R) && R.bOk);
+	bOk &= TestTrue(TEXT("init after reset accepted"), Bridge->Step(RoundTripInit, 10.0, R) && R.bOk);
+	bOk = bOk && Play(Second);
+	TestEqual(TEXT("restarted match replays the same hash"), Second, First);
+
+	Bridge->Shutdown();
+	return bOk;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

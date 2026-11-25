@@ -42,6 +42,7 @@ public sealed class SimHostSession(string repoRoot)
             {
                 "init" => Init(req),
                 "step" => Step(req),
+                "reset" => Reset(),
                 _ => Codec.Encode(HostResponse.Fail("unknown_kind", $"kind '{req.Kind}'")),
             };
         }
@@ -65,7 +66,7 @@ public sealed class SimHostSession(string repoRoot)
     private string Init(HostRequest req)
     {
         if (_world is not null)
-            return Codec.Encode(HostResponse.Fail("already_initialized", "world exists; a new process is the way to reset"));
+            return Codec.Encode(HostResponse.Fail("already_initialized", "world exists; send reset first"));
 
         _world = HostedWorld.Build(req.Scenario!.Value, repoRoot);
 
@@ -76,6 +77,14 @@ public sealed class SimHostSession(string repoRoot)
             State = _world.Snapshot(),
             Events = [],
         });
+    }
+
+    /// <summary>T07: drop the world so the next init starts a fresh match. The rebuilt world is
+    /// a pure function of the scenario, so a reset-then-init replays exactly like a new process.</summary>
+    private string Reset()
+    {
+        _world = null;
+        return Codec.Encode(new HostResponse { Ok = true, Tick = 0, Events = [] });
     }
 
     private string Step(HostRequest req)

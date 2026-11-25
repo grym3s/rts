@@ -258,6 +258,54 @@ public class ProtocolTests
         Assert.Equal(2, ok.Tick);
     }
 
+    // ---------- restart (T07) ----------
+
+    [Fact]
+    public void Second_init_without_reset_is_refused_and_keeps_the_world()
+    {
+        var s = new SimHostSession(RepoRoot());
+        s.Handle($$"""{"protocolVersion":1,"kind":"init","scenario":{{TwoRiflemen}}}""");
+        Assert.True(Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":0,"commands":[]}""")).Ok);
+        var again = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"init","scenario":{{TwoRiflemen}}}"""));
+        Assert.Equal("already_initialized", again.Code);
+        Assert.True(Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":1,"commands":[]}""")).Ok);
+    }
+
+    [Fact]
+    public void Reset_then_init_replays_exactly_like_a_new_process()
+    {
+        string Play(SimHostSession s)
+        {
+            var init = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"init","scenario":{{TwoRiflemen}}}"""));
+            Assert.True(init.Ok, init.Error);
+            HostResponse last = init;
+            for (var t = 0; t < 40; t++)
+            {
+                var cmds = t == 1 ? """[{"tick":1,"faction":0,"units":[0],"type":"attack","target":1}]""" : "[]";
+                last = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":{{t}},"commands":{{cmds}}}"""));
+                Assert.True(last.Ok, $"tick {t}: {last.Error}");
+            }
+            return last.State!.Hash.ToString("x16");
+        }
+
+        var fresh = Play(new SimHostSession(RepoRoot()));
+        var s = new SimHostSession(RepoRoot());
+        Play(s);
+        var reset = Resp(s.Handle("""{"protocolVersion":1,"kind":"reset"}"""));
+        Assert.True(reset.Ok, reset.Error);
+        Assert.Equal("not_initialized", Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":0,"commands":[]}""")).Code);
+        Assert.Equal(fresh, Play(s));
+    }
+
+    [Fact]
+    public void Reset_rejects_extra_fields_and_is_harmless_before_init()
+    {
+        var e = Assert.Throws<ProtocolException>(() => Codec.DecodeRequest("""{"protocolVersion":1,"kind":"reset","tick":3}"""));
+        Assert.Equal("malformed_request", e.Code);
+        var s = new SimHostSession(RepoRoot());
+        Assert.True(Resp(s.Handle("""{"protocolVersion":1,"kind":"reset"}""")).Ok);
+    }
+
     [Fact]
     public void Rejected_init_leaves_the_session_uninitialized_and_retriable()
     {

@@ -122,7 +122,7 @@ public static class Codec
                 ? cmds.Clone() : null,
         };
 
-        if (kind is not ("init" or "step"))
+        if (kind is not ("init" or "step" or "reset"))
             throw new ProtocolException("unknown_kind", $"kind '{kind}' not supported");
 
         // Kind-specific shape validation (version is checked by the host so it can echo its own).
@@ -133,6 +133,10 @@ public static class Codec
             if (req.Scenario.Value.TryGetProperty("commands", out _))
                 throw new ProtocolException("malformed_request", "scenario 'commands' not allowed in init; send them via step");
             Require(root, allowedInit);
+        }
+        else if (kind == "reset")
+        {
+            Require(root, allowedReset);
         }
         else
         {
@@ -153,6 +157,7 @@ public static class Codec
 
     private static readonly string[] allowedInit = ["protocolVersion", "kind", "scenario"];
     private static readonly string[] allowedStep = ["protocolVersion", "kind", "tick", "commands"];
+    private static readonly string[] allowedReset = ["protocolVersion", "kind"];
 
     public static string Encode(HostResponse resp) => JsonSerializer.Serialize(resp, WriteOptions);
 
