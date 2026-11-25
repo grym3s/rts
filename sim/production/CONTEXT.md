@@ -14,6 +14,10 @@ this folder cites, never restates. Queue cap 5 is our tuning const (canon silent
 Do NOT: add power gating (slice 2b), rally-point paths (ring scan only until the game layer
 demands otherwise), build-radius constraints, or refund-on-sell (no sell command exists).
 Change impact: `map/effects/CONTEXT.md` (production row).
-Known limits (2026-09-14): buildings don't block map cells yet (placement checks occupancy of
-units, not structures' footprints); no MCV deploy (scenario places CY directly); one queue per
+Footprints (T31): each building covers `footprint: [w,h]` cells (default by category, see
+`content/CONTEXT.md`) centred on the placement cell (origin = at − w/2); placement refuses unless
+every cell is in bounds, open terrain, free of buildings and of live units; the building stands
+at the footprint centre; a destroyed building's cells are freed at the start of the next
+production step (`GameMap.ReleaseStructures`). Tests: `sim/tests/FootprintTests.cs`.
+Known limits (2026-11-25): no MCV deploy (scenario places CY directly); one queue per
 building; construction is not interruptible.

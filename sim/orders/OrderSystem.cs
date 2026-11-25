@@ -14,6 +14,9 @@ public sealed class MoveOrder
     public int Waypoint { get; set; }
     public int IssuedTick { get; }
     public int? PlannedPathLength { get; set; }
+    /// <summary>GameMap.StructureEpoch when Path was planned (T31): navigation re-checks it after
+    /// buildings appear or vanish.</summary>
+    public int PlannedEpoch { get; set; }
 
     public MoveOrder(FixVec2 target, List<FixVec2> path, int issuedTick)
     {

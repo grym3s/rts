@@ -24,6 +24,10 @@ public static class ProductionSystem
         IReadOnlyList<Command> due,
         TryOp spend, TryOp refund, PowerStore? power, int tick)
     {
+        // T31: destroyed buildings were despawned last tick (cleanup); free their footprints
+        // before anything places or paths this tick.
+        map.ReleaseStructures(owner => units.Find(new EntityId(owner)) is not { } bu || bu.Hp.Raw <= 0);
+
         foreach (var c in due)
             switch (c)
             {
@@ -86,15 +90,21 @@ public static class ProductionSystem
         if (!ProductionRules.PrereqSatisfied(buildings, p.BuildingId,
                 req => units.Units.Any(u => u.Faction == p.Faction && u.Hp.Raw > 0 && u.Building?.Id == req)))
             return;
-        var cellX = Cell(p.Cell.X);
-        var cellY = Cell(p.Cell.Y);
-        if (!map.IsWalkable(cellX, cellY)) return;
-        if (units.Units.Any(u => Cell(u.Position.X) == cellX && Cell(u.Position.Y) == cellY)) return;
+        // T31: the whole footprint must be in bounds, on open terrain, free of other buildings
+        // and of units (a unit standing there would be sealed in).
+        var (ox, oy) = BuildingCatalog.FootprintOrigin(Cell(p.Cell.X), Cell(p.Cell.Y), bp.FootprintW, bp.FootprintH);
+        if (!map.CanOccupy(ox, oy, bp.FootprintW, bp.FootprintH)) return;
+        if (units.Units.Any(u => u.Hp.Raw > 0
+                && Cell(u.Position.X) >= ox && Cell(u.Position.X) < ox + bp.FootprintW
+                && Cell(u.Position.Y) >= oy && Cell(u.Position.Y) < oy + bp.FootprintH)) return;
         if (!spend(p.Faction, bp.Cost)) return; // money last: every earlier failure costs nothing
 
-        var b = units.Spawn(ids.Next(), p.Cell, Fix64.Zero, UnitCatalog.DefaultRadius,
+        // The building stands at its footprint's centre (combat ranges and spawns measure from it).
+        var centre = new FixVec2(Fix64.FromInt(ox) + Fix64.Ratio(bp.FootprintW, 2), Fix64.FromInt(oy) + Fix64.Ratio(bp.FootprintH, 2));
+        var b = units.Spawn(ids.Next(), centre, Fix64.Zero, UnitCatalog.DefaultRadius,
             new UnitProfile(p.Faction, bp.Hp, Fix64.Zero, Fix64.Zero, Fix64.Zero, 0, ArmorClass.Structure, DamageType.SmallArms));
         b.Building = new BuildingState { Id = p.BuildingId, ConstructionRemaining = bp.BuildTicks };
+        map.OccupyStructure(b.Id.Value, ox, oy, bp.FootprintW, bp.FootprintH);
     }
 
     private static void Train(UnitCatalog unitsCatalog, UnitStore units, TrainCommand t, TryOp spend, int tick)

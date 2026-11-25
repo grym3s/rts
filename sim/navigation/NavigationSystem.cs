@@ -15,6 +15,9 @@ public static class Pathfinding
     public static List<FixVec2>? FindPath(GameMap map, (int x, int y) start, (int x, int y) goal)
     {
         if (!map.InBounds(goal.x, goal.y) || map.IsBlocked(goal.x, goal.y)) return null;
+        // T31: a goal inside a building footprint (attack it, walk up to it) means "next to it":
+        // the open cell around the footprint nearest the start, ties by ring scan order.
+        if (!map.IsWalkable(goal.x, goal.y)) goal = NearestOpenCell(map, goal, start);
         if (start == goal) return new List<FixVec2>();
 
         var w = map.Width;
@@ -80,6 +83,28 @@ public static class Pathfinding
         return path;
     }
 
+    /// <summary>Closest walkable cell to `from` on the nearest ring around `goal` that has one
+    /// (rings up to 8). Falls back to the goal itself (A* then reports unreachable).</summary>
+    private static (int x, int y) NearestOpenCell(GameMap map, (int x, int y) goal, (int x, int y) from)
+    {
+        for (var r = 1; r <= 8; r++)
+        {
+            var best = goal;
+            var bestCost = int.MaxValue;
+            for (var dy = -r; dy <= r; dy++)
+                for (var dx = -r; dx <= r; dx++)
+                {
+                    if (Math.Max(Math.Abs(dx), Math.Abs(dy)) != r) continue;
+                    var c = (goal.x + dx, goal.y + dy);
+                    if (!map.IsWalkable(c.Item1, c.Item2)) continue;
+                    var cost = Guess(from, c);
+                    if (cost < bestCost) { bestCost = cost; best = c; }
+                }
+            if (bestCost != int.MaxValue) return best;
+        }
+        return goal;
+    }
+
     private static int Guess((int x, int y) a, (int x, int y) b)
     {
         var dx = Math.Abs(a.x - b.x);
@@ -137,6 +162,23 @@ public static class NavigationSystem
     /// <summary>Advance orders → movement for one tick. Deterministic: units iterated in store order (spawn order).</summary>
     public static void Step(GameMap map, UnitStore units, Dictionary<EntityId, MoveOrder> orders, int planBudget = PlanBudgetPerTick)
     {
+        // 0. (T31) a building was placed since a path was planned: a path that now crosses a
+        // footprint is dropped so step 1 re-plans it. Paths that stay clear are kept (no
+        // re-plan cost when a building goes up elsewhere, or when one is destroyed).
+        foreach (var u in units.Units)
+        {
+            if (!orders.TryGetValue(u.Id, out var o) || o.Path.Count == 0 || o.PlannedEpoch == map.StructureEpoch) continue;
+            o.PlannedEpoch = map.StructureEpoch;
+            for (var i = o.Waypoint; i < o.Path.Count; i++)
+            {
+                var (cx, cy) = (GameMap.CellOf(o.Path[i].X), GameMap.CellOf(o.Path[i].Y));
+                if (map.IsWalkable(cx, cy)) continue;
+                o.Path = new List<FixVec2>();
+                o.Waypoint = 0;
+                break;
+            }
+        }
+
         // 1. plan: every unit whose order has no path yet (ordered => deterministic budget)
         var budget = planBudget;
         foreach (var u in units.Units)
@@ -150,9 +192,11 @@ public static class NavigationSystem
                 if (path == null) { Console.Error.WriteLine($"UNREACHABLE u={u.Id.Value}"); orders.Remove(u.Id); continue; }
                 if (path.Count == 0) { orders.Remove(u.Id); continue; } // already at target
                 // goal cell reached means the raw target point, not its centre: append exact target
-                path[path.Count - 1] = o.Target;
+                // (unless the target is inside a building: then the path ends beside it, T31)
+                if (map.IsWalkable(goalCell.Item1, goalCell.Item2)) path[path.Count - 1] = o.Target;
                 o.Path = path;
                 o.Waypoint = 0;
+                o.PlannedEpoch = map.StructureEpoch;
                 budget--;
             }
         }

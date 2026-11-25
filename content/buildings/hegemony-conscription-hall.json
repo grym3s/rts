@@ -4,6 +4,7 @@
   "name": "Conscription Hall",
   "faction": "hegemony",
   "category": "production",
+  "footprint": [2, 2],
   "tier": 1,
   "prereq": "hegemony-construction-yard",
   "cost": 400,
