@@ -174,6 +174,7 @@ void ARtsMinimapHud::DrawHUD()
 	if (!Canvas)
 		return;
 	const FVector2D Vp(Canvas->SizeX, Canvas->SizeY);
+	DrawHealthBars();
 
 	// Box-select drag rectangle (screen space, under the minimap).
 	if (const ARtsRtsPlayerController* RPC = Cast<ARtsRtsPlayerController>(PlayerOwner))
@@ -285,4 +286,31 @@ TArray<FVector2D> ARtsMinimapHud::ClipToBox(const TArray<FVector2D>& In, const F
 		}
 	}
 	return Out;
+}
+
+void ARtsMinimapHud::DrawHealthBars()
+{
+	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (!GM)
+		return;
+	static constexpr float W = 30.0f, H = 4.0f, AboveUU = 70.0f;
+	for (const ARtsSimUnitActor* U : GM->GetUnitActors())
+	{
+		if (!U || U->IsDying())
+			continue;
+		const bool bSelected = GM->IsSelected(U->GetSimUnitId());
+		if (!U->IsDamaged() && !bSelected)
+			continue; // full-health, unselected units stay uncluttered
+		const FVector S = Project(U->GetActorLocation() + FVector(0.0, 0.0, AboveUU));
+		if (S.Z <= 0.0) // behind the camera
+			continue;
+		const float F = U->GetHealthFraction();
+		// Green above half, through yellow, to red when nearly dead.
+		const FLinearColor Fill = F > 0.5f
+			? FMath::Lerp(FLinearColor(1.0f, 0.85f, 0.1f), FLinearColor(0.2f, 0.9f, 0.25f), (F - 0.5f) * 2.0f)
+			: FMath::Lerp(FLinearColor(0.9f, 0.1f, 0.1f), FLinearColor(1.0f, 0.85f, 0.1f), F * 2.0f);
+		const float X = S.X - W * 0.5f, Y = S.Y - H * 0.5f;
+		DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.75f), X - 1.0f, Y - 1.0f, W + 2.0f, H + 2.0f);
+		DrawRect(Fill, X, Y, W * F, H);
+	}
 }

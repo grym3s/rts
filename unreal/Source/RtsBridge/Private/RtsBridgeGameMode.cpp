@@ -313,7 +313,14 @@ bool ARtsBridgeGameMode::SelectionCentroid(FVector2D& OutWorldXY) const
 void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 {
 	// Match actors to snapshot rows by sim id: new ids spawn (placed exactly, no glide),
-	// known ids get a new interpolation target, missing ids are destroyed.
+	// known ids get a new interpolation target, missing ids die (death event) or are removed.
+	// Units the sim killed this step (death events) get a death sequence; anything else
+	// that leaves the roster is simply removed.
+	TSet<int32> Killed;
+	for (const FRtsSimEvent& E : Reply.Events)
+		if (E.Kind == TEXT("death"))
+			Killed.Add(E.Subject);
+
 	TSet<int32> Alive;
 	UnitActors.Reset(Reply.Units.Num());
 	for (const FRtsUnitSnapshot& S : Reply.Units)
@@ -334,13 +341,23 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 		{
 			A->SetSimPosition(S.X, S.Y);
 		}
+		A->SetHealth(S.Hp, S.MaxHp);
 		UnitActors.Add(A);
 	}
+	DyingActors.RemoveAll([](const TWeakObjectPtr<ARtsSimUnitActor>& D) { return !D.IsValid(); });
 	for (auto It = ActorsById.CreateIterator(); It; ++It)
 		if (!Alive.Contains(It.Key()))
 		{
-			if (It.Value())
-				It.Value()->Destroy();
+			if (ARtsSimUnitActor* Gone = It.Value())
+			{
+				if (Killed.Contains(It.Key()))
+				{
+					Gone->BeginDeath();
+					DyingActors.Add(Gone);
+				}
+				else
+					Gone->Destroy();
+			}
 			It.RemoveCurrent();
 		}
 	// Units that left the roster (deaths) drop out of the selection and groups.
@@ -409,6 +426,10 @@ bool ARtsBridgeGameMode::RestartMatch()
 			Pair.Value->Destroy();
 	ActorsById.Reset();
 	UnitActors.Reset();
+	for (const TWeakObjectPtr<ARtsSimUnitActor>& D : DyingActors)
+		if (D.IsValid())
+			D->Destroy();
+	DyingActors.Reset();
 	Selection.Prune([](int32) { return false; }); // selection and control groups
 	RefreshSelectionRings();
 	PendingCommandBodies.Reset();

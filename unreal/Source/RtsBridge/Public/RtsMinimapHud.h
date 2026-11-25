@@ -42,6 +42,8 @@ private:
 	static constexpr double MarkerSeconds = 0.6;
 	static FLinearColor MarkerColor(EOrderMarker Kind);
 	void DrawMarkers(const FBox2D& MinimapR);
+	/** T15: bar over every damaged or selected unit (screen space, under the minimap). */
+	void DrawHealthBars();
 	/** Ground-plane circle projected to the screen (skipped if any point is off-view). */
 	void DrawGroundCircle(const FVector2D& CenterXY, float RadiusUU, const FLinearColor& Color, float Thickness);
 

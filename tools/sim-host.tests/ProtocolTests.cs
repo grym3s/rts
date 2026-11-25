@@ -386,6 +386,33 @@ public class ProtocolTests
     // ---------- events and match (T09, T06) ----------
 
     [Fact]
+    public void Snapshot_units_carry_hp_and_max_hp_for_health_bars()
+    {
+        // T15: bars need both values. maxHp is the catalog hp, fixed for the unit's life.
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":12,"height":8,"blocked":[]},"units":[{"unit":"rifleman","at":[2,3]},{"unit":"conscript","at":[5,3]}]}}"""));
+        Assert.True(init.Ok, init.Error);
+        foreach (var u in init.State!.Units)
+        {
+            Assert.True(u.MaxHp > 0);
+            Assert.Equal(u.MaxHp, u.Hp);
+        }
+        var target = init.State.Units[1];
+        var hurt = false;
+        for (var t = 0; t < 200 && !hurt; t++)
+        {
+            var r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":{{t}},"commands":[]}"""));
+            var c = r.State!.Units.FirstOrDefault(u => u.Id == target.Id);
+            if (c is null || c.Hp < c.MaxHp)
+            {
+                hurt = true;
+                if (c is not null) Assert.Equal(target.MaxHp, c.MaxHp);
+            }
+        }
+        Assert.True(hurt, "the conscript never took damage");
+    }
+
+    [Fact]
     public void Shots_deaths_and_match_end_travel_as_events_and_match_state()
     {
         var s = new SimHostSession(RepoRoot());

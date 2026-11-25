@@ -26,6 +26,37 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	double Y = 0.0;
+
+	/** Health (T15), decoded from Q32.32 like positions. MaxHp is fixed for the unit's life. */
+	UPROPERTY(BlueprintReadOnly)
+	double Hp = 0.0;
+
+	UPROPERTY(BlueprintReadOnly)
+	double MaxHp = 0.0;
+};
+
+/** One sim event from a step reply (T09 contract): shot (Amount = damage), death
+ *  (Subject = dead unit, Target = killer, Faction = dead unit's), match_end. */
+USTRUCT(BlueprintType)
+struct FRtsSimEvent
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadOnly)
+	FString Kind;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Subject = INDEX_NONE;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Target = INDEX_NONE;
+
+	UPROPERTY(BlueprintReadOnly)
+	double Amount = 0.0;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Faction = -1;
 };
 
 /** Result of one host request/response round trip. */
@@ -54,6 +85,10 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FRtsUnitSnapshot> Units;
+
+	/** Events of the step this reply answers (empty for init/reset). */
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FRtsSimEvent> Events;
 
 	/** Error text/code from the host, or a local protocol/host-failure reason. */
 	UPROPERTY(BlueprintReadOnly)

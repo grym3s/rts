@@ -9,7 +9,9 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
 - `Source/RtsBridge/Public/RtsSimHostBridge.h` — process bridge: `FPlatformProcess`
   pipes only (cross-platform Linux/Windows); locates host via `RTS_HOST_BIN` env or
   `unreal/dist/<rid>/sim-host`; validates `protocolVersion==1` + `ok` envelope;
-  decodes Q32.32 snapshot positions (raw / 2^32); EOF-then-terminate shutdown.
+  decodes Q32.32 snapshot positions and hp/maxHp (raw / 2^32) and the step's `events`
+  (`FRtsSimEvent`: kind, subject, target, amount, faction); EOF-then-terminate shutdown.
+  Test: `RtsBridge.Host.HealthAndDeath` (hp drops, shot amounts, death event = roster exit).
 - `Source/RtsBridge/Private/RtsBridgeRoundTripTest.cpp` — editor automation test
   `RtsBridge.Host.RoundTrip` (real host launch, init, tick-0 move, 120 steps).
 - `Config/DefaultEngine.ini` — GlobalDefaultGameMode = RtsBridgeGameMode;
@@ -48,7 +50,8 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   ids, port of `game/selection/SelectionController`; pruned against every snapshot.
   Test: `RtsBridge.Selection.Rules` (no world, no host).
 - `RtsMinimapHud` (HUDClass, set in the game mode ctor) — also draws the box-select
-  drag rectangle; canvas-drawn minimap,
+  drag rectangle; health bars (T15: over damaged or selected units, green→yellow→red,
+  screen space under the minimap); canvas-drawn minimap,
   bottom-left: terrain (transient texture, one texel per cell, built once from the
   tile rows), faction-coloured unit dots (selected = white outline), camera
   footprint (viewport corners deprojected to Z=0). `MinimapToWorld` for clicks. Map
@@ -65,6 +68,9 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   target unit, stop = white ring on each stopped unit; 0.6 s, ground pings also on the
   minimap. Canvas lines only — no assets.
 - `RtsSimUnitActor` — cube tinted per faction via BasicShapeMaterial `Color` param
+  (T15: holds hp/maxHp from snapshots; a unit named by a `death` event plays
+  `BeginDeath` — topple + darken, 2 s corpse, sink, self-destroy — outside the roster, so it
+  is never picked or selected; a unit that leaves the roster without one is just removed)
   (dynamic MID) + green cylinder selection ring; position ONLY from host snapshots
   at 100 UU per map cell. Ticks to glide from its drawn position to the latest snapshot
   over one sim tick (render lags ≤ 50 ms, never extrapolates) and turns toward its

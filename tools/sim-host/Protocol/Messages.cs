@@ -73,7 +73,7 @@ public sealed class HexHashConverter : JsonConverter<ulong>
 }
 
 public sealed record HostUnit(
-    int Id, int Faction, long X, long Y, long Vx, long Vy, long Hp,
+    int Id, int Faction, long X, long Y, long Vx, long Vy, long Hp, long MaxHp,
     bool Harvest, int Load, bool Carrying,
     string? BuildingId, int ConstructionRemaining, IReadOnlyList<string>? ProductionQueue);
 

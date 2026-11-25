@@ -31,6 +31,16 @@ public:
 	int32 GetSimUnitId() const { return SimUnitId; }
 	void SetSimUnitId(int32 Id) { SimUnitId = Id; }
 
+	/** Health from the latest snapshot (T15); the HUD draws the bar from it. */
+	void SetHealth(double InHp, double InMaxHp) { Hp = InHp; MaxHp = InMaxHp; }
+	float GetHealthFraction() const { return MaxHp > 0.0 ? float(FMath::Clamp(Hp / MaxHp, 0.0, 1.0)) : 1.0f; }
+	bool IsDamaged() const { return MaxHp > 0.0 && Hp < MaxHp; }
+
+	/** A death event named this unit: topple and darken, lie as a corpse, sink, then
+	 *  destroy itself. Presentation only — the sim already removed the unit. */
+	void BeginDeath();
+	bool IsDying() const { return DeathElapsed >= 0.0f; }
+
 private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> Mesh;
@@ -43,6 +53,16 @@ private:
 
 	int32 SimUnitId = INDEX_NONE;
 	int32 Faction = 0;
+	double Hp = 0.0;
+	double MaxHp = 0.0;
+
+	// Death sequence (seconds since BeginDeath; < 0 = alive).
+	float DeathElapsed = -1.0f;
+	FVector DeathFrom = FVector::ZeroVector;
+	static constexpr float ToppleSeconds = 0.25f;
+	static constexpr float CorpseSeconds = 2.0f;  // lies there, readable as a loss
+	static constexpr float SinkSeconds = 1.0f;
+	void TickDeath(float DeltaSeconds);
 
 	// Presentation-only smoothing between 20 t/s snapshots: render lags the sim by at most
 	// one tick; it never extrapolates past the latest snapshot. Picking/minimap read the

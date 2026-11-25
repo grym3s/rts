@@ -83,6 +83,10 @@ private:
 	UPROPERTY()
 	TMap<int32, TObjectPtr<ARtsSimUnitActor>> ActorsById;
 
+	// Killed units playing their death sequence (T15). Out of ActorsById/UnitActors, so
+	// they are never picked, selected or shown on the minimap; each destroys itself.
+	TArray<TWeakObjectPtr<ARtsSimUnitActor>> DyingActors;
+
 	FRtsSelection Selection;
 	/** The host init line for this match (kept so a restart can replay it). */
 	FString InitRequest;

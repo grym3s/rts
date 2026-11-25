@@ -201,8 +201,33 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				UO->TryGetNumberField(TEXT("y"), RawY);
 				U.X = RawX / 4294967296.0;
 				U.Y = RawY / 4294967296.0;
+				double RawHp = 0.0, RawMaxHp = 0.0;
+				UO->TryGetNumberField(TEXT("hp"), RawHp);
+				UO->TryGetNumberField(TEXT("maxHp"), RawMaxHp);
+				U.Hp = RawHp / 4294967296.0;
+				U.MaxHp = RawMaxHp / 4294967296.0;
 				OutReply.Units.Add(U);
 			}
+		}
+	}
+
+	const TArray<TSharedPtr<FJsonValue>>* EventsArr = nullptr;
+	if (Root->TryGetArrayField(TEXT("events"), EventsArr))
+	{
+		for (const TSharedPtr<FJsonValue>& EV : *EventsArr)
+		{
+			const TSharedPtr<FJsonObject> EO = EV->AsObject();
+			if (!EO.IsValid())
+				continue;
+			FRtsSimEvent E;
+			EO->TryGetStringField(TEXT("kind"), E.Kind);
+			EO->TryGetNumberField(TEXT("subject"), E.Subject);
+			EO->TryGetNumberField(TEXT("target"), E.Target);
+			EO->TryGetNumberField(TEXT("faction"), E.Faction);
+			double RawAmount = 0.0;
+			EO->TryGetNumberField(TEXT("amount"), RawAmount);
+			E.Amount = RawAmount / 4294967296.0;
+			OutReply.Events.Add(MoveTemp(E));
 		}
 	}
 	return true;

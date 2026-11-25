@@ -77,6 +77,11 @@ void ARtsSimUnitActor::SetSimPosition(double X, double Y)
 void ARtsSimUnitActor::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	if (IsDying())
+	{
+		TickDeath(DeltaSeconds);
+		return;
+	}
 	InterpElapsed = FMath::Min(InterpElapsed + DeltaSeconds, SimTickSeconds);
 	const float Alpha = InterpElapsed / SimTickSeconds;
 	const FRotator Cur = GetActorRotation();
@@ -118,4 +123,30 @@ void ARtsSimUnitActor::SetFaction(int32 InFaction)
 void ARtsSimUnitActor::SetSelected(bool bSelected)
 {
 	Ring->SetVisibility(bSelected);
+}
+
+void ARtsSimUnitActor::BeginDeath()
+{
+	if (IsDying())
+		return;
+	DeathElapsed = 0.0f;
+	DeathFrom = GetActorLocation();
+	Hp = 0.0;
+	Ring->SetVisibility(false);
+	SetActorEnableCollision(false); // never picked or box-selected again
+	if (Mid)
+		Mid->SetVectorParameterValue(TEXT("Color"), FactionColor(Faction) * 0.25f);
+}
+
+void ARtsSimUnitActor::TickDeath(float DeltaSeconds)
+{
+	DeathElapsed += DeltaSeconds;
+	// Topple onto its side, then hold, then sink fully below the ground plane.
+	const float Topple = FMath::Clamp(DeathElapsed / ToppleSeconds, 0.0f, 1.0f);
+	const float SinkT = FMath::Clamp((DeathElapsed - ToppleSeconds - CorpseSeconds) / SinkSeconds, 0.0f, 1.0f);
+	const FRotator Rot(80.0f * FMath::InterpEaseOut(0.0f, 1.0f, Topple, 2.0f), GetActorRotation().Yaw, 0.0f);
+	const FVector Loc = DeathFrom - FVector(0.0, 0.0, 20.0 * Topple + 90.0 * SinkT);
+	SetActorLocationAndRotation(Loc, Rot);
+	if (SinkT >= 1.0f)
+		Destroy();
 }

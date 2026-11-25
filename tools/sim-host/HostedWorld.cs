@@ -164,7 +164,7 @@ public sealed class HostedWorld
                 u.Id.Value, u.Faction,
                 u.Position.X.Raw, u.Position.Y.Raw,
                 u.Velocity.X.Raw, u.Velocity.Y.Raw,
-                u.Hp.Raw,
+                u.Hp.Raw, u.MaxHp.Raw,
                 u.Harvest, u.Load, u.Carrying,
                 u.Building?.Id, u.Building?.ConstructionRemaining ?? 0,
                 u.Building is { } b && b.Queue.Count > 0 ? b.Queue.ToList() : null));
