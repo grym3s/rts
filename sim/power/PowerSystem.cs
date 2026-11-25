@@ -10,19 +10,21 @@ public static class PowerSystem
 {
     public static void Step(PowerStore power, BuildingCatalog buildings, UnitStore units)
     {
-        // Reset net power for all factions. Hardcoded to factions 0 and 1 (2-faction
-        // game). Extend if more factions are added.
-        power.Set(0, 0);
-        power.Set(1, 0);
-
-        // Sum supply and draw over alive, construction-complete buildings.
+        // Factions 0 and 1 always get a ledger (2-faction game); others appear when they own
+        // a building. Sum supply (positive power) and draw (negative) separately over alive,
+        // construction-complete buildings; net = supply - draw, exactly as before.
+        var supply = new SortedDictionary<int, int> { [0] = 0, [1] = 0 };
+        var draw = new SortedDictionary<int, int> { [0] = 0, [1] = 0 };
         foreach (var u in units.Units)
         {
             if (u.Building is not { } b) continue;
             if (u.Hp.Raw <= 0) continue; // dead
             if (b.ConstructionRemaining > 0) continue; // under construction
-            var bp = buildings.Get(b.Id);
-            power.Set(u.Faction, power.Net(u.Faction) + bp.Power);
+            var p = buildings.Get(b.Id).Power;
+            supply.TryAdd(u.Faction, 0);
+            draw.TryAdd(u.Faction, 0);
+            if (p >= 0) supply[u.Faction] += p; else draw[u.Faction] -= p;
         }
+        foreach (var f in supply.Keys) power.SetLedger(f, supply[f], draw[f]);
     }
 }

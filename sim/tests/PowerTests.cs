@@ -95,6 +95,23 @@ public class PowerTests
         // Net power = 100 (reactor) - 20 (barracks) = 80.
         Assert.Equal(80, x.Power.Net(0));
         Assert.False(x.Power.IsLowPower(0));
+        // T30: the ledger keeps both sides for the HUD (used / produced).
+        Assert.Equal(100, x.Power.Supply(0));
+        Assert.Equal(20, x.Power.Draw(0));
+        Assert.Equal(0, x.Power.Supply(1));
+        Assert.Equal(0, x.Power.Draw(1));
+    }
+
+    [Fact]
+    public void LedgerIgnoresBuildingsUnderConstruction()
+    {
+        var x = World();
+        YardUp(x);
+        x.Step(new[] { new PlaceBuildingCommand(x.Sim.Tick, 0, "coalition-barracks", At(8, 5)) });
+        x.Step();
+        // Barracks is still building: it neither draws nor shows in the ledger yet.
+        Assert.Equal(0, x.Power.Draw(0));
+        Assert.Equal(0, x.Power.Net(0));
     }
 
     [Fact]

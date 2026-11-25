@@ -383,6 +383,62 @@ public class ProtocolTests
         return last.State!.Hash;
     }
 
+    // ---------- economy in the snapshot (T30) ----------
+
+    [Fact]
+    public void Snapshot_carries_credits_power_veins_refineries_and_build_progress()
+    {
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":31,"map":{"width":24,"height":24,"blocked":[]},"veins":[{"at":[6,9],"pool":5000}],"refineries":[{"faction":0,"at":[5,9]}]}}"""));
+        Assert.True(init.Ok, init.Error);
+        var st = init.State!;
+        Assert.Equal(2, st.Factions!.Count);
+        Assert.All(st.Factions, f => Assert.Equal(5000, f.Credits));
+        var vein = Assert.Single(st.Veins!);
+        Assert.Equal(5000, vein.Pool);
+        Assert.Equal(6.0, vein.X / 4294967296.0);
+        var refinery = Assert.Single(st.Refineries!);
+        Assert.Equal(0, refinery.Faction);
+
+        HostResponse Step(int t, string cmds = "[]")
+        {
+            var r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":{{t}},"commands":{{cmds}}}"""));
+            Assert.True(r.Ok, $"tick {t}: {r.Error}");
+            return r;
+        }
+
+        // Construction yard: credits drop by its cost, construction counts down from its total.
+        var placed = Step(0, """[{"tick":0,"faction":0,"type":"place","building":"coalition-construction-yard","at":[5,5]}]""");
+        var yard = placed.State!.Units.Single(u => u.BuildingId == "coalition-construction-yard");
+        Assert.True(yard.ConstructionTotal > 0);
+        Assert.InRange(yard.ConstructionRemaining, 1, yard.ConstructionTotal);
+        Assert.True(placed.State.Factions![0].Credits < 5000);
+
+        var t = 1;
+        for (; t <= 210; t++) Step(t);
+        // Reactor powers the grid: supply shows once it is finished.
+        Step(t++, $$"""[{"tick":{{t - 1}},"faction":0,"type":"place","building":"coalition-reactor","at":[9,5]}]""");
+        HostResponse last = null!;
+        for (var i = 0; i < 450; i++) last = Step(t++);
+        var f0 = last.State!.Factions![0];
+        Assert.Equal(100, f0.PowerSupply);
+        Assert.Equal(0, f0.PowerDraw);
+
+        // Barracks + one rifleman queued: queue head carries remaining and total train ticks.
+        Step(t, $$"""[{"tick":{{t}},"faction":0,"type":"place","building":"coalition-barracks","at":[5,12]}]""");
+        t++;
+        for (var i = 0; i < 450; i++) last = Step(t++);
+        var barracks = last.State!.Units.Single(u => u.BuildingId == "coalition-barracks");
+        Assert.Equal(0, barracks.ConstructionRemaining);
+        Assert.Equal(20, last.State.Factions![0].PowerDraw);
+        Step(t, $$"""[{"tick":{{t}},"faction":0,"type":"train","building":{{barracks.Id}},"unit":"rifleman"}]""");
+        t++;
+        var queued = Step(t++).State!.Units.Single(u => u.Id == barracks.Id);
+        Assert.Equal(["rifleman"], queued.ProductionQueue!);
+        Assert.True(queued.QueueHeadTotal > 0);
+        Assert.InRange(queued.QueueHeadRemaining, 1, queued.QueueHeadTotal);
+    }
+
     // ---------- debug overlays (T20) ----------
 
     [Fact]

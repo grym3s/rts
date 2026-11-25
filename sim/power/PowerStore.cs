@@ -7,12 +7,27 @@ namespace Rts.Sim.Power;
 public sealed class PowerStore
 {
     private readonly Dictionary<int, int> _net = new();
+    private readonly Dictionary<int, int> _supply = new();
+    private readonly Dictionary<int, int> _draw = new();
 
     public int Net(int faction) => _net.TryGetValue(faction, out var n) ? n : 0;
 
     public bool IsLowPower(int faction) => Net(faction) < 0;
 
     public void Set(int faction, int net) => _net[faction] = net;
+
+    /// <summary>Total produced / consumed by alive, finished buildings (T30: shown as used / produced).
+    /// Presentation-only detail of Net; not hashed.</summary>
+    public int Supply(int faction) => _supply.TryGetValue(faction, out var s) ? s : 0;
+    public int Draw(int faction) => _draw.TryGetValue(faction, out var d) ? d : 0;
+
+    /// <summary>Record one faction's ledger; Net = supply − draw.</summary>
+    public void SetLedger(int faction, int supply, int draw)
+    {
+        _supply[faction] = supply;
+        _draw[faction] = draw;
+        _net[faction] = supply - draw;
+    }
 
     /// <summary>Mix into SimWorld.StateHash: skips everything unless power ever
     /// went negative, so pre-power golden hashes stay byte-identical.</summary>

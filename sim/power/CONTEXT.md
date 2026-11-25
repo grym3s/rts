@@ -1,7 +1,8 @@
 # sim/power — supply/draw ledger and production parity gate (issue #27)
 
 Owns: per-faction net power (supply minus draw over alive, construction-complete
-buildings) and the low-power production rule.
+buildings) and the low-power production rule. The ledger also keeps supply and draw
+separately (`Supply`/`Draw`, T30) for the HUD; only net is hashed.
 Reads: `world/UnitStore` (Building component, `BuildingCatalog.Power` per building type),
 production queue state. Writes: `PowerStore` net value + hash mixer contribution only.
 Rule: while net < 0, a building's production countdown decrements only when

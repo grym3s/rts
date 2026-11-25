@@ -23,6 +23,10 @@ public sealed class HostedWorld
     public required Rts.Sim.Match.MatchState Match { get; init; }
     /// <summary>Live move orders (read-only use: debug paths). Owned by the sim systems.</summary>
     public required Dictionary<EntityId, MoveOrder> Orders { get; init; }
+    /// <summary>Catalogs and power ledger, read for snapshot detail (T30). Owned by the sim systems.</summary>
+    public required UnitCatalog UnitsCatalog { get; init; }
+    public required BuildingCatalog BuildingsCatalog { get; init; }
+    public required PowerStore Power { get; init; }
 
     /// <summary>Roster at load time. The scenario runner resolves a command with no explicit
     /// `units` against THIS list (computed once at scenario load), not the live roster —
@@ -96,7 +100,19 @@ public sealed class HostedWorld
         world.HashMixers.Add(h => Rts.Sim.Production.ProductionStore.Hash(units, h));
         world.HashMixers.Add(power.Hash);
 
-        return new HostedWorld { World = world, Units = units, Econ = econ, Map = map, Match = match, Orders = orders, _initialRoster = roster };
+        return new HostedWorld
+        {
+            World = world,
+            Units = units,
+            Econ = econ,
+            Map = map,
+            Match = match,
+            Orders = orders,
+            UnitsCatalog = catalog,
+            BuildingsCatalog = buildingsCat,
+            Power = power,
+            _initialRoster = roster
+        };
     }
 
     /// <summary>Decode scenario-format command objects (tick-stamped). `allUnits` fills the
@@ -191,11 +207,18 @@ public sealed class HostedWorld
                 u.Hp.Raw, u.MaxHp.Raw,
                 u.Harvest, u.Load, u.Carrying,
                 u.Building?.Id, u.Building?.ConstructionRemaining ?? 0,
-                u.Building is { } b && b.Queue.Count > 0 ? b.Queue.ToList() : null));
+                u.Building is { } b && b.Queue.Count > 0 ? b.Queue.ToList() : null,
+                u.Building is { } bc ? BuildingsCatalog.Get(bc.Id).BuildTicks : 0,
+                u.Building is { } bq && bq.Queue.Count > 0 ? bq.QueueHeadRemaining : 0,
+                u.Building is { } bt && bt.Queue.Count > 0 ? UnitsCatalog.Get(bt.Queue[0]).BuildTicks : 0));
         }
 
         var factions = new List<HostFaction>(2);
-        for (var f = 0; f < 2; f++) factions.Add(new HostFaction(f, Econ.Credits(f)));
+        for (var f = 0; f < 2; f++) factions.Add(new HostFaction(f, Econ.Credits(f), Power.Supply(f), Power.Draw(f)));
+        var veins = new List<HostVein>(Econ.Veins.Count);
+        foreach (var v in Econ.Veins) veins.Add(new HostVein(v.Id, v.Position.X.Raw, v.Position.Y.Raw, v.Pool));
+        var refineries = new List<HostRefinery>(Econ.Refineries.Count);
+        foreach (var r in Econ.Refineries) refineries.Add(new HostRefinery(r.Faction, r.Position.X.Raw, r.Position.Y.Raw));
 
         return new HostState
         {
@@ -203,6 +226,8 @@ public sealed class HostedWorld
             Units = units,
             Factions = factions,
             Match = new HostMatch(Match.Over, Match.Winner, Match.EndTick),
+            Veins = veins,
+            Refineries = refineries,
         };
     }
 

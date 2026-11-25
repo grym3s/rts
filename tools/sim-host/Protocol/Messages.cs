@@ -55,6 +55,9 @@ public sealed record HostState
     public IReadOnlyList<HostFaction>? Factions { get; init; }
     /// <summary>Match outcome (T06): over, winner faction (-1 = draw or not over), end tick (-1 while running).</summary>
     public HostMatch? Match { get; init; }
+    /// <summary>T30: veins with their remaining pools, and refinery drop-off points.</summary>
+    public IReadOnlyList<HostVein>? Veins { get; init; }
+    public IReadOnlyList<HostRefinery>? Refineries { get; init; }
     /// <summary>T20 debug block, present only when the step asked for it.</summary>
     public HostDebug? Debug { get; init; }
 }
@@ -80,9 +83,17 @@ public sealed class HexHashConverter : JsonConverter<ulong>
 public sealed record HostUnit(
     int Id, int Faction, long X, long Y, long Vx, long Vy, long Hp, long MaxHp,
     bool Harvest, int Load, bool Carrying,
-    string? BuildingId, int ConstructionRemaining, IReadOnlyList<string>? ProductionQueue);
+    string? BuildingId, int ConstructionRemaining, IReadOnlyList<string>? ProductionQueue,
+    int ConstructionTotal = 0, int QueueHeadRemaining = 0, int QueueHeadTotal = 0);
 
-public sealed record HostFaction(int Faction, int Credits);
+/// <summary>T30: credits and the power ledger (net = supply − draw; low power when net &lt; 0).</summary>
+public sealed record HostFaction(int Faction, int Credits, int PowerSupply = 0, int PowerDraw = 0);
+
+/// <summary>T30: a resource vein (position Q32.32 raw) and the credits left in it.</summary>
+public sealed record HostVein(int Id, long X, long Y, int Pool);
+
+/// <summary>T30: a refinery drop-off point (scenario-placed until T33 makes them buildings).</summary>
+public sealed record HostRefinery(int Faction, long X, long Y);
 
 public sealed record HostMatch(bool Over, int Winner, int EndTick);
 
