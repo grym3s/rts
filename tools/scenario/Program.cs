@@ -58,6 +58,11 @@ if (doc.TryGetProperty("veins", out var veinsEl))
             v.TryGetProperty("pool", out var pool) ? pool.GetInt32() : Rts.Sim.Economy.EconomyStore.FieldPool);
         map.MarkResource(GameMap.CellOf(econ.Veins[^1].Position.X), GameMap.CellOf(econ.Veins[^1].Position.Y)); // T33: no building on ore
     }
+// T28: unowned map structures (the oil derrick), after the units so their ids follow them
+if (doc.TryGetProperty("structures", out var structEls))
+    foreach (var s in structEls.EnumerateArray())
+        Rts.Sim.Production.ProductionSystem.SpawnStructure(buildingsCat, units, map, world.Ids,
+            s.GetProperty("building").GetString()!, s.GetProperty("at")[0].GetInt32(), s.GetProperty("at")[1].GetInt32());
 if (doc.TryGetProperty("refineries", out var refsEl))
     foreach (var r in refsEl.EnumerateArray())
         econ.Refineries.Add(new Rts.Sim.Economy.EconomyStore.Refinery(
@@ -71,6 +76,7 @@ if (doc.TryGetProperty("refineries", out var refsEl))
 var power = new PowerStore();
 world.Systems.Add((w, due) => PowerSystem.Step(power, buildingsCat, units));
 world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.IncomeStep(econ, units, orders, w.Tick, map, catalog.IsRefinery, due));
+world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DripStep(econ, units, id => buildingsCat.Get(id).OilIncome, w.Tick)); // T28: owned oil derricks
 world.Systems.Add((w, due) => OrderSystem.ApplyCommands(orders, due, units.Find, (f, a) => econ.TrySpend(f, a)));
 world.Systems.Add((w, due) => Rts.Sim.Production.ProductionSystem.Step(
     buildingsCat, catalog, units, map, w.Ids, due,
@@ -81,6 +87,7 @@ world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
 world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick, map, catalog.IsRefinery));
 world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick, w));
 world.Systems.Add((w, due) => BridgeSystem.Step(bridges, map, units, orders, w.Tick, w)); // T26: still step 7
+world.Systems.Add((w, due) => CaptureSystem.Step(map, units, orders, w.Tick, w, (f, id) => econ.Deposit(f, catalog.Get(id).Cost))); // T28: still step 7
 world.Systems.Add((w, due) => units.DespawnDead());
 var match = new Rts.Sim.Match.MatchState();
 world.Systems.Add((w, due) => Rts.Sim.Match.MatchSystem.Step(w, units, match));
@@ -94,8 +101,8 @@ world.HashMixers.Add(bridges.Hash); // T26: adds nothing until a bridge is hit
 var commands = new List<Command>();
 if (doc.TryGetProperty("commands", out var cmds))
 {
-    var allUnits = new EntityId[units.Units.Count];
-    for (var i = 0; i < units.Units.Count; i++) allUnits[i] = units.Units[i].Id;
+    // the default selection: the scenario's own units (never the neutral structures)
+    var allUnits = units.Units.Where(u => u.Faction != Factions.Neutral).Select(u => u.Id).ToArray();
     foreach (var c in cmds.EnumerateArray())
     {
         var tick = c.GetProperty("tick").GetInt32();
@@ -187,7 +194,7 @@ if (creditIsFaction >= 0 && econ.Credits(creditIsFaction) != creditIsValue)
 if (assert.ValueKind != JsonValueKind.Undefined && assert.TryGetProperty("buildingCountIs", out var bcEl))
 {
     var want = bcEl.GetProperty("count").GetInt32();
-    var alive = units.Units.Count(u => u.Building != null && u.Hp.Raw > 0);
+    var alive = units.Units.Count(u => u.Building != null && u.Hp.Raw > 0 && u.Faction != Factions.Neutral); // T28: map structures are not built
     var constructing = units.Units.Count(u => u.Building is { ConstructionRemaining: > 0 });
     if (alive != want)
     {

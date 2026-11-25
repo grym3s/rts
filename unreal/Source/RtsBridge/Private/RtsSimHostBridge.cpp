@@ -257,6 +257,7 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				UO->TryGetNumberField(TEXT("loadCapacity"), U.LoadCapacity);
 				UO->TryGetStringField(TEXT("domain"), U.Domain); // T25: absent = land
 				UO->TryGetBoolField(TEXT("engineer"), U.bEngineer); // T26: absent = no
+				UO->TryGetBoolField(TEXT("canCapture"), U.bCanCapture); // T28: absent = no
 				UO->TryGetStringField(TEXT("type"), U.Type); // T29 owned verbs (all optional)
 				UO->TryGetBoolField(TEXT("marked"), U.bMarked);
 				UO->TryGetBoolField(TEXT("conscriptable"), U.bConscriptable);
@@ -285,6 +286,10 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				FO->TryGetNumberField(TEXT("credits"), F.Credits);
 				FO->TryGetNumberField(TEXT("powerSupply"), F.PowerSupply);
 				FO->TryGetNumberField(TEXT("powerDraw"), F.PowerDraw);
+				const TArray<TSharedPtr<FJsonValue>>* TreesArr = nullptr; // T28: absent = own tree only
+				if (FO->TryGetArrayField(TEXT("trees"), TreesArr))
+					for (const TSharedPtr<FJsonValue>& T : *TreesArr)
+						F.Trees.Add(static_cast<int32>(T->AsNumber()));
 				OutReply.Factions.Add(F);
 			}
 		const TArray<TSharedPtr<FJsonValue>>* VeinsArr = nullptr;

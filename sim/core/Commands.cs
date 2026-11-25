@@ -59,5 +59,9 @@ public sealed record PhaseCommand(int Tick, int Faction, EntityId[] Units) : Com
 /// a Sapper detonates instead).</summary>
 public sealed record ConscriptCommand(int Tick, int Faction, EntityId[] Units) : Command(Tick, Faction);
 
+/// <summary>T28: engineers walk to `Target` (an enemy or neutral building, or an enemy MCV) and
+/// capture it on touch: it changes owner and the engineer is consumed.</summary>
+public sealed record CaptureCommand(int Tick, int Faction, EntityId[] Units, EntityId Target) : Command(Tick, Faction);
+
 /// <summary>T26: work on bridge `Bridge` (BridgeStore id): armed units attack it, engineers repair it.</summary>
 public sealed record BridgeCommand(int Tick, int Faction, EntityId[] Units, int Bridge) : Command(Tick, Faction);

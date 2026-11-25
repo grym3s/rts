@@ -25,6 +25,8 @@ public:
 
 	void SetFaction(int32 Faction);
 	int32 GetFaction() const { return Faction; }
+	/** T28: re-apply the building shade on the next SetBuildingShape (after a change of owner). */
+	void InvalidateShape() { ShapeKey = -1; }
 	/** Shared faction palette (unit tint + minimap dots). */
 	static FLinearColor FactionColor(int32 Faction);
 	void SetSelected(bool bSelected);

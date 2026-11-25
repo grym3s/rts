@@ -233,6 +233,9 @@ writeFileSync(join(repo, 'content', 'maps', 'tri-point.json'), JSON.stringify(ma
 // ---- sim map (T25): the typed rows themselves; the sim reads `.~#=` per cell ---------------
 // T26: causeways (one per player, node order) are destructible land over water.
 const simMap = { width: W, height: H, terrain: map.rows, causeways: nodes.map(n => causewayCells[n.id] ?? []).filter(c => c.length) };
+// T28: the central rig is a neutral oil derrick (2x2 on the lagoon, touched by the piers);
+// an engineer captures it and it drips credits to its owner.
+const structures = [{ building: 'neutral-oil-derrick', at: [rigCell.x, rigCell.y] }];
 
 // ---- 30v30 roster: T1 combined arms (24 line infantry + 6 MBT per side) ------------------
 function formation(n, infantry, tank) {
@@ -261,6 +264,7 @@ const scenario = {
   seed: 3,
   ticks: 2400,
   map: simMap,
+  structures,
   veins: fields.flatMap(fl => fl.veins),
   units: [...formation(coalition, 'rifleman', 'lancer-mbt'), ...formation(hegemony, 'conscript', 'bulwark')],
   commands: [
@@ -282,6 +286,7 @@ const skirmish = {
   seed: 5,
   ticks: 900,
   map: simMap,
+  structures,
   veins: fields.flatMap(fl => fl.veins),
   units: [
     { unit: 'mobile-command', at: centreOf(coalition.main) },

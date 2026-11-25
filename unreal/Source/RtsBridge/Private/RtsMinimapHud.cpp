@@ -560,7 +560,8 @@ void ARtsMinimapHud::DrawDebugOverlays()
 	{
 		if (!U)
 			continue;
-		PerFaction[FMath::Clamp(U->GetFaction(), 0, 2)]++;
+		if (U->GetFaction() >= 0) // T28: neutral structures are nobody's
+			PerFaction[FMath::Min(U->GetFaction(), 2)]++;
 		const FRtsDebugUnit* D = GM->GetDebugUnit(U->GetSimUnitId());
 		if (!D)
 			continue;

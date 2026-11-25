@@ -31,11 +31,11 @@ public static class MatchSystem
 
         var alive = new SortedSet<int>();
         foreach (var u in units.Units)
-            if (u.Hp.Raw > 0) alive.Add(u.Faction);
+            if (u.Hp.Raw > 0 && u.Faction != Factions.Neutral) alive.Add(u.Faction); // T28: neutrals aren't a side
         foreach (var f in alive) match._factions.Add(f);
         // a side wiped out this tick is already despawned: its Death events still count it in
         foreach (var e in world.Events)
-            if (e.Kind == SimEventKind.Death) match._factions.Add(e.Faction);
+            if (e.Kind == SimEventKind.Death && e.Faction != Factions.Neutral) match._factions.Add(e.Faction);
 
         if (match._factions.Count < 2 || alive.Count > 1) return;
 

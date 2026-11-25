@@ -112,6 +112,8 @@ FLinearColor ARtsSimUnitActor::FactionColor(int32 InFaction)
 		FLinearColor(0.20f, 0.45f, 0.90f), // faction 1 — blue
 		FLinearColor(0.85f, 0.75f, 0.20f), // faction 2 — gold
 	};
+	if (InFaction < 0)
+		return FLinearColor(0.55f, 0.55f, 0.55f); // T28: neutral map structures (the oil derrick)
 	return Palette[FMath::Clamp(InFaction, 0, 2)];
 }
 

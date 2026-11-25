@@ -105,10 +105,12 @@ public sealed record HostUnit(
     bool? Marked = null, // T29: marked (by an enemy's Marking) this tick
     bool? Conscriptable = null, // T29: can be cashed in (`conscript`)
     int? PhaseTicks = null, // T29: phase-capable: ticks left phased (0 = not phased)
-    int? PhaseCooldown = null); // T29: phase-capable: ticks until it may phase again (0 = ready)
+    int? PhaseCooldown = null, // T29: phase-capable: ticks until it may phase again (0 = ready)
+    bool? CanCapture = null); // T28: an engineer that may capture (not the Weaver)
 
 /// <summary>T30: credits and the power ledger (net = supply − draw; low power when net &lt; 0).</summary>
-public sealed record HostFaction(int Faction, int Credits, int PowerSupply = 0, int PowerDraw = 0);
+public sealed record HostFaction(int Faction, int Credits, int PowerSupply = 0, int PowerDraw = 0,
+    IReadOnlyList<int>? Trees = null); // T28: factions whose buildings it may place, own first; absent = own only
 
 /// <summary>T30: a resource vein (position Q32.32 raw) and the credits left in it.</summary>
 public sealed record HostVein(int Id, long X, long Y, int Pool);

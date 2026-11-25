@@ -13,5 +13,8 @@
     "hp": 55,
     "speed": 1.8,
     "sight": 6.0
+  },
+  "verbs": {
+    "cannotCapture": true
   }
 }

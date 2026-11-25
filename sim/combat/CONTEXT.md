@@ -42,4 +42,16 @@ faction does ×1.25 after the matrix cell (before the chip floor). Binary, no st
 sight is not modelled yet (radius only). **Phase** — a phased unit (tick < `PhaseUntilTick`) is
 never acquired, can't be hit (an attack on it waits, it isn't dropped) and can't fire (bridges
 included); it still moves. Tests: `../tests/OwnedVerbsTests.cs`.
+Captures (T28, `CaptureSystem.Step`, right after BridgeSystem in step 7): an engineer with a
+`CaptureTarget` (set by `CaptureCommand`; not the Weaver, `CannotCapture`) walks to it and takes it
+on touch, instant: any cell next to a building's footprint (diagonals count), or within 1.5 of an
+MCV. Capturable = a live building of anyone else (neutral included) or an enemy MCV; anything else,
+or something already yours, drops the job. The captured unit's `Faction` changes (hp kept; the hash
+mixes Faction only once it differs from `SpawnFaction`); a building's queue is refunded to the old
+owner and cleared, its rally dropped; an MCV stops; the new owner's units stop shooting it. The
+engineer is consumed (no death event); event `Captured` (subject = captured, target = engineer,
+faction = new owner). Neutrals (`Factions.Neutral` = -1, the oil derrick) are never a target
+(`CanHit` refuses them; no marks, no Sapper blast); once captured they are ordinary buildings.
+What ownership then allows lives in production (captured trees) and economy (the drip). Tests:
+`../tests/CaptureTests.cs`.
 Not modelled yet: projectiles, targeting priorities, multi-shot, domain (ground/air) targeting flags.

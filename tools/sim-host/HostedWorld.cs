@@ -73,6 +73,11 @@ public sealed class HostedWorld
                     v.TryGetProperty("pool", out var pool) ? pool.GetInt32() : Rts.Sim.Economy.EconomyStore.FieldPool);
                 map.MarkResource(GameMap.CellOf(econ.Veins[^1].Position.X), GameMap.CellOf(econ.Veins[^1].Position.Y)); // T33: no building on ore
             }
+        // T28: unowned map structures (the oil derrick), after the units and the frozen roster
+        if (scenario.TryGetProperty("structures", out var structEls))
+            foreach (var s in structEls.EnumerateArray())
+                Rts.Sim.Production.ProductionSystem.SpawnStructure(buildingsCat, units, map, world.Ids,
+                    s.GetProperty("building").GetString()!, s.GetProperty("at")[0].GetInt32(), s.GetProperty("at")[1].GetInt32());
         if (scenario.TryGetProperty("refineries", out var refsEl))
             foreach (var r in refsEl.EnumerateArray())
                 econ.Refineries.Add(new Rts.Sim.Economy.EconomyStore.Refinery(
@@ -87,6 +92,7 @@ public sealed class HostedWorld
         var power = new PowerStore();
         world.Systems.Add((w, due) => PowerSystem.Step(power, buildingsCat, units));
         world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.IncomeStep(econ, units, orders, w.Tick, map, catalog.IsRefinery, due));
+        world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DripStep(econ, units, id => buildingsCat.Get(id).OilIncome, w.Tick)); // T28: owned oil derricks
         world.Systems.Add((w, due) => OrderSystem.ApplyCommands(orders, due, units.Find, (f, a) => econ.TrySpend(f, a)));
         world.Systems.Add((w, due) => Rts.Sim.Production.ProductionSystem.Step(
             buildingsCat, catalog, units, map, w.Ids, due,
@@ -97,6 +103,7 @@ public sealed class HostedWorld
         world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick, map, catalog.IsRefinery));
         world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick, w));
         world.Systems.Add((w, due) => BridgeSystem.Step(bridges, map, units, orders, w.Tick, w)); // T26: still step 7
+        world.Systems.Add((w, due) => CaptureSystem.Step(map, units, orders, w.Tick, w, (f, id) => econ.Deposit(f, catalog.Get(id).Cost))); // T28: still step 7
         world.Systems.Add((w, due) => units.DespawnDead());
         var match = new Rts.Sim.Match.MatchState();
         world.Systems.Add((w, due) => Rts.Sim.Match.MatchSystem.Step(w, units, match));
@@ -160,6 +167,7 @@ public sealed class HostedWorld
                 "cancel" => new CancelProductionCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("index").GetInt32()),
                 "harvest" => new HarvestCommand(tick, faction, unitIds, c.GetProperty("vein").GetInt32()),
                 "bridge" => new BridgeCommand(tick, faction, unitIds, c.GetProperty("bridge").GetInt32()),
+                "capture" => new CaptureCommand(tick, faction, unitIds, DecodeAttackTarget(hasTgt ? target : null)), // T28: target = entity id
                 "phase" => new PhaseCommand(tick, faction, unitIds),
                 "conscript" => new ConscriptCommand(tick, faction, unitIds),
                 "rally" => new RallyCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()),
@@ -267,12 +275,17 @@ public sealed class HostedWorld
                 u.IsMarked(World.Tick) ? true : null,
                 u.Conscriptable ? true : null,
                 u.Phases ? Math.Max(0, u.PhaseUntilTick - World.Tick) : null,
-                u.Phases ? Math.Max(0, u.PhaseReadyTick - World.Tick) : null));
+                u.Phases ? Math.Max(0, u.PhaseReadyTick - World.Tick) : null,
+                u.Engineer && !u.CannotCapture ? true : null));
         }
 
         var factions = new List<HostFaction>(2);
         for (var f = 0; f < Rts.Sim.Economy.EconomyStore.FactionCount; f++)
-            factions.Add(new HostFaction(f, Econ.Credits(f), Power.Supply(f), Power.Draw(f)));
+        {
+            // T28: the trees this faction may build from; sent only once a captured yard/MCV opens another
+            var trees = Rts.Sim.Production.ProductionSystem.Trees(BuildingsCatalog, Units, f);
+            factions.Add(new HostFaction(f, Econ.Credits(f), Power.Supply(f), Power.Draw(f), trees.Count > 1 ? trees : null));
+        }
         var veins = new List<HostVein>(Econ.Veins.Count);
         foreach (var v in Econ.Veins) veins.Add(new HostVein(v.Id, v.Position.X.Raw, v.Position.Y.Raw, v.Pool));
         var refineries = new List<HostRefinery>(Econ.Refineries.Count);
@@ -309,6 +322,7 @@ public sealed class HostedWorld
         SimEventKind.BridgeHit => "bridge_hit",
         SimEventKind.BridgeDown => "bridge_down",
         SimEventKind.BridgeRepaired => "bridge_repaired",
+        SimEventKind.Captured => "captured",
         _ => throw new ArgumentOutOfRangeException(nameof(k), k, "no wire name"),
     };
 }

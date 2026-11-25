@@ -96,6 +96,8 @@ public:
 	 *  bAttack (Ctrl+RMB or attack-move click) selected armed units shoot it. False = not a bridge
 	 *  job (the click falls through to a move). */
 	bool RequestBridgeAt(const FVector& WorldPoint, bool bAttack);
+	/** T28: RMB on an enemy/neutral: capturing engineers take it (building or MCV), the rest attack. */
+	bool RequestCaptureOrAttack(int32 TargetSimId);
 	/** The latest snapshot row of a unit (building/queue/harvest fields), or null. */
 	const FRtsUnitSnapshot* GetUnitRow(int32 SimUnitId) const { return RowsById.Find(SimUnitId); }
 	const TMap<int32, FRtsUnitSnapshot>& GetUnitRows() const { return RowsById; }

@@ -37,10 +37,16 @@ bool FRtsContentLoaderTest::RunTest(const FString& Parameters)
 	const bool bStep = Bridge->Step(TEXT("{\"protocolVersion\":1,\"kind\":\"step\",\"tick\":0,\"commands\":[]}"), 10.0, R) && R.bOk;
 	TestTrue(TEXT("first step ok"), bStep);
 	int32 PerFaction[2] = { 0, 0 };
+	int32 Derricks = 0;
 	for (const FRtsUnitSnapshot& U : R.Units)
 	{
 		if (U.Faction >= 0 && U.Faction < 2)
 			++PerFaction[U.Faction];
+		if (U.Faction < 0) // T28: the neutral oil derrick stands offshore on the central rig
+		{
+			Derricks += U.BuildingId == TEXT("neutral-oil-derrick") ? 1 : 0;
+			continue;
+		}
 		const int32 CX = FMath::FloorToInt(U.X), CY = FMath::FloorToInt(U.Y);
 		const bool bOnLand = CY >= 0 && CY < Setup.Rows.Num() && CX >= 0 && CX < Setup.Rows[CY].Len()
 			&& RtsContent::IsWalkableTile(Setup.Rows[CY][CX]);
@@ -49,6 +55,7 @@ bool FRtsContentLoaderTest::RunTest(const FString& Parameters)
 	}
 	TestEqual(TEXT("30 Coalition (faction 0)"), PerFaction[0], 30);
 	TestEqual(TEXT("30 Hegemony (faction 1)"), PerFaction[1], 30);
+	TestEqual(TEXT("one neutral oil derrick on the rig"), Derricks, 1);
 	Bridge->Shutdown();
 	return true;
 }

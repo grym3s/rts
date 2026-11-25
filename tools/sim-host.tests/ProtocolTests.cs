@@ -332,8 +332,8 @@ public class ProtocolTests
     [InlineData("chokepoint-30.json", "1727e6d2adb5efb8")]
     // T29 re-pin (Rifleman marks on hit): skirmish-10v10, tri-point-30, counters-6v4, guard-hold, match-end
     [InlineData("skirmish-10v10.json", "b379d768bf134db0")] // re-pinned for T05 guard (idle units hold, chase, return): 0fbba65f760574ce -> e97bc24d4f7fd6c3
-    [InlineData("tri-point-30.json", "f1f744d1b3354994")] // re-pinned for T34 fields: 5526cd76fdce4754 -> c209ac08ca9974f4 (ore pools hashed; same battle)
-    [InlineData("tri-point-skirmish.json", "13b90027de9182fe")] // T36 skirmish start (MCV deploy + reactor); T27 re-pin: Ascendant seated, 1v1v1
+    [InlineData("tri-point-30.json", "0d3b47e3fa717ca1")] // re-pinned for T34 fields (ore pools hashed); T29 Rifleman marking; T28 neutral oil derrick on the rig
+    [InlineData("tri-point-skirmish.json", "023dd8ce8ce6ba44")] // T36 skirmish start (MCV deploy + reactor); T27 re-pin: Ascendant seated, 1v1v1; T28: oil derrick
     [InlineData("counters-6v4.json", "d2343b13b00b679f")] // re-pinned for T05 guard (idle units hold, chase, return): a418be859c7550c7 -> 39ac951e73e99076
     [InlineData("guard-hold.json", "26db13b0d757bcea")]
     [InlineData("match-end.json", "3c7502ae4d9d4698")]
@@ -560,6 +560,38 @@ public class ProtocolTests
         var a = r.State.Units.Single(u => u.Id == adept.Id);
         Assert.True(a.PhaseTicks > 30);
         Assert.True(a.PhaseCooldown > a.PhaseTicks);
+    }
+
+    // ---------- captures (T28) ----------
+
+    [Fact]
+    public void Capture_takes_a_neutral_derrick_and_an_enemy_mcv_and_the_snapshot_shows_the_new_trees()
+    {
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":24,"height":24,"blocked":[]},"structures":[{"building":"neutral-oil-derrick","at":[12,12]}],"units":[{"unit":"engineer","at":[10.5,12.5]},{"unit":"engineer","at":[3.5,3.5]},{"unit":"foundry-crawler","at":[4.5,3.5]}]}}"""));
+        Assert.True(init.Ok, init.Error);
+        var (e1, e2, mcv) = (init.State!.Units[0], init.State.Units[1], init.State.Units[2]);
+        var derrick = init.State.Units[3]; // structures follow the scenario's units
+        Assert.Equal(("neutral-oil-derrick", -1), (derrick.BuildingId, derrick.Faction));
+        Assert.True(e1.CanCapture);
+        Assert.Null(init.State.Factions![0].Trees);
+
+        var r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":0,"commands":[{"tick":0,"faction":0,"type":"capture","units":[{{e1.Id}}],"target":{{derrick.Id}}},{"tick":0,"faction":0,"type":"capture","units":[{{e2.Id}}],"target":{{mcv.Id}}}]}"""));
+        Assert.True(r.Ok, r.Error);
+        Assert.Equal(0, r.State!.Units.Single(u => u.Id == derrick.Id).Faction);
+        Assert.Equal(0, r.State.Units.Single(u => u.Id == mcv.Id).Faction);
+        Assert.DoesNotContain(r.State.Units, u => u.Id == e1.Id || u.Id == e2.Id);
+        Assert.Equal(2, r.Events!.Count(e => e.Kind == "captured" && e.Faction == 0));
+        Assert.Equal(new[] { 0, 1 }, r.State.Factions![0].Trees);
+    }
+
+    [Fact]
+    public void A_capture_target_must_be_an_entity_id()
+    {
+        var s = new SimHostSession(RepoRoot());
+        Assert.True(Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":8,"height":8,"blocked":[]},"units":[{"unit":"engineer","at":[1.5,1.5]}]}}""")).Ok);
+        var r = Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":0,"commands":[{"tick":0,"faction":0,"type":"capture","units":[0],"target":[3,3]}]}"""));
+        Assert.False(r.Ok);
     }
 
     // ---------- MCV deploy (T32) ----------

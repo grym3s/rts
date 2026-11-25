@@ -52,7 +52,7 @@ public static class OwnedVerbs
             var r2 = s.MarkRadius * s.MarkRadius;
             foreach (var e in units.Units)
             {
-                if (e.Faction == s.Faction || e.Hp.Raw <= 0 || e.IsPhased(tick)) continue;
+                if (e.Faction == s.Faction || e.Faction == Factions.Neutral || e.Hp.Raw <= 0 || e.IsPhased(tick)) continue;
                 if ((e.Position - s.Position).LengthSquared > r2) continue;
                 Mark(e, s.Faction, tick + AuraLingerTicks);
             }

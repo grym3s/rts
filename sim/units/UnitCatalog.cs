@@ -14,12 +14,12 @@ public sealed class UnitCatalog
         Rts.Sim.World.MoveDomain Domain = Rts.Sim.World.MoveDomain.Land,
         Rts.Sim.World.TargetMask Targets = Rts.Sim.World.TargetMask.None, bool Engineer = false,
         bool MarksOnHit = false, Fix64 MarkRadius = default, bool Conscriptable = false, bool Detonates = false,
-        bool Phases = false)
+        bool Phases = false, bool CannotCapture = false)
     {
         /// <summary>The spawn-time stat block (every spawner builds the same one).</summary>
         public Rts.Sim.World.UnitProfile Profile() => new(Faction, Hp, Sight, Damage, Range, CooldownTicks,
             Armor, DamageType, Harvest, DeploysTo, Domain, Targets, Engineer,
-            Id, MarksOnHit, MarkRadius, Conscriptable, Detonates, Phases);
+            Id, MarksOnHit, MarkRadius, Conscriptable, Detonates, Phases, CannotCapture);
     }
 
     /// <summary>True when unitId names a unit this building (catalog id) fields:
@@ -31,9 +31,11 @@ public sealed class UnitCatalog
     public static readonly Fix64 DefaultRadius = Fix64.Ratio(3, 10); // 0.3 cells: unit radius, tuning value until unit.json grows one
 
     /// <summary>Content faction name -> sim faction index: coalition 0, hegemony 1, ascendant 2.
-    /// Unknown names fail loudly rather than silently joining coalition.</summary>
+    /// Unknown names fail loudly rather than silently joining coalition. T28: `neutral` (map
+    /// structures such as the oil derrick) is Factions.Neutral, -1.</summary>
     public static int FactionIndex(string? name) => name switch
     {
+        "neutral" => Rts.Sim.World.Factions.Neutral,
         "coalition" => 0,
         "hegemony" => 1,
         "ascendant" => 2,
@@ -85,7 +87,8 @@ public sealed class UnitCatalog
                 root.TryGetProperty("verbs", out var vb) && vb.TryGetProperty("markRadius", out var mr) ? Fix64.FromDouble(mr.GetDouble()) : Fix64.Zero,
                 Verb(root, "conscriptable"),
                 root.TryGetProperty("verbs", out var vb2) && vb2.TryGetProperty("conscriptEffect", out var ce) && ce.GetString() == "detonate",
-                Verb(root, "phases"));
+                Verb(root, "phases"),
+                Verb(root, "cannotCapture"));
         }
         return cat;
     }

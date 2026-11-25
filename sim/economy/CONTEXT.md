@@ -24,5 +24,10 @@ A harvester walking to a live home vein fills only there, never at a vein it pas
 veins and units that are not your harvesters are ignored. Tests: `sim/tests/RefineryTests.cs` (T38 section).
 T27: three balances (`EconomyStore.FactionCount`: coalition 0, hegemony 1, ascendant 2). Factions 0 and 1 always
 mix into the hash; ascendant only once its balance moves, so two-faction worlds keep their pins.
+T28 oil drip (`DripStep`, step 2 after IncomeStep, reference Part 6.7): once a second each
+finished, owned building with an `oilIncome` (content `verbs.oilIncome`, credits/s: the Oil Derrick
+5, our tuning toward canon's 4-6 min payback) pays its owner; per owner the 1st pays 100%, the 2nd
+70%, the rest 50% (floor; canon diminishing returns). Neutral derricks pay nobody. Tests:
+`sim/tests/CaptureTests.cs`.
 Known limits (2026-11-25): scenario refinery points remain for the old goldens (economy-2h);
 fill/deposit radii are tuning constants; SpendCommand fails silently by design (atomic, no events yet).

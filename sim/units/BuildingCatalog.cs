@@ -10,7 +10,7 @@ public sealed class BuildingCatalog
 {
     public record PlacementParams(string Id, int Faction, string Category, int Cost, int BuildTicks, Fix64 Hp, string? Prereq, int Power,
         int FootprintW = 1, int FootprintH = 1, string Name = "", bool RequiresShore = false,
-        Fix64 MarkRadius = default, bool ConscriptionHall = false)
+        Fix64 MarkRadius = default, bool ConscriptionHall = false, int OilIncome = 0)
     {
         /// <summary>T25: naval and offshore buildings stand on water (shipyards, sea platforms).</summary>
         public bool OnWater => Category is "naval" or "offshore";
@@ -60,7 +60,9 @@ public sealed class BuildingCatalog
                 root.TryGetProperty("requiresShore", out var shoreEl) && shoreEl.GetBoolean(),
                 // T29: Sensor Command's mark aura (and network gate); a hall's full-refund zone
                 root.TryGetProperty("verbs", out var vb) && vb.TryGetProperty("markRadius", out var mr) ? Fix64.FromDouble(mr.GetDouble()) : Fix64.Zero,
-                UnitCatalog.Verb(root, "conscriptionHall"));
+                UnitCatalog.Verb(root, "conscriptionHall"),
+                // T28: an owned oil derrick drips this many credits per second to its owner
+                root.TryGetProperty("verbs", out var vb3) && vb3.TryGetProperty("oilIncome", out var oi) ? oi.GetInt32() : 0);
         }
         return cat;
     }

@@ -95,6 +95,10 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	bool bEngineer = false;
 
+	/** T28: an engineer that may capture (enemy or neutral buildings, enemy MCVs); not the Weaver. */
+	UPROPERTY(BlueprintReadOnly)
+	bool bCanCapture = false;
+
 	/** T29 owned verbs: catalog id; marked by an enemy's Marking; can be conscripted; phase
 	 *  state (PhaseTicks -1 = can't phase, else ticks left phased; PhaseCooldown = until ready). */
 	UPROPERTY(BlueprintReadOnly)
@@ -139,7 +143,13 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	int32 PowerDraw = 0;
 
+	/** T28: factions whose buildings this one may place, own first (a captured yard or MCV
+	 *  opens another tree). Empty in the snapshot = own tree only. */
+	UPROPERTY(BlueprintReadOnly)
+	TArray<int32> Trees;
+
 	bool IsLowPower() const { return PowerSupply - PowerDraw < 0; }
+	bool HasTree(int32 Tree) const { return Tree == Faction || Trees.Contains(Tree); }
 };
 
 /** T26: a bridge (map cells) and its hit points; broken = its cells are water now. */

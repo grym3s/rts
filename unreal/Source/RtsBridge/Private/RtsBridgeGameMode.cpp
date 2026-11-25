@@ -403,6 +403,12 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 		else
 		{
 			A->SetSimPosition(S.X, S.Y);
+			if (A->GetFaction() != S.Faction)
+			{
+				// T28: captured: the new owner's colour (orders already skip rows that aren't ours)
+				A->SetFaction(S.Faction);
+				A->InvalidateShape();
+			}
 		}
 		A->SetHealth(S.Hp, S.MaxHp);
 		if (S.IsBuilding())
@@ -622,7 +628,10 @@ const TArray<ARtsBridgeGameMode::FBuildOption>& ARtsBridgeGameMode::GetBuildOpti
 		if (P.Value.Faction == 0 && P.Value.IsBuilding())
 			Parts.Add(FString::Printf(TEXT("%d:%s:%d"), P.Key, *P.Value.BuildingId, P.Value.ConstructionRemaining == 0 ? 1 : 0));
 	Parts.Sort();
-	const FString Key = FString::Join(Parts, TEXT(","));
+	FString Key = FString::Join(Parts, TEXT(","));
+	if (const FRtsFactionSnapshot* Own = GetFactionState(0)) // T28: a captured tree changes the menu too
+		for (const int32 T : Own->Trees)
+			Key += FString::Printf(TEXT("|t%d"), T);
 	if (Key != BuildOptionsKey)
 	{
 		BuildOptionsKey = Key;
@@ -653,7 +662,9 @@ void ARtsBridgeGameMode::RebuildBuildOptions(bool bHaveBase)
 	{
 		// Yards come from the MCV. Naval/offshore go on water (T25): the sim's query says
 		// "water" / "shore" when the ghost is on the wrong ground.
-		if (B.Faction != 0 || B.Category == TEXT("construction-yard"))
+		// T28: a captured yard or MCV opens its tree (the snapshot's `trees`)
+		const FRtsFactionSnapshot* Own = GetFactionState(0);
+		if (!(B.Faction == 0 || (Own && Own->HasTree(B.Faction))) || B.Category == TEXT("construction-yard"))
 			continue;
 		FBuildOption O;
 		O.bNeedsWater = B.Category == TEXT("naval") || B.Category == TEXT("offshore");
@@ -742,7 +753,7 @@ TArray<FRtsUnitType> ARtsBridgeGameMode::TrainableAt(const FString& BuildingType
 {
 	TArray<FRtsUnitType> Out;
 	for (const FRtsUnitType& U : UnitTypes)
-		if (U.Faction == 0 && U.BuiltFrom == BuildingTypeId)
+		if (U.BuiltFrom == BuildingTypeId) // T28: a captured building fields its own (enemy) units
 			Out.Add(U);
 	return Out;
 }
@@ -753,7 +764,7 @@ int32 ARtsBridgeGameMode::GetSelectedProducer() const
 	for (const int32 Id : Selection.GetSelected())
 		if (const FRtsUnitSnapshot* R = RowsById.Find(Id))
 			if (R->Faction == 0 && R->IsBuilding() && (Best == INDEX_NONE || Id < Best)
-				&& UnitTypes.ContainsByPredicate([R](const FRtsUnitType& U) { return U.Faction == 0 && U.BuiltFrom == R->BuildingId; }))
+				&& UnitTypes.ContainsByPredicate([R](const FRtsUnitType& U) { return U.BuiltFrom == R->BuildingId; }))
 				Best = Id;
 	return Best;
 }
@@ -857,6 +868,37 @@ bool ARtsBridgeGameMode::RequestBridgeAt(const FVector& WorldPoint, bool bAttack
 		return false; // nobody here can work on it: an ordinary move
 	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"bridge\",\"units\":[%s],\"bridge\":%d"), *Ids, Id));
 	return true;
+}
+
+bool ARtsBridgeGameMode::RequestCaptureOrAttack(int32 TargetSimId)
+{
+	if (!bHostAlive || IsMatchScreenUp())
+		return false;
+	// T28: selected capturing engineers take an enemy or neutral building, or an enemy MCV; the
+	// rest of the selection attacks it (a neutral one can't be shot, so they just don't).
+	const FRtsUnitSnapshot* T = RowsById.Find(TargetSimId);
+	const bool bCapturable = T && T->Faction != 0 && (T->IsBuilding() || IsMcvRow(*T));
+	FString Capturers, Attackers;
+	for (const int32 Sel : Selection.GetSelected())
+		if (const FRtsUnitSnapshot* R = RowsById.Find(Sel))
+		{
+			if (R->Faction != 0 || R->IsBuilding())
+				continue;
+			FString& Into = bCapturable && R->bCanCapture ? Capturers : Attackers;
+			Into += (Into.IsEmpty() ? TEXT("") : TEXT(",")) + FString::FromInt(Sel);
+		}
+	bool bQueued = false;
+	if (!Capturers.IsEmpty())
+	{
+		PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"capture\",\"units\":[%s],\"target\":%d"), *Capturers, TargetSimId));
+		bQueued = true;
+	}
+	if (!Attackers.IsEmpty() && T && T->Faction >= 0)
+	{
+		PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"attack\",\"units\":[%s],\"target\":%d"), *Attackers, TargetSimId));
+		bQueued = true;
+	}
+	return bQueued;
 }
 
 bool ARtsBridgeGameMode::RequestHarvestAt(const FVector& WorldPoint)

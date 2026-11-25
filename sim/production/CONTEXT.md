@@ -42,6 +42,14 @@ Rally (T37): `RallyCommand` sets `BuildingState.Rally` on an own, live building;
 trains is handed to the `rallyTo` callback (the last `Step` parameter; hosts give it a plain move
 order), so production never depends on sim/orders. Shipped harvesters ignore it. The rally mixes into
 `ProductionStore.Hash` only once set, so worlds without one hash as before. Tests: `sim/tests/RallyTests.cs`.
+Captures (T28): units are trained for the building's *owner* (`SpawnUnit(..., owner)`), and `train`
+checks only that you own a building the unit is `builtFrom`, so a captured barracks fields its
+enemy units for you (power, credits and the queue cap still apply). `HasTree(faction, tree)`: you
+may `place` another tree's buildings while you own a live construction yard of that tree or an MCV
+that deploys into one (captured, or deployed from a captured MCV); its prereq chain then counts
+your buildings of that tree. `Trees` lists them (own first) for the host. A captured MCV deploys
+into its own tree's yard for you. `SpawnStructure` places a scenario `structures` entry (unowned map
+furniture: finished, no terrain or radius checks, must fit on the map), after the units.
 Known limits (2026-11-25): scenarios still bootstrap yards by `place` (and a player could too, for
 its cost); one queue per
 building; construction is not interruptible.

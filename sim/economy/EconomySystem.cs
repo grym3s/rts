@@ -213,6 +213,24 @@ public static class EconomySystem
         return cx >= r.X - 1 && cx <= r.X + r.W && cy >= r.Y - 1 && cy <= r.Y + r.H;
     }
 
+    /// <summary>T28 offshore drip (reference Part 6.7, economy.md "oil"): once a second, every
+    /// finished, owned building with an oil income pays its owner, no harvester trip. Diminishing
+    /// returns per owner (canon 100% / 70% / 50%), counted in roster order: the first derrick
+    /// pays in full, the second 70%, every further one 50% (floor). Neutral ones pay nobody.</summary>
+    public static void DripStep(EconomyStore store, UnitStore units, Func<string, int> oilIncome, int tick)
+    {
+        if (tick % Rts.Sim.Core.SimWorld.TicksPerSecond != 0) return;
+        Span<int> held = stackalloc int[3];
+        foreach (var b in units.Units)
+        {
+            if (b.Building is not { ConstructionRemaining: 0 } bs || b.Hp.Raw <= 0 || (uint)b.Faction >= 3) continue;
+            var income = oilIncome(bs.Id);
+            if (income <= 0) continue;
+            var pct = held[b.Faction]++ switch { 0 => 100, 1 => 70, _ => 50 };
+            store.Deposit(b.Faction, income * pct / 100);
+        }
+    }
+
     private static Fix64 Dist(Unit u, FixVec2 p) => (p - u.Position).Length;
 
     private static bool HasOrderTo(Dictionary<EntityId, MoveOrder> orders, EntityId id, FixVec2 target) =>

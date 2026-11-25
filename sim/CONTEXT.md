@@ -7,12 +7,12 @@ Never: references Godot or any engine; uses floats; reads wall-clock time.
 
 ## Tick order (the one place this is stated)
 1. power: recompute net power per faction (`power/`, live)
-2. income: harvest income before spend (`economy/`, live)
+2. income: harvest income before spend (`economy/`, live); then the oil drip (T28 `DripStep`, owned derricks, once a second)
 3. orders: apply commands for this tick (`orders/`, live)
 4. production: build queues, spawn units (`production/`, live)
 5. navigation: path + avoidance + movement (`navigation/`, live)
 6. deposit: credit arrivals after movement (`economy/`, live)
-7. combat: acquire, fire, damage, death (`combat/`, live); then bridges (T26 `BridgeSystem`: attack, collapse, engineer repair)
+7. combat: acquire, fire, damage, death (`combat/`, live); then bridges (T26 `BridgeSystem`: attack, collapse, engineer repair); then captures (T28 `CaptureSystem`: engineer touch changes owner)
 8. cleanup: despawn dead
 9. match: decide win / lose (`match/`, live)
 

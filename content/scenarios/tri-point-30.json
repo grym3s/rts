@@ -1172,6 +1172,15 @@
    ]
   ]
  },
+ "structures": [
+  {
+   "building": "neutral-oil-derrick",
+   "at": [
+    65,
+    71
+   ]
+  }
+ ],
  "veins": [
   {
    "at": [

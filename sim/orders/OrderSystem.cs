@@ -81,6 +81,17 @@ public static class OrderSystem
                         u.BridgeTarget = bc.Bridge;
                     }
                     break;
+                case CaptureCommand cc:
+                    // T28: engineers only (not the Weaver); CaptureSystem walks them there
+                    foreach (var unit in cc.Units)
+                    {
+                        if (unitOf == null || unitOf(unit) is not { } u || u.Faction != cc.Faction) continue;
+                        if (!u.Engineer || u.CannotCapture || u.Hp.Raw <= 0) continue;
+                        orders.Remove(unit);
+                        Disengage(u);
+                        u.CaptureTarget = cc.Target;
+                    }
+                    break;
                 case PhaseCommand ph:
                     // T29: not a move order: the unit keeps doing what it was doing, untargetable
                     foreach (var unit in ph.Units)
@@ -110,5 +121,6 @@ public static class OrderSystem
         u.Guarding = false;
         u.Returning = false;
         u.BridgeTarget = -1;
+        u.CaptureTarget = EntityId.None;
     }
 }

@@ -241,10 +241,13 @@ bool ARtsRtsPlayerController::IssueOrderAtCursor(bool bAttack)
 		const int32 Enemy = GM->PickEnemyUnitAt(FVector2D(MX, MY));
 		if (Enemy != INDEX_NONE)
 		{
-			const bool bQueued = GM->RequestAttackUnit(Enemy);
+			// T28: engineers capture what they can; everyone else attacks
+			const bool bQueued = GM->RequestCaptureOrAttack(Enemy);
 			if (bQueued && Hud)
 				Hud->AddUnitMarker(Enemy, EMarker::Attack);
-			return bQueued;
+			if (bQueued)
+				return true;
+			// nothing here can act on it (a neutral derrick with no engineer): an ordinary move
 		}
 	}
 	FHitResult Hit;

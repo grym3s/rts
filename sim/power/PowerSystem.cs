@@ -19,6 +19,7 @@ public static class PowerSystem
         {
             if (u.Building is not { } b) continue;
             if (u.Hp.Raw <= 0) continue; // dead
+            if (u.Faction == Rts.Sim.World.Factions.Neutral) continue; // T28: unowned structures
             if (b.ConstructionRemaining > 0) continue; // under construction
             var p = buildings.Get(b.Id).Power;
             supply.TryAdd(u.Faction, 0);

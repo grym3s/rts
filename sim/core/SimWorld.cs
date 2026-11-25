@@ -15,6 +15,9 @@ public enum SimEventKind
     BridgeDown,
     /// <summary>T26: bridge Subject (bridge id) was repaired to full by engineer Target (consumed).</summary>
     BridgeRepaired,
+    /// <summary>T28: unit Subject (building or MCV) was captured by engineer Target (consumed);
+    /// Faction is the new owner.</summary>
+    Captured,
 }
 
 /// <summary>Something that happened during a tick, for the presentation layer / replay consumers.

@@ -136,7 +136,8 @@ public static class CombatSystem
     }
 
     /// <summary>T25: the weapon's `targets` include the target's domain (buildings are ground).</summary>
-    public static bool CanHit(Unit u, Unit target) => Domains.CanEngage(u.Targets, target.Domain);
+    public static bool CanHit(Unit u, Unit target) =>
+        target.Faction != Factions.Neutral && Domains.CanEngage(u.Targets, target.Domain); // T28: neutrals are untouchable
 
     /// <summary>Nearest enemy strictly inside sight range that the weapon can engage; store order
     /// breaks distance ties.</summary>

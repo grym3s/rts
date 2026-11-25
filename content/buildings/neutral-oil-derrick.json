@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "neutral-oil-derrick",
+  "name": "Oil Derrick",
+  "faction": "neutral",
+  "category": "offshore",
+  "tier": 0,
+  "prereq": null,
+  "cost": 0,
+  "buildTimeSeconds": 0,
+  "power": 0,
+  "footprint": [
+    2,
+    2
+  ],
+  "produces": [
+    "credits"
+  ],
+  "verbs": {
+    "oilIncome": 5
+  },
+  "stats": {
+    "hp": 1500
+  }
+}
