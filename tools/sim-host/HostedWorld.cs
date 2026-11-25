@@ -255,7 +255,8 @@ public sealed class HostedWorld
         }
 
         var factions = new List<HostFaction>(2);
-        for (var f = 0; f < 2; f++) factions.Add(new HostFaction(f, Econ.Credits(f), Power.Supply(f), Power.Draw(f)));
+        for (var f = 0; f < Rts.Sim.Economy.EconomyStore.FactionCount; f++)
+            factions.Add(new HostFaction(f, Econ.Credits(f), Power.Supply(f), Power.Draw(f)));
         var veins = new List<HostVein>(Econ.Veins.Count);
         foreach (var v in Econ.Veins) veins.Add(new HostVein(v.Id, v.Position.X.Raw, v.Position.Y.Raw, v.Pool));
         var refineries = new List<HostRefinery>(Econ.Refineries.Count);

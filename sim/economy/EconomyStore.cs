@@ -14,7 +14,10 @@ public sealed class EconomyStore
     public const int StartingCredits = 5000;   // economy.md: skirmish starting credits
     public const int FieldPool = 25_000;       // economy.md: resource field pool
 
-    private readonly int[] _credits = { StartingCredits, StartingCredits };
+    /// <summary>Factions with a balance: coalition 0, hegemony 1, ascendant 2 (T27).</summary>
+    public const int FactionCount = 3;
+
+    private readonly int[] _credits = { StartingCredits, StartingCredits, StartingCredits };
 
     public int Credits(int faction) => _credits[faction];
 
@@ -58,8 +61,11 @@ public sealed class EconomyStore
     {
         if (Veins.Count == 0 && Refineries.Count == 0 &&
             _credits.All(c => c == StartingCredits)) return h;
-        foreach (var c in _credits)
-            h = (h ^ (uint)c) * 1099511628211UL;
+        // Factions 0 and 1 always mix; a later faction (T27: ascendant) only once its balance has
+        // moved, so two-faction worlds keep the hashes they were pinned with.
+        for (var f = 0; f < _credits.Length; f++)
+            if (f < 2 || _credits[f] != StartingCredits)
+                h = (h ^ (uint)_credits[f]) * 1099511628211UL;
         foreach (var v in Veins)
         {
             h = (h ^ (uint)v.Pool) * 1099511628211UL;

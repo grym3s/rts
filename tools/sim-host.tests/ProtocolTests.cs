@@ -332,7 +332,7 @@ public class ProtocolTests
     [InlineData("chokepoint-30.json", "1727e6d2adb5efb8")]
     [InlineData("skirmish-10v10.json", "e97bc24d4f7fd6c3")] // re-pinned for T05 guard (idle units hold, chase, return): 0fbba65f760574ce -> e97bc24d4f7fd6c3
     [InlineData("tri-point-30.json", "c209ac08ca9974f4")] // re-pinned for T34 fields: 5526cd76fdce4754 -> c209ac08ca9974f4 (ore pools hashed; same battle)
-    [InlineData("tri-point-skirmish.json", "67de1d03ad12b797")] // T36 skirmish start (MCV deploy + reactor)
+    [InlineData("tri-point-skirmish.json", "13b90027de9182fe")] // T36 skirmish start (MCV deploy + reactor); T27 re-pin: Ascendant seated, 1v1v1
     [InlineData("counters-6v4.json", "39ac951e73e99076")] // re-pinned for T05 guard (idle units hold, chase, return): a418be859c7550c7 -> 39ac951e73e99076
     [InlineData("guard-hold.json", "e7a820c12422dad2")]
     [InlineData("match-end.json", "3c75053acd9d4698")]
@@ -511,7 +511,7 @@ public class ProtocolTests
         var init = Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":31,"map":{"width":24,"height":24,"blocked":[]},"veins":[{"at":[6,9],"pool":5000}],"refineries":[{"faction":0,"at":[5,9]}]}}"""));
         Assert.True(init.Ok, init.Error);
         var st = init.State!;
-        Assert.Equal(2, st.Factions!.Count);
+        Assert.Equal(3, st.Factions!.Count); // coalition, hegemony, ascendant (T27)
         Assert.All(st.Factions, f => Assert.Equal(5000, f.Credits));
         var vein = Assert.Single(st.Veins!);
         Assert.Equal(5000, vein.Pool);

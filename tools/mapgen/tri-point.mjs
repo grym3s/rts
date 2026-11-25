@@ -266,7 +266,7 @@ function formation(n, infantry, tank) {
   return out;
 }
 const byId = id => nodes.find(n => n.id === id);
-const coalition = byId('coalition'), hegemony = byId('hegemony');
+const coalition = byId('coalition'), hegemony = byId('hegemony'), ascendant = byId('ascendant');
 // The Seam both of them border (an early Seam fight, per the design's pacing goal).
 const shared = seams.find(s => s.between.includes('coalition') && s.between.includes('hegemony'));
 const scenario = {
@@ -286,7 +286,8 @@ console.log(`tri-point: ${W}x${H}, ${rects.length} blocked rects, ${scenario.uni
 
 // ---- skirmish start (T36): the canon opening, one MCV each on its main ---------------------
 // economy.md: 5000 credits and one undeployed MCV. Unreal loads this without its commands; the
-// commands are a scripted opening for the CI golden (both deploy, Coalition adds a reactor).
+// commands are a scripted opening for the CI golden (all three deploy, Coalition adds a reactor).
+// T27: Ascendant (faction 2) is seated in the top home, so Tri-Point opens 1v1v1.
 const centreOf = p => { const c = cell(p); return [c.x + 0.5, c.y + 0.5]; };
 const ahead = (n, d) => { const f = unit(n.main, n.natural); return [Math.floor(n.main.x + f.x * d), Math.floor(n.main.y + f.y * d)]; };
 const skirmish = {
@@ -295,13 +296,18 @@ const skirmish = {
   ticks: 900,
   map: { width: W, height: H, blocked: rects },
   veins: fields.flatMap(fl => fl.veins),
-  units: [{ unit: 'mobile-command', at: centreOf(coalition.main) }, { unit: 'foundry-crawler', at: centreOf(hegemony.main) }],
+  units: [
+    { unit: 'mobile-command', at: centreOf(coalition.main) },
+    { unit: 'foundry-crawler', at: centreOf(hegemony.main) },
+    { unit: 'seed-core', at: centreOf(ascendant.main) },
+  ],
   commands: [
     { tick: 1, faction: 0, type: 'deploy', unit: 0 },
     { tick: 1, faction: 1, type: 'deploy', unit: 1 },
+    { tick: 1, faction: 2, type: 'deploy', unit: 2 },
     { tick: 205, faction: 0, type: 'place', building: 'coalition-reactor', at: ahead(coalition, 4) },
   ],
-  assert: { buildingCountIs: { count: 3 } },
+  assert: { buildingCountIs: { count: 4 } },
 };
 writeFileSync(join(repo, 'content', 'scenarios', 'tri-point-skirmish.json'), JSON.stringify(skirmish, null, 1) + '\n');
 console.log(`tri-point-skirmish: MCVs at ${skirmish.units.map(u => u.at.join(',')).join(' / ')}`);

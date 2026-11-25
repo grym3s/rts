@@ -55,8 +55,8 @@ bool FRtsEconomyBridgeTest::RunTest(const FString& Parameters)
 		Bridge->Shutdown();
 		return false;
 	}
-	TestEqual(TEXT("two factions"), R.Factions.Num(), 2);
-	if (R.Factions.Num() == 2)
+	TestEqual(TEXT("three factions (T27)"), R.Factions.Num(), 3);
+	if (R.Factions.Num() == 3)
 	{
 		TestEqual(TEXT("starting credits"), R.Factions[0].Credits, 5000);
 		TestEqual(TEXT("no power yet"), R.Factions[0].PowerSupply, 0);
@@ -84,7 +84,7 @@ bool FRtsEconomyBridgeTest::RunTest(const FString& Parameters)
 	bOk = bOk && Bridge->Step(StepJson(T, FString::Printf(
 		TEXT("{\"tick\":%d,\"faction\":0,\"type\":\"place\",\"building\":\"coalition-refinery\",\"at\":[12,9]}"), T)), 5.0, R) && R.bOk;
 	++T;
-	TestTrue(TEXT("refinery cost spent"), R.Factions.Num() == 2 && R.Factions[0].Credits == 5000 - 1500);
+	TestTrue(TEXT("refinery cost spent"), R.Factions.Num() == 3 && R.Factions[0].Credits == 5000 - 1500);
 	const FRtsUnitSnapshot* Harvester = nullptr;
 	for (int32 i = 0; i < 700 && bOk && !Harvester; ++i, ++T)
 	{
@@ -96,7 +96,7 @@ bool FRtsEconomyBridgeTest::RunTest(const FString& Parameters)
 	// Power is recomputed at the start of the next tick (step 1), so read it one step later.
 	bOk = bOk && Bridge->Step(StepJson(T, TEXT("")), 5.0, R) && R.bOk;
 	++T;
-	if (R.Factions.Num() == 2)
+	if (R.Factions.Num() == 3)
 	{
 		TestEqual(TEXT("refinery draws power"), R.Factions[0].PowerDraw, 20);
 	}

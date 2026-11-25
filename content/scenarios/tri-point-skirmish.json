@@ -2103,6 +2103,13 @@
     113.5,
     99.5
    ]
+  },
+  {
+   "unit": "seed-core",
+   "at": [
+    65.5,
+    15.5
+   ]
   }
  ],
  "commands": [
@@ -2119,6 +2126,12 @@
    "unit": 1
   },
   {
+   "tick": 1,
+   "faction": 2,
+   "type": "deploy",
+   "unit": 2
+  },
+  {
    "tick": 205,
    "faction": 0,
    "type": "place",
@@ -2131,7 +2144,7 @@
  ],
  "assert": {
   "buildingCountIs": {
-   "count": 3
+   "count": 4
   }
  }
 }

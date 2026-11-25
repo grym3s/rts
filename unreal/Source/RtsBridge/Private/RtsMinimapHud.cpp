@@ -482,7 +482,7 @@ void ARtsMinimapHud::DrawMatchScreen()
 	const FLinearColor Body(0.85f, 0.85f, 0.85f, A);
 	DrawCentredText(FString::Printf(TEXT("Match time  %lld:%02lld"), Secs / 60, Secs % 60), Medium, Cx, L.Panel.Min.Y + 104.0f, 1.0f, Body);
 	DrawCentredText(FString::Printf(TEXT("Your forces lost  %d of %d"), GM->GetLost(0), GM->GetFielded(0)), Medium, Cx, L.Panel.Min.Y + 134.0f, 1.0f, Body);
-	DrawCentredText(FString::Printf(TEXT("Enemy forces destroyed  %d of %d"), GM->GetLost(1), GM->GetFielded(1)), Medium, Cx, L.Panel.Min.Y + 160.0f, 1.0f, Body);
+	DrawCentredText(FString::Printf(TEXT("Enemy forces destroyed  %d of %d"), GM->GetLost(1) + GM->GetLost(2), GM->GetFielded(1) + GM->GetFielded(2)), Medium, Cx, L.Panel.Min.Y + 160.0f, 1.0f, Body);
 
 	FVector2D Mouse(-1, -1);
 	if (PlayerOwner)

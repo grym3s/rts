@@ -75,7 +75,7 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   shooter→target line in the shooter's faction tint, a travelling streak, muzzle flash and
   hit spark, 0.2 s, capped at 256 live; endpoints read before the dead leave the roster);
   match result screen (T19, drawn last: 1.5 s after `state.match.over` it fades in
-  VICTORY/DEFEAT/DRAW, match time from the end tick, units lost/fielded per side from
+  VICTORY/DEFEAT/DRAW, match time from the end tick, units lost/fielded for you and for every enemy side together (T27: factions 1 + 2) from
   snapshots + death events, and Play again (standalone only, `CanRestart`) / Quit buttons;
   layout + hit test are static `MatchScreenLayout`/`MatchScreenHit`, test `RtsBridge.UI.MatchScreen`;
   while up, the controller routes left clicks to it and the game mode refuses orders);
