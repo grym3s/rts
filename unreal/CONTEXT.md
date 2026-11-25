@@ -12,6 +12,11 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   decodes Q32.32 snapshot positions and hp/maxHp (raw / 2^32) and the step's `events`
   (`FRtsSimEvent`: kind, subject, target, amount, faction); EOF-then-terminate shutdown.
   Test: `RtsBridge.Host.HealthAndDeath` (hp drops, shot amounts, death event = roster exit).
+  T35: also decodes the T30 economy: `state.factions` (`FRtsFactionSnapshot`: credits, power
+  supply/draw), `state.veins` (`FRtsVeinSnapshot`), and per unit `buildingId`, construction
+  remaining/total, production queue + head ticks, footprint w/h, `deploysTo`, harvest/load/carrying.
+  The game mode keeps them as `GetFactionState` / `GetVeins` / `GetUnitRow` (latest snapshot).
+  Test: `RtsBridge.Host.Economy` (MCV deploy, refinery, shipped harvester filling).
 - `Source/RtsBridge/Private/RtsBridgeRoundTripTest.cpp` — editor automation test
   `RtsBridge.Host.RoundTrip` (real host launch, init, tick-0 move, 120 steps).
 - `Config/DefaultEngine.ini` — GlobalDefaultGameMode = RtsBridgeGameMode;
@@ -59,6 +64,8 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   snapshots + death events, and Play again (standalone only, `CanRestart`) / Quit buttons;
   layout + hit test are static `MatchScreenLayout`/`MatchScreenHit`, test `RtsBridge.UI.MatchScreen`;
   while up, the controller routes left clicks to it and the game mode refuses orders);
+  economy bar (T35, top centre: your credits with a +/- flash on change, power as used / produced,
+  red with LOW POWER when draw > supply; text from static `EconomyBarText`);
   debug overlays (T20, F4 toggles all of them via `SetDebugMask`; in PIE the editor swallows
   F1-F3 and F8/F11 are taken, and the engine's own F4 view-mode binding is removed per
   player): stats panel (tick, smoothed host step ms and bridge round trip ms, units per

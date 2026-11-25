@@ -237,9 +237,56 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				UO->TryGetNumberField(TEXT("maxHp"), RawMaxHp);
 				U.Hp = RawHp / 4294967296.0;
 				U.MaxHp = RawMaxHp / 4294967296.0;
+				// T30 economy fields; absent ones keep their defaults (the host omits nulls).
+				UO->TryGetStringField(TEXT("buildingId"), U.BuildingId);
+				UO->TryGetNumberField(TEXT("constructionRemaining"), U.ConstructionRemaining);
+				UO->TryGetNumberField(TEXT("constructionTotal"), U.ConstructionTotal);
+				const TArray<TSharedPtr<FJsonValue>>* Queue = nullptr;
+				if (UO->TryGetArrayField(TEXT("productionQueue"), Queue))
+					for (const TSharedPtr<FJsonValue>& QV : *Queue)
+						U.ProductionQueue.Add(QV->AsString());
+				UO->TryGetNumberField(TEXT("queueHeadRemaining"), U.QueueHeadRemaining);
+				UO->TryGetNumberField(TEXT("queueHeadTotal"), U.QueueHeadTotal);
+				UO->TryGetNumberField(TEXT("footprintW"), U.FootprintW);
+				UO->TryGetNumberField(TEXT("footprintH"), U.FootprintH);
+				UO->TryGetStringField(TEXT("deploysTo"), U.DeploysTo);
+				UO->TryGetBoolField(TEXT("harvest"), U.bHarvester);
+				UO->TryGetNumberField(TEXT("load"), U.Load);
+				UO->TryGetBoolField(TEXT("carrying"), U.bCarrying);
 				OutReply.Units.Add(U);
 			}
 		}
+		const TArray<TSharedPtr<FJsonValue>>* FactionsArr = nullptr;
+		if ((*StateObj)->TryGetArrayField(TEXT("factions"), FactionsArr))
+			for (const TSharedPtr<FJsonValue>& FV : *FactionsArr)
+			{
+				const TSharedPtr<FJsonObject> FO = FV->AsObject();
+				if (!FO.IsValid())
+					continue;
+				FRtsFactionSnapshot F;
+				FO->TryGetNumberField(TEXT("faction"), F.Faction);
+				FO->TryGetNumberField(TEXT("credits"), F.Credits);
+				FO->TryGetNumberField(TEXT("powerSupply"), F.PowerSupply);
+				FO->TryGetNumberField(TEXT("powerDraw"), F.PowerDraw);
+				OutReply.Factions.Add(F);
+			}
+		const TArray<TSharedPtr<FJsonValue>>* VeinsArr = nullptr;
+		if ((*StateObj)->TryGetArrayField(TEXT("veins"), VeinsArr))
+			for (const TSharedPtr<FJsonValue>& VV : *VeinsArr)
+			{
+				const TSharedPtr<FJsonObject> VO = VV->AsObject();
+				if (!VO.IsValid())
+					continue;
+				FRtsVeinSnapshot V;
+				VO->TryGetNumberField(TEXT("id"), V.Id);
+				double RawVX = 0.0, RawVY = 0.0;
+				VO->TryGetNumberField(TEXT("x"), RawVX);
+				VO->TryGetNumberField(TEXT("y"), RawVY);
+				V.X = RawVX / 4294967296.0;
+				V.Y = RawVY / 4294967296.0;
+				VO->TryGetNumberField(TEXT("pool"), V.Pool);
+				OutReply.Veins.Add(V);
+			}
 	}
 
 	const TArray<TSharedPtr<FJsonValue>>* EventsArr = nullptr;

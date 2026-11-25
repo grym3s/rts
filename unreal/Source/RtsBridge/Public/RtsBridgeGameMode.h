@@ -76,6 +76,19 @@ public:
 
 	bool IsHostAlive() const { return bHostAlive; }
 
+	/** T35: latest economy rows from the host (credits/power per faction, veins, raw unit rows). */
+	const FRtsFactionSnapshot* GetFactionState(int32 Faction) const
+	{
+		for (const FRtsFactionSnapshot& F : Factions)
+			if (F.Faction == Faction)
+				return &F;
+		return nullptr;
+	}
+	const TArray<FRtsVeinSnapshot>& GetVeins() const { return Veins; }
+	/** The latest snapshot row of a unit (building/queue/harvest fields), or null. */
+	const FRtsUnitSnapshot* GetUnitRow(int32 SimUnitId) const { return RowsById.Find(SimUnitId); }
+	const TMap<int32, FRtsUnitSnapshot>& GetUnitRows() const { return RowsById; }
+
 	/** Fixture map size in cells (must match the init request's map) and world scale. */
 	// Set from the loaded scenario in StartPlay (before any HUD/camera use of them).
 	static int32 MapCellsW;
@@ -134,6 +147,9 @@ private:
 	TArray<int32> Lost = {0, 0, 0};
 	int32 DebugMask = 0;
 	TMap<int32, FRtsDebugUnit> DebugById;
+	TArray<FRtsFactionSnapshot> Factions;
+	TArray<FRtsVeinSnapshot> Veins;
+	TMap<int32, FRtsUnitSnapshot> RowsById;
 	double StepMsAvg = 0.0;
 	double RoundTripMsAvg = 0.0;
 	bool bCameraFramedOnPlayer = false;  // start the view on your own units (once)

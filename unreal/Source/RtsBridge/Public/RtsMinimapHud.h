@@ -44,6 +44,16 @@ public:
 	enum class EMatchScreenButton : uint8 { None, PlayAgain, Quit };
 	static EMatchScreenButton MatchScreenHit(const FVector2D& Viewport, const FVector2D& Pos, bool bCanRestart);
 
+	/** T35 top bar text: credits with thousands separators, power as used / produced, and the
+	 *  low-power flag (draw > supply: the bar turns red). Static and pure for the test. */
+	struct FEconomyBarText
+	{
+		FString Credits;
+		FString Power;
+		bool bLowPower = false;
+	};
+	static FEconomyBarText EconomyBarText(int32 Credits, int32 PowerSupply, int32 PowerDraw);
+
 private:
 	struct FOrderMarker
 	{
@@ -68,6 +78,10 @@ private:
 	/** T20 F1-F4 overlays (reads the game mode's debug rows; draws nothing when off). */
 	void DrawDebugOverlays();
 	double FpsAvg = 0.0;
+	void DrawEconomyBar();
+	int32 LastCredits = INT32_MIN; // T35: the +/- flash beside credits
+	int32 CreditsDelta = 0;
+	double CreditsDeltaUntil = 0.0;
 	void DrawButton(const FBox2D& R, const FString& Label, bool bHover, float Alpha);
 	void DrawCentredText(const FString& Text, UFont* Font, float CentreX, float Y, float Scale, const FLinearColor& Color);
 	/** Terrain image, one texel per cell, built once from the game mode's tile rows. */

@@ -338,6 +338,13 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 				++Lost[E.Faction];
 		}
 
+	// T35: economy rows are read straight from the snapshot (presentation only).
+	Factions = Reply.Factions;
+	Veins = Reply.Veins;
+	RowsById.Reset();
+	for (const FRtsUnitSnapshot& S : Reply.Units)
+		RowsById.Add(S.Id, S);
+
 	TSet<int32> Alive;
 	UnitActors.Reset(Reply.Units.Num());
 	for (const FRtsUnitSnapshot& S : Reply.Units)

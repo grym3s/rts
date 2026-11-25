@@ -33,6 +33,92 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	double MaxHp = 0.0;
+
+	/** T30 economy fields (T35-T38 presentation). Building: catalog id, empty for units. */
+	UPROPERTY(BlueprintReadOnly)
+	FString BuildingId;
+
+	/** Construction ticks left / total (0 / 0 when done or not a building). */
+	UPROPERTY(BlueprintReadOnly)
+	int32 ConstructionRemaining = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 ConstructionTotal = 0;
+
+	/** Production queue (unit catalog ids, head first) and the head's ticks left / total. */
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FString> ProductionQueue;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 QueueHeadRemaining = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 QueueHeadTotal = 0;
+
+	/** Building footprint in cells (T31/T32; 0 for units). The unit sits at its centre. */
+	UPROPERTY(BlueprintReadOnly)
+	int32 FootprintW = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 FootprintH = 0;
+
+	/** MCV (T32): the yard a `deploy` turns it into; empty otherwise. */
+	UPROPERTY(BlueprintReadOnly)
+	FString DeploysTo;
+
+	/** Harvester (T33): credits aboard and whether it is heading home full. */
+	UPROPERTY(BlueprintReadOnly)
+	bool bHarvester = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Load = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bCarrying = false;
+
+	bool IsBuilding() const { return !BuildingId.IsEmpty(); }
+};
+
+/** T30: one faction's credits and power ledger (net = supply - draw; low power when < 0). */
+USTRUCT(BlueprintType)
+struct FRtsFactionSnapshot
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadOnly)
+	int32 Faction = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Credits = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 PowerSupply = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 PowerDraw = 0;
+
+	bool IsLowPower() const { return PowerSupply - PowerDraw < 0; }
+};
+
+/** T30: a resource vein (map coords) and the credits left in it. */
+USTRUCT(BlueprintType)
+struct FRtsVeinSnapshot
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadOnly)
+	int32 Id = INDEX_NONE;
+
+	UPROPERTY(BlueprintReadOnly)
+	double X = 0.0;
+
+	UPROPERTY(BlueprintReadOnly)
+	double Y = 0.0;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Pool = 0;
 };
 
 /** One sim event from a step reply (T09 contract): shot (Amount = damage), death
@@ -107,6 +193,13 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FRtsUnitSnapshot> Units;
+
+	/** T30 economy: per-faction credits/power and the veins (empty when the host sent none). */
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FRtsFactionSnapshot> Factions;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FRtsVeinSnapshot> Veins;
 
 	/** Events of the step this reply answers (empty for init/reset). */
 	UPROPERTY(BlueprintReadOnly)

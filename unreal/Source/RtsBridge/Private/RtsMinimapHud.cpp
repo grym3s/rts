@@ -179,6 +179,7 @@ void ARtsMinimapHud::DrawHUD()
 	DrawTracers();
 	DrawHealthBars();
 	DrawDebugOverlays();
+	DrawEconomyBar();
 
 	// Box-select drag rectangle (screen space, under the minimap).
 	if (const ARtsRtsPlayerController* RPC = Cast<ARtsRtsPlayerController>(PlayerOwner))
@@ -574,5 +575,68 @@ void ARtsMinimapHud::DrawDebugOverlays()
 		for (int32 i = 0; i < Lines.Num(); ++i)
 			DrawText(Lines[i], i == Lines.Num() - 1 ? FLinearColor(0.7f, 0.7f, 0.7f) : FLinearColor(0.4f, 1.0f, 0.5f),
 				X, Y + LineH * i, Small, 1.0f);
+	}
+}
+
+ARtsMinimapHud::FEconomyBarText ARtsMinimapHud::EconomyBarText(int32 Credits, int32 PowerSupply, int32 PowerDraw)
+{
+	auto Group = [](int32 V)
+	{
+		FString Digits = FString::Printf(TEXT("%d"), FMath::Abs(V));
+		FString Out;
+		for (int32 i = 0; i < Digits.Len(); ++i)
+		{
+			if (i > 0 && (Digits.Len() - i) % 3 == 0)
+				Out.AppendChar(TEXT(','));
+			Out.AppendChar(Digits[i]);
+		}
+		return V < 0 ? TEXT("-") + Out : Out;
+	};
+	FEconomyBarText T;
+	T.Credits = FString::Printf(TEXT("Credits  %s"), *Group(Credits));
+	T.Power = FString::Printf(TEXT("Power  %d / %d"), PowerDraw, PowerSupply);
+	T.bLowPower = PowerSupply - PowerDraw < 0;
+	if (T.bLowPower)
+		T.Power += TEXT("   LOW POWER");
+	return T;
+}
+
+void ARtsMinimapHud::DrawEconomyBar()
+{
+	// T35: your (faction 0) credits and power, top centre. Snapshot values only.
+	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	const FRtsFactionSnapshot* F = GM ? GM->GetFactionState(0) : nullptr;
+	if (!F || !Canvas)
+		return;
+	const double Now = GetWorld()->GetRealTimeSeconds();
+	if (LastCredits != INT32_MIN && F->Credits != LastCredits)
+	{
+		CreditsDelta = F->Credits - LastCredits;
+		CreditsDeltaUntil = Now + 1.2;
+	}
+	LastCredits = F->Credits;
+
+	const FEconomyBarText T = EconomyBarText(F->Credits, F->PowerSupply, F->PowerDraw);
+	UFont* Font = GEngine ? GEngine->GetMediumFont() : nullptr;
+	const float Scale = 1.0f;
+	float CW = 0.0f, CH = 0.0f, PW = 0.0f, PH = 0.0f;
+	GetTextSize(T.Credits, CW, CH, Font, Scale);
+	GetTextSize(T.Power, PW, PH, Font, Scale);
+	const float Gap = 36.0f, Pad = 10.0f;
+	const float W = CW + Gap + PW + Pad * 2.0f;
+	const float H = FMath::Max(CH, PH) + 8.0f;
+	const float X = (Canvas->SizeX - W) * 0.5f;
+	const float Y = 8.0f;
+	const FLinearColor Back = T.bLowPower ? FLinearColor(0.35f, 0.02f, 0.02f, 0.8f) : FLinearColor(0.0f, 0.0f, 0.0f, 0.65f);
+	DrawRect(Back, X, Y, W, H);
+	DrawText(T.Credits, FLinearColor(1.0f, 0.86f, 0.35f), X + Pad, Y + 4.0f, Font, Scale);
+	DrawText(T.Power, T.bLowPower ? FLinearColor(1.0f, 0.3f, 0.25f) : FLinearColor(0.55f, 0.85f, 1.0f),
+		X + Pad + CW + Gap, Y + 4.0f, Font, Scale);
+	if (Now < CreditsDeltaUntil && CreditsDelta != 0)
+	{
+		const float A = static_cast<float>(FMath::Clamp((CreditsDeltaUntil - Now) / 0.4, 0.0, 1.0));
+		const FString D = FString::Printf(TEXT("%+d"), CreditsDelta);
+		DrawText(D, CreditsDelta > 0 ? FLinearColor(0.4f, 1.0f, 0.45f, A) : FLinearColor(1.0f, 0.45f, 0.35f, A),
+			X + Pad, Y + H + 2.0f, Font, Scale);
 	}
 }
