@@ -86,12 +86,25 @@ The sim already has credits, finite veins, the harvester loop, `place` / `train`
 
 ## Phase 5 — Map scale (added 2026-11-26)
 
-Play-testing T30–T38 showed that Tri-Point feels too small. The grid is 130×116, the same order as a 1v1 StarCraft II map (148×148, 128×132 on Liquipedia), but only about 2,430 cells are land: the rest is water. Team Liquid map contests ask for about 14,000–20,000 playable cells. That makes our land roughly 6–8× too small by area, or about 2.5× too small along each side. Our rifleman (1.8 cells/s) and 0.3-cell unit radius are close to SC2's own scale, so the map is what needs to grow, not the units.
+Play-testing T30–T38 showed that Tri-Point is far too small. Its 130×116 grid is about the size of a 1v1 StarCraft II map (148×148 and 128×132 on Liquipedia), but only about 2,430 cells are land. Team Liquid map contests ask for roughly 14,000–20,000 playable cells, and that is for two players. Tri-Point has to hold much more:
 
-- [ ] **T39 Scale Tri-Point up to SC2 size.** Regenerate it with `tools/mapgen/tri-point.mjs` at about 2.5× linear on the land (target 14–18k walkable cells; the grid grows to roughly 300×260, and the water margin can shrink).
-  - Keep the layout: mains, naturals, seams and the contested fields, with distances scaled. Rush distance should grow too.
-  - Check pathing at the new size: A* on a ~78k-cell grid with 500 units (`tools/bench` on the new map, under the 50 ms tick budget), plus the camera zoom limits, edge scroll speed, minimap texture size and the build radius.
-  - Re-pin the Tri-Point golden hashes with a reason comment.
+- **3v3:** six players, each with a main and at least one expansion / FOB slot of their own.
+- **Shared ground:** a central point of interest, plus side paths around the main lanes.
+- **Water:** a large share of the map is sea, and it has to stay. Naval units (T25) need room on the outer sea and in the internal water areas, so they must be able to reach the inner water by passing under the bridges.
+
+Our rifleman (1.8 cells/s) and 0.3-cell unit radius are close to SC2's own scale, so the map is what grows, not the units.
+
+- [ ] **T39 Scale Tri-Point up for 3v3.** Regenerate it with `tools/mapgen/tri-point.mjs`.
+  - **Land target** (to confirm before building): SC2's largest 4v4 map, Troizinia, is 176×176 for eight players. For six players with a base and an expansion each, plus a centre and side paths, aim for about 35–45k walkable cells. With the water kept, the grid comes out at roughly 320×300 or more.
+  - **Layout:** six mains, each with at least one expansion / FOB slot and its own resource fields (T34 rules), a central point of interest, side paths, and the seams and contested fields scaled to match. Rush distance grows with the map.
+  - **Water connectivity:**
+    - Every internal water area joins the outer sea through at least one channel that passes under a bridge.
+    - Under-bridge channels are at least as wide as the largest ship (naval footprint from content; T25).
+    - The generator checks this with a water flood fill and exits non-zero if any water body is cut off.
+  - **Scale checks:**
+    - A* pathing on the bigger grid with 500 units (`tools/bench` on the new map, under the 50 ms tick budget).
+    - Camera zoom limits, edge-scroll speed, minimap texture size and the T32 build radius.
+  - **Hashes:** re-pin the Tri-Point golden hashes with a reason comment.
 
 ---
 
