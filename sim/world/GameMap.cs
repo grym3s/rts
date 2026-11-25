@@ -16,6 +16,8 @@ public sealed class GameMap
     /// building never opens up a cliff). Owner entity id, or -1.</summary>
     private readonly int[] _structure;
     private readonly SortedDictionary<int, (int X, int Y, int W, int H)> _footprints = new();
+    /// <summary>T33: cells holding a resource vein. Walkable, but no building may cover one.</summary>
+    private readonly bool[] _resource;
 
     /// <summary>Bumped whenever a footprint is placed or released; navigation re-checks paths
     /// planned under an older epoch (T31). Not hashed: footprints follow from building units.</summary>
@@ -27,6 +29,7 @@ public sealed class GameMap
         Height = height;
         _blocked = new bool[width * height];
         _structure = new int[width * height];
+        _resource = new bool[width * height];
         Array.Fill(_structure, -1);
     }
 
@@ -38,12 +41,17 @@ public sealed class GameMap
     /// <summary>Building whose footprint covers the cell, or -1.</summary>
     public int StructureAt(int cx, int cy) => InBounds(cx, cy) ? _structure[cy * Width + cx] : -1;
 
-    /// <summary>True if every cell of the rect is in bounds, terrain-walkable and free of buildings.</summary>
+    /// <summary>Mark a vein cell (T33): placement keeps buildings off ore.</summary>
+    public void MarkResource(int cx, int cy) { if (InBounds(cx, cy)) _resource[cy * Width + cx] = true; }
+    public bool IsResource(int cx, int cy) => InBounds(cx, cy) && _resource[cy * Width + cx];
+
+    /// <summary>True if every cell of the rect is in bounds, terrain-walkable, free of buildings
+    /// and holds no vein.</summary>
     public bool CanOccupy(int x0, int y0, int w, int h)
     {
         for (var y = y0; y < y0 + h; y++)
             for (var x = x0; x < x0 + w; x++)
-                if (!IsWalkable(x, y)) return false;
+                if (!IsWalkable(x, y) || _resource[y * Width + x]) return false;
         return true;
     }
 

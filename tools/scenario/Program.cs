@@ -55,8 +55,11 @@ var econ = new Rts.Sim.Economy.EconomyStore();
 var buildingsCat = BuildingCatalog.LoadFromDirectory(Path.Combine(repoRoot, "content", "buildings"));
 if (doc.TryGetProperty("veins", out var veinsEl))
     foreach (var v in veinsEl.EnumerateArray())
+    {
         econ.AddVein(new FixVec2(Fix64.FromDouble(v.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(v.GetProperty("at")[1].GetDouble())),
             v.TryGetProperty("pool", out var pool) ? pool.GetInt32() : Rts.Sim.Economy.EconomyStore.FieldPool);
+        map.MarkResource(GameMap.CellOf(econ.Veins[^1].Position.X), GameMap.CellOf(econ.Veins[^1].Position.Y)); // T33: no building on ore
+    }
 if (doc.TryGetProperty("refineries", out var refsEl))
     foreach (var r in refsEl.EnumerateArray())
         econ.Refineries.Add(new Rts.Sim.Economy.EconomyStore.Refinery(
@@ -69,14 +72,14 @@ if (doc.TryGetProperty("refineries", out var refsEl))
 // proximity reads post-move positions.
 var power = new PowerStore();
 world.Systems.Add((w, due) => PowerSystem.Step(power, buildingsCat, units));
-world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.IncomeStep(econ, units, orders, w.Tick));
+world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.IncomeStep(econ, units, orders, w.Tick, map, catalog.IsRefinery));
 world.Systems.Add((w, due) => OrderSystem.ApplyCommands(orders, due, units.Find, (f, a) => econ.TrySpend(f, a)));
 world.Systems.Add((w, due) => Rts.Sim.Production.ProductionSystem.Step(
     buildingsCat, catalog, units, map, w.Ids, due,
     (f, a) => econ.TrySpend(f, a),
     (f, a) => { econ.Deposit(f, a); return true; }, power, w.Tick));
 world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
-world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick));
+world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick, map, catalog.IsRefinery));
 world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick, w));
 world.Systems.Add((w, due) => units.DespawnDead());
 var match = new Rts.Sim.Match.MatchState();

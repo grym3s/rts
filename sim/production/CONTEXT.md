@@ -26,6 +26,10 @@ cleanup with no death event and the yard builds for its BuildTicks. `place` of a
 construction yard must come within `ProductionSystem.BuildRadius` = 6 cells (Chebyshev, 1 =
 touching; our tuning, canon gives no number) of a footprint of the faction's own live
 buildings. A yard by `place` skips the radius: the scenario bootstrap. Tests: `sim/tests/DeployTests.cs`.
+Refineries (T33): a finished building that some harvester is `builtFrom` ships one of them, free
+(canon, economy.md); no footprint may cover a vein cell (`GameMap.MarkResource`). Trained and
+shipped units stand at the centre of their spawn cell (a corner spawn straddled four cells and
+wedged against footprints).
 Known limits (2026-11-25): scenarios still bootstrap yards by `place` (and a player could too, for
 its cost); one queue per
 building; construction is not interruptible.

@@ -25,7 +25,8 @@ public static class ProductionRules
     }
 
     /// <summary>The cell a completed unit spawns on: deterministic outward ring scan
-    /// (spiral offsets, lowest radius then angle) for the first walkable, unoccupied cell.</summary>
+    /// (spiral offsets, lowest radius then angle) for the first walkable, unoccupied cell; the unit
+    /// stands at that cell's centre.</summary>
     public static FixVec2 FindSpawnCell(Rts.Sim.World.GameMap map, UnitStore units, FixVec2 buildingCell)
     {
         var bx = (int)(buildingCell.X.Raw >> Fix64.FractionBits);
@@ -37,7 +38,9 @@ public static class ProductionRules
                     if (Math.Max(Math.Abs(dx), Math.Abs(dy)) != r) continue; // ring only
                     var (cx, cy) = (bx + dx, by + dy);
                     if (!map.IsWalkable(cx, cy)) continue;
-                    var cell = new FixVec2(Fix64.FromInt(cx), Fix64.FromInt(cy));
+                    // T33: the cell centre, not its corner: a unit on a corner straddles four cells
+                    // and is wedged for good if one of them is a building footprint.
+                    var cell = Rts.Sim.World.GameMap.CellCenter(cx, cy);
                     var occupied = false;
                     foreach (var u in units.Units)
                     {

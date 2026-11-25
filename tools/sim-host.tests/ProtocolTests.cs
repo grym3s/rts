@@ -336,7 +336,7 @@ public class ProtocolTests
     [InlineData("guard-hold.json", "e7a820c12422dad2")]
     [InlineData("match-end.json", "3c75053acd9d4698")]
     [InlineData("economy-2h.json", "05829563b6901d19")]
-    [InlineData("produce-1t1.json", "2cb5e49325482ab9")] // re-pinned for T31 footprints: d854ebb325482ab9 -> 2cb5e49325482ab9 (buildings at footprint centre)
+    [InlineData("produce-1t1.json", "5752e0ece297f09b")] // re-pinned for T33: 2cb5e49325482ab9 -> 5752e0ece297f09b (refinery building ships a harvester; spawns at cell centres)
     public void Host_replay_matches_scenario_runner_golden_hash(string scenarioFile, string expectedHex)
     {
         Assert.Equal(expectedHex, ReplayThroughHost(scenarioFile).ToString("x16"));

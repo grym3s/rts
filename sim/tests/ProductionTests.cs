@@ -125,10 +125,10 @@ public class ProductionTests
         // ring r=1 around (5,5) scans (4,4),(5,4),(6,4),... : occupy the first two -> third wins
         x.Units.Spawn(x.Sim.Ids.Next(), At(4, 4), Fix64.One, Fix64.Ratio(3, 10));
         x.Units.Spawn(x.Sim.Ids.Next(), At(5, 4), Fix64.One, Fix64.Ratio(3, 10));
-        Assert.Equal(At(6, 4), ProductionRules.FindSpawnCell(x.Map, x.Units, At(5, 5)));
+        Assert.Equal(Rts.Sim.World.GameMap.CellCenter(6, 4), ProductionRules.FindSpawnCell(x.Map, x.Units, At(5, 5)));
         // blocked map cells are skipped too
         x.Map.Block(6, 4);
-        Assert.Equal(At(4, 5), ProductionRules.FindSpawnCell(x.Map, x.Units, At(5, 5)));
+        Assert.Equal(Rts.Sim.World.GameMap.CellCenter(4, 5), ProductionRules.FindSpawnCell(x.Map, x.Units, At(5, 5)));
     }
 
     [Fact]

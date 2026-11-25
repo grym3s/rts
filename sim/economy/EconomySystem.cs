@@ -65,11 +65,19 @@ public static class EconomySystem
         }
     }
 
+    /// <summary>How far an idle harvester looks for a live vein when its own is gone (T33, cells;
+    /// tuning). A fresh harvester (shipped by a refinery) uses it to find its first field.</summary>
+    public static readonly Fix64 SeekRadius = Fix64.FromInt(12);
+
     /// <summary>Income pass (canonical tick position 2): fill at veins, flip to carrying,
     /// issue head-to-refinery orders. Runs BEFORE OrderSystem so a SpendCommand due this
     /// tick sees this tick's income. Deposit-on-arrival lives in DepositStep, which must
-    /// run AFTER NavigationSystem so proximity reads post-move positions.</summary>
-    public static void IncomeStep(EconomyStore store, UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick)
+    /// run AFTER NavigationSystem so proximity reads post-move positions.
+    /// T33: with `map` + `isRefinery`, completed live refinery buildings of the harvester's
+    /// faction are drop-offs too (nearest wins; scenario points first on ties), and an idle
+    /// harvester out of reach of any vein walks back to its vein or the nearest live one.</summary>
+    public static void IncomeStep(EconomyStore store, UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick,
+        GameMap? map = null, Func<string, bool>? isRefinery = null)
     {
         foreach (var u in units.Units)
         {
@@ -77,17 +85,18 @@ public static class EconomySystem
 
             if (u.Carrying)
             {
-                var ref_ = NearestRefinery(store, u);
-                if (ref_ == null) continue; // no refinery: hold the load (bank on unit)
-                if (Dist(u, ref_.Position) > DepositRadius && !HasOrderTo(orders, u.Id, ref_.Position))
-                    orders[u.Id] = new MoveOrder(ref_.Position, new List<FixVec2>(), tick);
+                var drop = NearestDropOff(store, units, u, isRefinery);
+                if (drop == null) continue; // no refinery: hold the load (bank on unit)
+                if (!AtDropOff(u, drop.Value, map) && !HasOrderTo(orders, u.Id, drop.Value.Target))
+                    orders[u.Id] = new MoveOrder(drop.Value.Target, new List<FixVec2>(), tick);
                 continue;
             }
 
             var vein = NearestLiveVein(store, u);
             if (vein == null)
             {
-                if (u.Load >= Capacity) u.Carrying = true;
+                if (u.Load >= Capacity) { u.Carrying = true; continue; }
+                if (map != null && !orders.ContainsKey(u.Id)) SeekVein(store, u, orders, tick);
                 continue;
             }
             u.HomeVein = vein.Id;
@@ -99,16 +108,18 @@ public static class EconomySystem
     }
 
     /// <summary>Deposit pass (canonical tick position 6, after NavigationSystem): credits
-    /// a carrying unit that has arrived within DepositRadius of a refinery, using post-move
-    /// positions. Paired with IncomeStep; do not call from the same tick position.</summary>
-    public static void DepositStep(EconomyStore store, UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick)
+    /// a carrying unit that has arrived at a drop-off, using post-move positions: within
+    /// DepositRadius of a scenario point, or (T33) standing next to a refinery's footprint.
+    /// Paired with IncomeStep; do not call from the same tick position.</summary>
+    public static void DepositStep(EconomyStore store, UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick,
+        GameMap? map = null, Func<string, bool>? isRefinery = null)
     {
         foreach (var u in units.Units)
         {
             if (!u.Harvest || u.Hp.Raw <= 0 || !u.Carrying) continue;
-            var ref_ = NearestRefinery(store, u);
-            if (ref_ == null) continue; // no refinery: hold the load (bank on unit)
-            if (Dist(u, ref_.Position) > DepositRadius) continue;
+            var drop = NearestDropOff(store, units, u, isRefinery);
+            if (drop == null) continue; // no refinery: hold the load (bank on unit)
+            if (!AtDropOff(u, drop.Value, map)) continue;
             store.Deposit(u.Faction, u.Load);
             u.Load = 0;
             u.Carrying = false;
@@ -118,6 +129,66 @@ public static class EconomySystem
             else
                 orders.Remove(u.Id);
         }
+    }
+
+    /// <summary>Idle, empty-handed, nowhere to fill: go back to the home vein while it lasts,
+    /// else to the nearest live vein within SeekRadius (list order breaks ties). Nothing in
+    /// reach and something in the hold: take the partial load home.</summary>
+    private static void SeekVein(EconomyStore store, Unit u, Dictionary<EntityId, MoveOrder> orders, int tick)
+    {
+        var home = store.FindVein(u.HomeVein);
+        EconomyStore.Vein? target = home is { Pool: > 0 } ? home : null;
+        if (target == null)
+        {
+            var bestD = Fix64.Zero;
+            foreach (var v in store.Veins)
+            {
+                if (v.Pool <= 0) continue;
+                var d = Dist(u, v.Position);
+                if (d > SeekRadius) continue;
+                if (target == null || d < bestD) { target = v; bestD = d; }
+            }
+        }
+        if (target != null)
+        {
+            u.HomeVein = target.Id;
+            orders[u.Id] = new MoveOrder(target.Position, new List<FixVec2>(), tick);
+        }
+        else if (u.Load > 0) u.Carrying = true;
+    }
+
+    /// <summary>A drop-off: a scenario point (Building = -1) or a refinery building (its id).</summary>
+    private readonly record struct DropOff(FixVec2 Target, int Building);
+
+    private static DropOff? NearestDropOff(EconomyStore store, UnitStore units, Unit u, Func<string, bool>? isRefinery)
+    {
+        DropOff? best = null;
+        var bestD = Fix64.Zero;
+        foreach (var r in store.Refineries)
+        {
+            if (r.Faction != u.Faction) continue;
+            var d = Dist(u, r.Position);
+            if (best == null || d < bestD) { best = new DropOff(r.Position, -1); bestD = d; }
+        }
+        if (isRefinery == null) return best;
+        foreach (var b in units.Units)
+        {
+            if (b.Faction != u.Faction || b.Hp.Raw <= 0 || b.Building is not { ConstructionRemaining: 0 } bs || !isRefinery(bs.Id)) continue;
+            var d = Dist(u, b.Position);
+            if (best == null || d < bestD) { best = new DropOff(b.Position, b.Id.Value); bestD = d; }
+        }
+        return best;
+    }
+
+    /// <summary>Scenario point: within DepositRadius. Refinery building: the harvester's cell
+    /// touches the footprint (Chebyshev 1, diagonals count), where a path to it ends.</summary>
+    private static bool AtDropOff(Unit u, DropOff drop, GameMap? map)
+    {
+        if (drop.Building < 0 || map == null || !map.TryGetFootprint(drop.Building, out var r))
+            return Dist(u, drop.Target) <= DepositRadius;
+        var cx = GameMap.CellOf(u.Position.X);
+        var cy = GameMap.CellOf(u.Position.Y);
+        return cx >= r.X - 1 && cx <= r.X + r.W && cy >= r.Y - 1 && cy <= r.Y + r.H;
     }
 
     private static Fix64 Dist(Unit u, FixVec2 p) => (p - u.Position).Length;

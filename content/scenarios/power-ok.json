@@ -54,14 +54,14 @@
       "tick": 2010,
       "faction": 0,
       "type": "train",
-      "building": 3,
+      "building": 4,
       "unit": "rifleman"
     }
   ],
   "assert": {
     "nonBuildingUnitCountIs": {
       "faction": 0,
-      "count": 1
+      "count": 2
     }
   }
 }

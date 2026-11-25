@@ -54,6 +54,15 @@ public sealed class UnitCatalog
         return cat;
     }
 
+    /// <summary>T33: the harvester a refinery ships and drops off at (a harvester unit whose
+    /// `builtFrom` is this building), first by ordinal id; null when the building is no refinery.</summary>
+    public string? HarvesterFor(string buildingCatalogId) =>
+        _byId.Values.Where(p => p.Harvest && p.BuiltFrom == buildingCatalogId)
+            .Select(p => p.Id).OrderBy(i => i, StringComparer.Ordinal).FirstOrDefault();
+
+    /// <summary>T33: true when this building is a harvester drop-off (some harvester is built from it).</summary>
+    public bool IsRefinery(string buildingCatalogId) => HarvesterFor(buildingCatalogId) != null;
+
     public SpawnParams Get(string id) =>
         _byId.TryGetValue(id, out var p) ? p : throw new KeyNotFoundException($"unit '{id}' not in catalog");
 }

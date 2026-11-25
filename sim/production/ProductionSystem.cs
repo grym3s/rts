@@ -57,7 +57,13 @@ public static class ProductionSystem
             {
                 if (!GateOpen(tick, u.Id)) continue;
             }
-            if (b.ConstructionRemaining > 0) { b.ConstructionRemaining--; continue; }
+            if (b.ConstructionRemaining > 0)
+            {
+                // T33: canon "the Refinery ships one harvester on completion" (economy.md), free.
+                if (--b.ConstructionRemaining == 0 && unitsCatalog.HarvesterFor(b.Id) is { } harvester)
+                    SpawnUnit(unitsCatalog.Get(harvester), map, units, ids, u.Position);
+                continue;
+            }
             if (b.Queue.Count == 0) continue;
             // Countdown starts the tick AFTER the command: skip the decrement on the enqueue tick.
             if (b.QueueEnqueuedAtTick == tick) continue;
@@ -65,12 +71,16 @@ public static class ProductionSystem
 
             var unitId = b.Queue[0];
             b.Queue.RemoveAt(0);
-            var p = unitsCatalog.Get(unitId);
-            var cell = ProductionRules.FindSpawnCell(map, units, u.Position);
-            units.Spawn(ids.Next(), cell, p.Speed, p.Radius,
-                new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest, p.DeploysTo));
+            SpawnUnit(unitsCatalog.Get(unitId), map, units, ids, u.Position);
             if (b.Queue.Count > 0) { b.QueueHeadRemaining = unitsCatalog.Get(b.Queue[0]).BuildTicks; b.QueueEnqueuedAtTick = tick; }
         }
+    }
+
+    private static void SpawnUnit(UnitCatalog.SpawnParams p, Rts.Sim.World.GameMap map, UnitStore units, EntityIdAllocator ids, FixVec2 at)
+    {
+        var cell = ProductionRules.FindSpawnCell(map, units, at);
+        units.Spawn(ids.Next(), cell, p.Speed, p.Radius,
+            new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest, p.DeploysTo));
     }
 
     /// <summary>Parity gate: open when tick mod 2 != building id mod 2.
