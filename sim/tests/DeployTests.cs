@@ -70,6 +70,7 @@ public class DeployTests
         Assert.Equal("coalition-construction-yard", UnitsCat.Get("mobile-command").DeploysTo);
         Assert.Equal("hegemony-construction-yard", UnitsCat.Get("foundry-crawler").DeploysTo);
         Assert.Equal("ascendant-construction-yard", UnitsCat.Get("seed-core").DeploysTo);
+        Assert.Equal(2, UnitsCat.Get("seed-core").Faction); // Ascendant is faction 2, never Coalition (0)
         Assert.Null(UnitsCat.Get("rifleman").DeploysTo);
         Assert.True(UnitsCat.Builds("coalition-vehicle-bay", "mobile-command"));
     }

@@ -430,6 +430,10 @@ public class ProtocolTests
         var barracks = init.Catalog.Buildings.Single(b => b.Id == "coalition-barracks");
         Assert.Equal("coalition-construction-yard", barracks.Prereq);
         Assert.Equal(1, init.Catalog.Buildings.Single(b => b.Id == "hegemony-conscription-hall").Faction);
+        // each faction its own index: Ascendant must never show in the Coalition (0) build menu
+        Assert.All(init.Catalog.Buildings.Where(b => b.Id.StartsWith("ascendant-")), b => Assert.Equal(2, b.Faction));
+        Assert.All(init.Catalog.Units.Where(u => u.BuiltFrom.StartsWith("ascendant-")), u => Assert.Equal(2, u.Faction));
+        Assert.All(init.Catalog.Buildings.Where(b => b.Faction == 0), b => Assert.StartsWith("coalition-", b.Id));
         var rifle = init.Catalog.Units.Single(u => u.Id == "rifleman");
         Assert.Equal("coalition-barracks", rifle.BuiltFrom);
         Assert.True(init.Catalog.Units.Single(u => u.Id == "collector").Harvest);
@@ -457,6 +461,7 @@ public class ProtocolTests
         Assert.True(yardQ.Allowed);
         Assert.Equal((4, 4, 3, 3), (yardQ.X, yardQ.Y, yardQ.W, yardQ.H));
         Assert.Equal("wrong_faction", Ask("hegemony-construction-yard", 5, 5).Reason);
+        Assert.Equal("wrong_faction", Ask("ascendant-construction-yard", 5, 5).Reason); // was "ok": ascendant read as coalition
 
         // the query did not advance: tick 0 is still next
         Assert.True(Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":0,"commands":[{"tick":0,"faction":0,"type":"place","building":"coalition-construction-yard","at":[5,5]}]}""")).Ok);

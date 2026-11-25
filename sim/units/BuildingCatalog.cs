@@ -34,8 +34,9 @@ public sealed class BuildingCatalog
             using var doc = JsonDocument.Parse(File.ReadAllText(file));
             var root = doc.RootElement;
             var factionStr = root.GetProperty("faction").GetString();
-            // same 0/1 mapping as UnitCatalog for the two ground-slice factions; ascendant arrives with its slice
-            var faction = factionStr == "hegemony" ? 1 : 0;
+            // same mapping as UnitCatalog: coalition 0, hegemony 1, ascendant 2 (not playable yet, but it
+            // must never count as coalition: that put Ascendant buildings in the Coalition build menu)
+            var faction = UnitCatalog.FactionIndex(factionStr);
             var category = root.GetProperty("category").GetString()!;
             var (fpW, fpH) = root.TryGetProperty("footprint", out var fpEl)
                 ? (fpEl[0].GetInt32(), fpEl[1].GetInt32())

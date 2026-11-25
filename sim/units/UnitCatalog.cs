@@ -20,6 +20,16 @@ public sealed class UnitCatalog
     private readonly Dictionary<string, SpawnParams> _byId = new();
     public static readonly Fix64 DefaultRadius = Fix64.Ratio(3, 10); // 0.3 cells: unit radius, tuning value until unit.json grows one
 
+    /// <summary>Content faction name -> sim faction index: coalition 0, hegemony 1, ascendant 2.
+    /// Unknown names fail loudly rather than silently joining coalition.</summary>
+    public static int FactionIndex(string? name) => name switch
+    {
+        "coalition" => 0,
+        "hegemony" => 1,
+        "ascendant" => 2,
+        _ => throw new InvalidDataException($"unknown faction '{name}'"),
+    };
+
     public static UnitCatalog LoadFromDirectory(string path)
     {
         var cat = new UnitCatalog();
@@ -31,7 +41,7 @@ public sealed class UnitCatalog
             var speed = stats.GetProperty("speed").GetDouble();
             var hp = stats.GetProperty("hp").GetDouble();
             var sight = stats.TryGetProperty("sight", out var sg) ? sg.GetDouble() : 0.0;
-            var faction = root.GetProperty("faction").GetString() == "hegemony" ? 1 : 0;
+            var faction = FactionIndex(root.GetProperty("faction").GetString());
             var armor = DamageMatrix.ParseArmor(root.GetProperty("armor").GetString()!);
             var harvest = root.GetProperty("role").GetString() == "harvester"; // sim/economy income
             Fix64 dmg = Fix64.Zero, rng = Fix64.Zero; var cd = 0;

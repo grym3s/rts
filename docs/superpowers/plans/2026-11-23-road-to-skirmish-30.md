@@ -84,6 +84,15 @@ The sim already has credits, finite veins, the harvester loop, `place` / `train`
 - [x] **T37 Unreal: unit production queue.** Select a production building, click a unit to `train` (shift for 5), right-click to `cancel`; show queue and progress. Rally point by right-clicking ground with the building selected (needs a small sim command too).
 - [x] **T38 Unreal: harvesting.** Draw veins (shrinking as they empty), refineries and harvesters with a carrying state; right-click a vein with harvesters selected to send them there.
 
+## Phase 5 — Map scale (added 2026-11-26)
+
+Play-testing T30–T38 showed that Tri-Point feels too small. The grid is 130×116, the same order as a 1v1 StarCraft II map (148×148, 128×132 on Liquipedia), but only about 2,430 cells are land: the rest is water. Team Liquid map contests ask for about 14,000–20,000 playable cells. That makes our land roughly 6–8× too small by area, or about 2.5× too small along each side. Our rifleman (1.8 cells/s) and 0.3-cell unit radius are close to SC2's own scale, so the map is what needs to grow, not the units.
+
+- [ ] **T39 Scale Tri-Point up to SC2 size.** Regenerate it with `tools/mapgen/tri-point.mjs` at about 2.5× linear on the land (target 14–18k walkable cells; the grid grows to roughly 300×260, and the water margin can shrink).
+  - Keep the layout: mains, naturals, seams and the contested fields, with distances scaled. Rush distance should grow too.
+  - Check pathing at the new size: A* on a ~78k-cell grid with 500 units (`tools/bench` on the new map, under the 50 ms tick budget), plus the camera zoom limits, edge scroll speed, minimap texture size and the build radius.
+  - Re-pin the Tri-Point golden hashes with a reason comment.
+
 ---
 
 ## After the demo (not in scope)
