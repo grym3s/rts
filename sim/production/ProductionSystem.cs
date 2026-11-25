@@ -81,9 +81,8 @@ public static class ProductionSystem
 
     private static Unit SpawnUnit(UnitCatalog.SpawnParams p, Rts.Sim.World.GameMap map, UnitStore units, EntityIdAllocator ids, FixVec2 at)
     {
-        var cell = ProductionRules.FindSpawnCell(map, units, at);
-        return units.Spawn(ids.Next(), cell, p.Speed, p.Radius,
-            new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest, p.DeploysTo));
+        var cell = ProductionRules.FindSpawnCell(map, units, at, p.Domain);
+        return units.Spawn(ids.Next(), cell, p.Speed, p.Radius, p.Profile());
     }
 
     /// <summary>Parity gate: open when tick mod 2 != building id mod 2.
@@ -98,7 +97,7 @@ public static class ProductionSystem
 
     /// <summary>Why a placement would be refused, in the order `place` checks (T36: the host's
     /// read-only `query` answers with this so the build ghost never re-implements the rules).</summary>
-    public enum PlaceVerdict { Ok, WrongFaction, Prereq, Blocked, Occupied, Radius, Credits }
+    public enum PlaceVerdict { Ok, WrongFaction, Prereq, Blocked, Occupied, Radius, Credits, Water, Shore }
 
     /// <summary>The `place` rules as a pure check: faction, prereq chain, footprint in bounds on
     /// open terrain with no building or ore (Blocked) and no live unit (Occupied), build radius
@@ -113,10 +112,15 @@ public static class ProductionSystem
         if (!ProductionRules.PrereqSatisfied(buildings, buildingId,
                 req => units.Units.Any(u => u.Faction == faction && u.Hp.Raw > 0 && u.Building?.Id == req)))
             return R(PlaceVerdict.Prereq);
+        // T25: naval/offshore buildings stand wholly on water; `requiresShore` ones need the
+        // other ground beside them (a shipyard touches land, a coastal gun touches water).
+        if (bp.OnWater && !map.AllTerrain(ox, oy, bp.FootprintW, bp.FootprintH, Rts.Sim.World.Terrain.Water)) return R(PlaceVerdict.Water);
+        if (bp.RequiresShore && !map.RingTouches(ox, oy, bp.FootprintW, bp.FootprintH,
+                bp.OnWater ? Rts.Sim.World.Terrain.Land : Rts.Sim.World.Terrain.Water)) return R(PlaceVerdict.Shore);
         // T31: the whole footprint must be in bounds, on open terrain, free of other buildings
         // and ore, and of units (a unit standing there would be sealed in).
-        if (!map.CanOccupy(ox, oy, bp.FootprintW, bp.FootprintH)) return R(PlaceVerdict.Blocked);
-        if (!FootprintClear(units, map, ox, oy, bp.FootprintW, bp.FootprintH, EntityId.None)) return R(PlaceVerdict.Occupied);
+        if (!map.CanOccupy(ox, oy, bp.FootprintW, bp.FootprintH, bp.OnWater)) return R(PlaceVerdict.Blocked);
+        if (!FootprintClear(units, map, ox, oy, bp.FootprintW, bp.FootprintH, EntityId.None, bp.OnWater)) return R(PlaceVerdict.Occupied);
         // T32: build radius. Anything but a construction yard must come within BuildRadius of one
         // of the faction's own live buildings. (A yard by `place` is the scenario bootstrap; in
         // play yards come from deploying the MCV, see Deploy.)
@@ -168,9 +172,9 @@ public static class ProductionSystem
 
     /// <summary>Footprint in bounds, open terrain, no building, no live unit standing in it
     /// (a unit there would be sealed in) other than `except`.</summary>
-    private static bool FootprintClear(UnitStore units, Rts.Sim.World.GameMap map, int ox, int oy, int w, int h, EntityId except)
+    private static bool FootprintClear(UnitStore units, Rts.Sim.World.GameMap map, int ox, int oy, int w, int h, EntityId except, bool onWater = false)
     {
-        if (!map.CanOccupy(ox, oy, w, h)) return false;
+        if (!map.CanOccupy(ox, oy, w, h, onWater)) return false;
         return !units.Units.Any(u => u.Hp.Raw > 0 && u.Id != except
             && Cell(u.Position.X) >= ox && Cell(u.Position.X) < ox + w
             && Cell(u.Position.Y) >= oy && Cell(u.Position.Y) < oy + h);

@@ -30,10 +30,7 @@ var seed = doc.GetProperty("seed").GetUInt64();
 var ticks = doc.GetProperty("ticks").GetInt32();
 
 // --- map ---
-var mapEl = doc.GetProperty("map");
-var map = new GameMap(mapEl.GetProperty("width").GetInt32(), mapEl.GetProperty("height").GetInt32());
-foreach (var r in mapEl.GetProperty("blocked").EnumerateArray())
-    map.BlockRect(r[0].GetInt32(), r[1].GetInt32(), r[2].GetInt32(), r[3].GetInt32());
+var map = GameMap.FromJson(doc.GetProperty("map")); // T25: terrain rows and/or blocked rects
 
 // --- units (spawn order == EntityId order) ---
 var catalog = UnitCatalog.LoadFromDirectory(Path.Combine(repoRoot, "content", "units"));
@@ -46,7 +43,7 @@ if (doc.TryGetProperty("units", out var unitEls))
         units.Spawn(world.Ids.Next(),
             new FixVec2(Fix64.FromDouble(u.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(u.GetProperty("at")[1].GetDouble())),
             p.Speed, p.Radius,
-            new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest, p.DeploysTo));
+            p.Profile());
     }
 
 // --- orders + economy + production + navigation wired to the tick (steps 1-4 of sim/CONTEXT.md) ---

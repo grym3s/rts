@@ -18,4 +18,8 @@ Guard state is not in the state hash directly; it shows up through positions and
 Weapon/HP/sight/faction/armor/damageType numbers come from `content/units/*.json` via `UnitProfile` (sim/units).
 `DamageMatrix` cells are design canon (`docs/factions/counter-matrix.md`) — do not tune them here;
 naval-extension cells not in canon stay 1.0, cross-domain engagement is a targeting fact, not a multiplier.
+Targeting (T25): `CanHit` = the weapon's `targets` (unit file `weapon.targets`: ground / air / sea; a
+weapon without the field is ground-only) include the target's domain — air needs `air`, naval needs
+`sea`, hover is hit by `ground` or `sea`, land units and buildings need `ground`. Acquire skips what
+it can't hit; an explicit attack on one is dropped. Hand-built test profiles hit everything.
 Not modelled yet: projectiles, targeting priorities, multi-shot, domain (ground/air) targeting flags.

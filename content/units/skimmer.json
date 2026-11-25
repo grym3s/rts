@@ -9,6 +9,7 @@
   "cost": 600,
   "buildTimeSeconds": 10,
   "armor": "light",
+  "domain": "hover",
   "stats": {
     "hp": 70,
     "speed": 6.0,

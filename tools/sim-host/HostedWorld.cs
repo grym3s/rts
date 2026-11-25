@@ -43,10 +43,7 @@ public sealed class HostedWorld
                 $"schemaVersion {schema} not supported (expects 2)");
 
         var seed = scenario.GetProperty("seed").GetUInt64();
-        var mapEl = scenario.GetProperty("map");
-        var map = new GameMap(mapEl.GetProperty("width").GetInt32(), mapEl.GetProperty("height").GetInt32());
-        foreach (var r in mapEl.GetProperty("blocked").EnumerateArray())
-            map.BlockRect(r[0].GetInt32(), r[1].GetInt32(), r[2].GetInt32(), r[3].GetInt32());
+        var map = GameMap.FromJson(scenario.GetProperty("map")); // T25: terrain rows and/or blocked rects
 
         var catalog = UnitCatalog.LoadFromDirectory(Path.Combine(repoRoot, "content", "units"));
         var world = new SimWorld(seed);
@@ -58,7 +55,7 @@ public sealed class HostedWorld
                 units.Spawn(world.Ids.Next(),
                     new FixVec2(Fix64.FromDouble(u.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(u.GetProperty("at")[1].GetDouble())),
                     p.Speed, p.Radius,
-                    new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest, p.DeploysTo));
+                    p.Profile());
             }
         var roster = new EntityId[units.Units.Count];
         for (var i = 0; i < units.Units.Count; i++) roster[i] = units.Units[i].Id;
@@ -189,7 +186,8 @@ public sealed class HostedWorld
             .Select(b => new HostBuildingType(b.Id, b.Name, b.Faction, b.Category, b.Cost, b.BuildTicks, b.Prereq, b.Power, b.FootprintW, b.FootprintH))
             .ToList(),
         UnitsCatalog.All
-            .Select(u => new HostUnitType(u.Id, u.Name, u.Faction, u.Cost, u.BuildTicks, u.BuiltFrom, u.DeploysTo, u.Harvest))
+            .Select(u => new HostUnitType(u.Id, u.Name, u.Faction, u.Cost, u.BuildTicks, u.BuiltFrom, u.DeploysTo, u.Harvest,
+                Rts.Sim.World.Domains.Name(u.Domain)))
             .ToList());
 
     /// <summary>T36: would `place` of this building at `at` be accepted right now? The sim's own
@@ -206,6 +204,8 @@ public sealed class HostedWorld
             Rts.Sim.Production.ProductionSystem.PlaceVerdict.Blocked => "blocked",
             Rts.Sim.Production.ProductionSystem.PlaceVerdict.Occupied => "occupied",
             Rts.Sim.Production.ProductionSystem.PlaceVerdict.Radius => "radius",
+            Rts.Sim.Production.ProductionSystem.PlaceVerdict.Water => "water",
+            Rts.Sim.Production.ProductionSystem.PlaceVerdict.Shore => "shore",
             _ => "credits",
         };
         return new HostQueryResult(verdict == Rts.Sim.Production.ProductionSystem.PlaceVerdict.Ok, reason, x, y, w, h);
@@ -251,7 +251,8 @@ public sealed class HostedWorld
                 u.Building is { } bf ? BuildingsCatalog.Get(bf.Id).FootprintW : 0,
                 u.Building is { } bh ? BuildingsCatalog.Get(bh.Id).FootprintH : 0,
                 u.Building?.Rally is { } rp ? new[] { rp.X.Raw, rp.Y.Raw } : null,
-                u.Harvest ? Rts.Sim.Economy.EconomySystem.Capacity : 0));
+                u.Harvest ? Rts.Sim.Economy.EconomySystem.Capacity : 0,
+                u.Domain == Rts.Sim.World.MoveDomain.Land ? null : Rts.Sim.World.Domains.Name(u.Domain)));
         }
 
         var factions = new List<HostFaction>(2);

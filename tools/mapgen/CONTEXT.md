@@ -7,7 +7,7 @@ Tests: none of its own. The output scenario's replay hash is pinned in CI and `t
 Do NOT: hand-edit the generated JSON (edit the script and regenerate); add game rules; make the output depend on time, randomness or locale.
 Change impact: `map/effects/CONTEXT.md` (content / scenarios — golden hashes).
 Known limits (2026-11-24):
-- The sim has no water yet, so the scenario's `blocked` = water + cliff; bridges and land are walkable. Ships, beaches, capture, destructible causeways and the third faction are map *data* only (`features`), waiting on sim domains.
+- T25: the scenarios carry the tiles themselves as `map.terrain` (the same rows as the map file), so the sim knows water from cliff: land units walk land and bridges, ships sail water and under bridges. Beaches, capture and destructible causeways are still map *data* only (`features`).
 - Distance targets are only partly met: Seams are equidistant per pair and mains ≥2.0 apart, but island/Seam is ~0.9 (design asks 1.25). With Seams on the outer ring and straight causeways the geometry caps that ratio near 1.15; a bent causeway or inner Seams would be needed.
 - A square grid can't be exactly 120°-symmetric: octile distances differ ~5–8% between the top corner and the two lower ones (incl. harbour→rig).
 - Ridges flanking causeways are not modelled (causeways are already surrounded by water).

@@ -11,13 +11,17 @@ public static class Pathfinding
     private static readonly int[] Dy = { 0, 1, 1, 1, 0, -1, -1, -1 };
 
     /// <summary>Cell centres from start (exclusive) to goal (inclusive); null when unreachable.
-    /// The start cell is treated as walkable even if blocked (unit standing on a blocked cell must still move out).</summary>
-    public static List<FixVec2>? FindPath(GameMap map, (int x, int y) start, (int x, int y) goal)
+    /// The start cell is treated as walkable even if blocked (unit standing on a blocked cell must still move out).
+    /// T25: walkability is the unit's domain's (land on land/bridges, naval on water/under bridges,
+    /// hover on both, air anywhere).</summary>
+    public static List<FixVec2>? FindPath(GameMap map, (int x, int y) start, (int x, int y) goal, MoveDomain domain = MoveDomain.Land)
     {
-        if (!map.InBounds(goal.x, goal.y) || map.IsBlocked(goal.x, goal.y)) return null;
+        if (!map.InBounds(goal.x, goal.y) || (domain != MoveDomain.Air && map.IsBlocked(goal.x, goal.y))) return null;
         // T31: a goal inside a building footprint (attack it, walk up to it) means "next to it":
         // the open cell around the footprint nearest the start, ties by ring scan order.
-        if (!map.IsWalkable(goal.x, goal.y)) goal = NearestOpenCell(map, goal, start);
+        // T25: the same for a goal on terrain the domain can't stand on (a ship attacking a tank
+        // on the beach, a tank sent onto water): the nearest cell it can reach.
+        if (!map.IsWalkable(goal.x, goal.y, domain)) goal = NearestOpenCell(map, goal, start, domain);
         if (start == goal) return new List<FixVec2>();
 
         var w = map.Width;
@@ -48,12 +52,12 @@ public static class Pathfinding
                 var nx = cx + Dx[n];
                 var ny = cy + Dy[n];
                 var isStart = nx == start.x && ny == start.y;
-                if (!map.IsWalkable(nx, ny) && !isStart) continue;
+                if (!map.IsWalkable(nx, ny, domain) && !isStart) continue;
                 // no corner cutting: a diagonal needs both shared side cells open (start cell exempt)
                 if ((n & 1) == 1)
                 {
-                    var sideOpenX = map.IsWalkable(cx + Dx[n], cy) || (cx + Dx[n] == start.x && cy == start.y);
-                    var sideOpenY = map.IsWalkable(cx, cy + Dy[n]) || (cx == start.x && cy + Dy[n] == start.y);
+                    var sideOpenX = map.IsWalkable(cx + Dx[n], cy, domain) || (cx + Dx[n] == start.x && cy == start.y);
+                    var sideOpenY = map.IsWalkable(cx, cy + Dy[n], domain) || (cx == start.x && cy + Dy[n] == start.y);
                     if (!sideOpenX || !sideOpenY) continue;
                 }
 
@@ -85,7 +89,7 @@ public static class Pathfinding
 
     /// <summary>Closest walkable cell to `from` on the nearest ring around `goal` that has one
     /// (rings up to 8). Falls back to the goal itself (A* then reports unreachable).</summary>
-    private static (int x, int y) NearestOpenCell(GameMap map, (int x, int y) goal, (int x, int y) from)
+    private static (int x, int y) NearestOpenCell(GameMap map, (int x, int y) goal, (int x, int y) from, MoveDomain domain)
     {
         for (var r = 1; r <= 8; r++)
         {
@@ -96,7 +100,7 @@ public static class Pathfinding
                 {
                     if (Math.Max(Math.Abs(dx), Math.Abs(dy)) != r) continue;
                     var c = (goal.x + dx, goal.y + dy);
-                    if (!map.IsWalkable(c.Item1, c.Item2)) continue;
+                    if (!map.IsWalkable(c.Item1, c.Item2, domain)) continue;
                     var cost = Guess(from, c);
                     if (cost < bestCost) { bestCost = cost; best = c; }
                 }
@@ -172,7 +176,7 @@ public static class NavigationSystem
             for (var i = o.Waypoint; i < o.Path.Count; i++)
             {
                 var (cx, cy) = (GameMap.CellOf(o.Path[i].X), GameMap.CellOf(o.Path[i].Y));
-                if (map.IsWalkable(cx, cy)) continue;
+                if (map.IsWalkable(cx, cy, u.Domain)) continue;
                 o.Path = new List<FixVec2>();
                 o.Waypoint = 0;
                 break;
@@ -188,12 +192,12 @@ public static class NavigationSystem
             {
                 var goalCell = (GameMap.CellOf(o.Target.X), GameMap.CellOf(o.Target.Y));
                 var startCell = (GameMap.CellOf(u.Position.X), GameMap.CellOf(u.Position.Y));
-                var path = Pathfinding.FindPath(map, startCell, goalCell);
+                var path = Pathfinding.FindPath(map, startCell, goalCell, u.Domain);
                 if (path == null) { Console.Error.WriteLine($"UNREACHABLE u={u.Id.Value}"); orders.Remove(u.Id); continue; }
                 if (path.Count == 0) { orders.Remove(u.Id); continue; } // already at target
                 // goal cell reached means the raw target point, not its centre: append exact target
                 // (unless the target is inside a building: then the path ends beside it, T31)
-                if (map.IsWalkable(goalCell.Item1, goalCell.Item2)) path[path.Count - 1] = o.Target;
+                if (map.IsWalkable(goalCell.Item1, goalCell.Item2, u.Domain)) path[path.Count - 1] = o.Target;
                 o.Path = path;
                 o.Waypoint = 0;
                 o.PlannedEpoch = map.StructureEpoch;
@@ -232,15 +236,17 @@ public static class NavigationSystem
             {
                 var a = list[i];
                 var b = list[j];
+                // T25: aircraft fly over surface units; only like layers push each other
+                if ((a.Domain == MoveDomain.Air) != (b.Domain == MoveDomain.Air)) continue;
                 var delta = b.Position - a.Position;
                 var minDist = a.Radius + b.Radius;
                 var d2 = delta.LengthSquared;
                 if (d2.Raw == 0)
                 {
                     // perfectly coincident (rare): deterministic kick along +X to whichever side is open
-                    if (IsPointWalkable(map, a.Position + new FixVec2(Fix64.Ratio(1, 16), Fix64.Zero), a.Radius))
+                    if (IsPointWalkable(map, a.Position + new FixVec2(Fix64.Ratio(1, 16), Fix64.Zero), a.Radius, a.Domain))
                         a.Position += new FixVec2(Fix64.Ratio(1, 16), Fix64.Zero);
-                    if (IsPointWalkable(map, b.Position + new FixVec2(Fix64.Ratio(1, 16), Fix64.Zero), b.Radius))
+                    if (IsPointWalkable(map, b.Position + new FixVec2(Fix64.Ratio(1, 16), Fix64.Zero), b.Radius, b.Domain))
                         b.Position += new FixVec2(Fix64.Ratio(1, 16), Fix64.Zero);
                     continue;
                 }
@@ -251,8 +257,8 @@ public static class NavigationSystem
                 var dir = delta.Normalized();
                 var aNext = a.Position - dir * push;
                 var bNext = b.Position + dir * push;
-                var aOk = IsPointWalkable(map, aNext, a.Radius);
-                var bOk = IsPointWalkable(map, bNext, b.Radius);
+                var aOk = IsPointWalkable(map, aNext, a.Radius, a.Domain);
+                var bOk = IsPointWalkable(map, bNext, b.Radius, b.Domain);
                 if (aOk) a.Position = aNext; else push *= 2; // wall absorbs a's share
                 if (bOk) b.Position = bNext;
             }
@@ -265,27 +271,27 @@ public static class NavigationSystem
             var dt = Fix64.Ratio(1, SimWorld.TicksPerSecond);
             var next = u.Position + u.Velocity * dt;
             // slide: reject per axis against blocked cells (a unit's point must stay in walkable cells)
-            if (IsPointWalkable(map, next, u.Radius)) u.Position = next;
+            if (IsPointWalkable(map, next, u.Radius, u.Domain)) u.Position = next;
             else
             {
                 var nextX = new FixVec2(next.X, u.Position.Y);
-                if (IsPointWalkable(map, nextX, u.Radius)) { u.Position = nextX; u.Velocity = new FixVec2(u.Velocity.X, Fix64.Zero); }
+                if (IsPointWalkable(map, nextX, u.Radius, u.Domain)) { u.Position = nextX; u.Velocity = new FixVec2(u.Velocity.X, Fix64.Zero); }
                 else
                 {
                     var nextY = new FixVec2(u.Position.X, next.Y);
-                    if (IsPointWalkable(map, nextY, u.Radius)) { u.Position = nextY; u.Velocity = new FixVec2(Fix64.Zero, u.Velocity.Y); }
+                    if (IsPointWalkable(map, nextY, u.Radius, u.Domain)) { u.Position = nextY; u.Velocity = new FixVec2(Fix64.Zero, u.Velocity.Y); }
                 }
             }
         }
     }
 
-    private static bool IsPointWalkable(GameMap map, FixVec2 p, Fix64 radius)
+    private static bool IsPointWalkable(GameMap map, FixVec2 p, Fix64 radius, MoveDomain d)
     {
         // conservative: check the four corners of the unit's bounding box
         var r = radius;
-        return map.IsWalkable(GameMap.CellOf(p.X - r), GameMap.CellOf(p.Y - r)) &&
-               map.IsWalkable(GameMap.CellOf(p.X + r), GameMap.CellOf(p.Y - r)) &&
-               map.IsWalkable(GameMap.CellOf(p.X - r), GameMap.CellOf(p.Y + r)) &&
-               map.IsWalkable(GameMap.CellOf(p.X + r), GameMap.CellOf(p.Y + r));
+        return map.IsWalkable(GameMap.CellOf(p.X - r), GameMap.CellOf(p.Y - r), d) &&
+               map.IsWalkable(GameMap.CellOf(p.X + r), GameMap.CellOf(p.Y - r), d) &&
+               map.IsWalkable(GameMap.CellOf(p.X - r), GameMap.CellOf(p.Y + r), d) &&
+               map.IsWalkable(GameMap.CellOf(p.X + r), GameMap.CellOf(p.Y + r), d);
     }
 }

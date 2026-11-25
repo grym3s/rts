@@ -67,12 +67,22 @@ bool RtsContent::LoadMatch(const FString& ScenarioId, const FString& MapId, FRts
 		return false;
 	}
 
-	// Tiles: the typed map if it exists and matches, else blocked rects drawn as cliff.
+	// Tiles: the scenario's own `terrain` rows (T25: what the sim walks on), else the typed map
+	// if it exists and matches, else blocked rects drawn as cliff.
 	Out.bTypedMap = false;
 	Out.Rows.Reset();
+	const TArray<TSharedPtr<FJsonValue>>* SimRows = nullptr;
+	if ((*MapObj)->TryGetArrayField(TEXT("terrain"), SimRows) && SimRows->Num() == Out.Height)
+	{
+		for (const TSharedPtr<FJsonValue>& V : *SimRows)
+			Out.Rows.Add(V->AsString());
+		Out.bTypedMap = Out.Rows.FindByPredicate([&Out](const FString& R) { return R.Len() != Out.Width; }) == nullptr;
+		if (!Out.bTypedMap)
+			Out.Rows.Reset();
+	}
 	FString MapErr;
 	const FString MapPath = FPaths::Combine(Root, TEXT("content/maps"), MapId + TEXT(".json"));
-	if (TSharedPtr<FJsonObject> Map = MapId.IsEmpty() ? nullptr : ReadJson(MapPath, MapErr))
+	if (TSharedPtr<FJsonObject> Map = (Out.bTypedMap || MapId.IsEmpty()) ? nullptr : ReadJson(MapPath, MapErr))
 	{
 		const TArray<TSharedPtr<FJsonValue>>* RowVals = nullptr;
 		int32 MW = 0, MH = 0;

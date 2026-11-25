@@ -46,6 +46,9 @@ public:
 	bool IsBuilding() const { return bIsBuilding; }
 	/** T38: harvester load (0..1 of capacity) as a gold block; bCarrying = full and heading home. */
 	void SetCargo(float Fraction, bool bCarrying);
+	/** T25: aircraft are drawn this high above the ground; everything else sits on it. */
+	static constexpr float AirZ = 300.0f;
+	void SetAirborne(bool bAir);
 
 private:
 	UPROPERTY(VisibleAnywhere)

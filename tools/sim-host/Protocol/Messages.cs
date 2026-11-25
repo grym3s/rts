@@ -96,7 +96,8 @@ public sealed record HostUnit(
     int ConstructionTotal = 0, int QueueHeadRemaining = 0, int QueueHeadTotal = 0,
     string? DeploysTo = null, int FootprintW = 0, int FootprintH = 0,
     long[]? Rally = null, // T37: [x, y] Q32.32 raw, buildings with a rally point only
-    int LoadCapacity = 0); // T38: a harvester's full load (credits), 0 for everything else
+    int LoadCapacity = 0, // T38: a harvester's full load (credits), 0 for everything else
+    string? Domain = null); // T25: "naval" / "hover" / "air"; absent = land (and buildings)
 
 /// <summary>T30: credits and the power ledger (net = supply − draw; low power when net &lt; 0).</summary>
 public sealed record HostFaction(int Faction, int Credits, int PowerSupply = 0, int PowerDraw = 0);
@@ -115,10 +116,11 @@ public sealed record HostCatalog(IReadOnlyList<HostBuildingType> Buildings, IRea
 public sealed record HostBuildingType(string Id, string Name, int Faction, string Category, int Cost, int BuildTicks,
     string? Prereq, int Power, int FootprintW, int FootprintH);
 public sealed record HostUnitType(string Id, string Name, int Faction, int Cost, int BuildTicks, string BuiltFrom,
-    string? DeploysTo, bool Harvest);
+    string? DeploysTo, bool Harvest, string Domain = "land"); // T25: land / naval / hover / air
 
 /// <summary>T36 `place` query answer: allowed, else reason (wrong_faction, prereq, blocked,
-/// occupied, radius, credits); the footprint rect in cells either way.</summary>
+/// occupied, radius, credits; T25 water = a naval/offshore footprint not wholly on water, shore =
+/// a `requiresShore` building with no land / water beside it); the footprint rect either way.</summary>
 public sealed record HostQueryResult(bool Allowed, string Reason, int X, int Y, int W, int H);
 
 /// <summary>T20 overlays. StepMicros = wall time of the World.Step that produced this snapshot.

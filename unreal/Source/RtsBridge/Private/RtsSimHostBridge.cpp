@@ -255,6 +255,7 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				UO->TryGetNumberField(TEXT("load"), U.Load);
 				UO->TryGetBoolField(TEXT("carrying"), U.bCarrying);
 				UO->TryGetNumberField(TEXT("loadCapacity"), U.LoadCapacity);
+				UO->TryGetStringField(TEXT("domain"), U.Domain); // T25: absent = land
 				// T37: rally point [x, y] Q32.32 raw, present only on buildings that have one.
 				const TArray<TSharedPtr<FJsonValue>>* RallyArr = nullptr;
 				if (UO->TryGetArrayField(TEXT("rally"), RallyArr) && RallyArr->Num() == 2)
@@ -359,6 +360,7 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				UO->TryGetStringField(TEXT("builtFrom"), U.BuiltFrom);
 				UO->TryGetStringField(TEXT("deploysTo"), U.DeploysTo);
 				UO->TryGetBoolField(TEXT("harvest"), U.bHarvest);
+				UO->TryGetStringField(TEXT("domain"), U.Domain);
 				OutReply.UnitTypes.Add(MoveTemp(U));
 			}
 	}

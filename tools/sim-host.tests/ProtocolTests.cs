@@ -478,6 +478,32 @@ public class ProtocolTests
         Assert.Equal("credits", Ask("coalition-reactor", 9, 5).Reason);
     }
 
+    // ---------- terrain and domains (T25) ----------
+
+    [Fact]
+    public void Terrain_rows_give_units_their_domain_and_shipyards_answer_water_or_shore()
+    {
+        // 24 x 12: land x < 12, sea x >= 12.
+        var rows = string.Join(",", Enumerable.Range(0, 12).Select(_ => "\"" + new string('.', 12) + new string('~', 12) + "\""));
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle($$$"""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":24,"height":12,"terrain":[{{{rows}}}]},"units":[{"unit":"rifleman","at":[3.5,3.5]},{"unit":"cutter","at":[18.5,3.5]},{"unit":"falcon","at":[6.5,8.5]},{"unit":"skimmer","at":[4.5,9.5]}]}}"""));
+        Assert.True(init.Ok, init.Error);
+        Assert.Equal(new string?[] { null, "naval", "air", "hover" }, init.State!.Units.Select(u => u.Domain).ToArray());
+        Assert.Equal("naval", init.Catalog!.Units.Single(u => u.Id == "cutter").Domain);
+        Assert.Equal("land", init.Catalog.Units.Single(u => u.Id == "rifleman").Domain);
+
+        HostQueryResult Ask(string building, double x, double y)
+        {
+            var r = Resp(s.Handle($$$"""{"protocolVersion":1,"kind":"query","query":{"type":"place","faction":0,"building":"{{{building}}}","at":[{{{x}}},{{{y}}}]}}"""));
+            Assert.True(r.Ok, r.Error);
+            return r.Query!;
+        }
+        Assert.True(Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":0,"commands":[{"tick":0,"faction":0,"type":"place","building":"coalition-construction-yard","at":[8,6]}]}""")).Ok);
+        Assert.Equal("water", Ask("coalition-shipyard", 5, 2).Reason);
+        Assert.Equal("shore", Ask("coalition-shipyard", 16, 6).Reason);
+        Assert.True(Ask("coalition-shipyard", 13, 6).Allowed);
+    }
+
     // ---------- MCV deploy (T32) ----------
 
     [Fact]

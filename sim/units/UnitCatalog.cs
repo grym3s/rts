@@ -10,7 +10,14 @@ public sealed class UnitCatalog
     public record SpawnParams(string Id, Fix64 Speed, Fix64 Radius, Fix64 Hp, Fix64 Sight,
         int Faction, Fix64 Damage, Fix64 Range, int CooldownTicks,
         ArmorClass Armor, DamageType DamageType, bool Harvest,
-        int Cost, int BuildTicks, string BuiltFrom, string? DeploysTo = null, string Name = "");
+        int Cost, int BuildTicks, string BuiltFrom, string? DeploysTo = null, string Name = "",
+        Rts.Sim.World.MoveDomain Domain = Rts.Sim.World.MoveDomain.Land,
+        Rts.Sim.World.TargetMask Targets = Rts.Sim.World.TargetMask.None)
+    {
+        /// <summary>The spawn-time stat block (every spawner builds the same one).</summary>
+        public Rts.Sim.World.UnitProfile Profile() => new(Faction, Hp, Sight, Damage, Range, CooldownTicks,
+            Armor, DamageType, Harvest, DeploysTo, Domain, Targets);
+    }
 
     /// <summary>True when unitId names a unit this building (catalog id) fields:
     /// canon link is the unit's `builtFrom` (content/CONTEXT.md), nothing else.</summary>
@@ -42,7 +49,13 @@ public sealed class UnitCatalog
             var hp = stats.GetProperty("hp").GetDouble();
             var sight = stats.TryGetProperty("sight", out var sg) ? sg.GetDouble() : 0.0;
             var faction = FactionIndex(root.GetProperty("faction").GetString());
-            var armor = DamageMatrix.ParseArmor(root.GetProperty("armor").GetString()!);
+            var armorName = root.GetProperty("armor").GetString()!;
+            var armor = DamageMatrix.ParseArmor(armorName);
+            // T25: explicit `domain` (hover units) wins; otherwise armor says air / naval / land
+            var domain = root.TryGetProperty("domain", out var dm)
+                ? Rts.Sim.World.Domains.Parse(dm.GetString()!)
+                : Rts.Sim.World.Domains.FromArmor(armorName);
+            var targets = Rts.Sim.World.TargetMask.None;
             var harvest = root.GetProperty("role").GetString() == "harvester"; // sim/economy income
             Fix64 dmg = Fix64.Zero, rng = Fix64.Zero; var cd = 0;
             var dtype = DamageType.SmallArms; // inert unless Damage > 0
@@ -52,6 +65,9 @@ public sealed class UnitCatalog
                 rng = Fix64.FromDouble(wp.GetProperty("range").GetDouble());
                 cd = wp.GetProperty("cooldownTicks").GetInt32();
                 dtype = DamageMatrix.ParseDamageType(wp.GetProperty("damageType").GetString()!);
+                targets = wp.TryGetProperty("targets", out var tg)
+                    ? Rts.Sim.World.Domains.ParseTargets(tg)
+                    : Rts.Sim.World.TargetMask.Ground;
             }
             cat._byId[root.GetProperty("id").GetString()!] = new(
                 root.GetProperty("id").GetString()!, Fix64.FromDouble(speed), DefaultRadius,
@@ -60,7 +76,8 @@ public sealed class UnitCatalog
                 root.GetProperty("buildTimeSeconds").GetInt32() * Rts.Sim.Core.SimWorld.TicksPerSecond,
                 root.GetProperty("builtFrom").GetString()!,
                 root.TryGetProperty("deploysTo", out var dep) ? dep.GetString() : null,
-                root.TryGetProperty("name", out var nm) ? nm.GetString() ?? "" : "");
+                root.TryGetProperty("name", out var nm) ? nm.GetString() ?? "" : "",
+                domain, targets);
         }
         return cat;
     }

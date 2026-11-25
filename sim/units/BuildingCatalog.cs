@@ -9,7 +9,11 @@ namespace Rts.Sim.Units;
 public sealed class BuildingCatalog
 {
     public record PlacementParams(string Id, int Faction, string Category, int Cost, int BuildTicks, Fix64 Hp, string? Prereq, int Power,
-        int FootprintW = 1, int FootprintH = 1, string Name = "");
+        int FootprintW = 1, int FootprintH = 1, string Name = "", bool RequiresShore = false)
+    {
+        /// <summary>T25: naval and offshore buildings stand on water (shipyards, sea platforms).</summary>
+        public bool OnWater => Category is "naval" or "offshore";
+    }
 
     /// <summary>T31 footprint in cells when a file has no `footprint: [w, h]`. Tuning, not canon
     /// (canon gives no sizes): big production/economy 3x3, support 2x2, defences 1x1.</summary>
@@ -51,7 +55,8 @@ public sealed class BuildingCatalog
                 root.GetProperty("prereq").ValueKind == JsonValueKind.Null ? null : root.GetProperty("prereq").GetString(),
                 root.TryGetProperty("power", out var powerEl) ? powerEl.GetInt32() : 0,
                 fpW, fpH,
-                root.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? "" : "");
+                root.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? "" : "",
+                root.TryGetProperty("requiresShore", out var shoreEl) && shoreEl.GetBoolean());
         }
         return cat;
     }

@@ -9,6 +9,7 @@
   "cost": 1450,
   "buildTimeSeconds": 34,
   "armor": "light-naval",
+  "domain": "hover",
   "stats": {
     "hp": 480,
     "speed": 3.0,

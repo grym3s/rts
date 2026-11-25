@@ -5,8 +5,9 @@
 //   content/maps/tri-point.json          — typed tiles + features (the map itself)
 //   content/scenarios/tri-point-30.json  — 30v30 T1 combined-arms scenario on it
 //   --preview <file.svg>                 — optional top-down preview
-// The sim has no water yet: the scenario's `blocked` = water + cliff. Bridges and land are
-// walkable. Deterministic: same script, same output. Run: node tools/mapgen/tri-point.mjs
+// T25: scenarios carry the tiles themselves (`map.terrain`, same rows as the map file), so the
+// sim knows water from cliff: land units walk land and bridges, ships sail water and pass under
+// bridges. Deterministic: same script, same output. Run: node tools/mapgen/tri-point.mjs
 import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -224,28 +225,8 @@ const map = {
 };
 writeFileSync(join(repo, 'content', 'maps', 'tri-point.json'), JSON.stringify(map, null, 1) + '\n');
 
-// ---- blocked rects (water + cliff) for today's land-only sim -----------------------------
-const blockedCell = (x, y) => !landWalk(tiles[y][x]);
-const rects = [];
-const open = new Map(); // key "x0,x1" -> rect being grown downward
-for (let y = 0; y < H; y++) {
-  const runs = [];
-  for (let x = 0; x < W;) {
-    if (!blockedCell(x, y)) { x++; continue; }
-    let x1 = x; while (x1 + 1 < W && blockedCell(x1 + 1, y)) x1++;
-    runs.push([x, x1]); x = x1 + 1;
-  }
-  const next = new Map();
-  for (const [x0, x1] of runs) {
-    const k = `${x0},${x1}`;
-    const r = open.get(k);
-    if (r) { r[3] = y; next.set(k, r); open.delete(k); } else next.set(k, [x0, y, x1, y]);
-  }
-  for (const r of open.values()) rects.push(r);
-  open.clear(); for (const [k, r] of next) open.set(k, r);
-}
-for (const r of open.values()) rects.push(r);
-rects.sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+// ---- sim map (T25): the typed rows themselves; the sim reads `.~#=` per cell ---------------
+const simMap = { width: W, height: H, terrain: map.rows };
 
 // ---- 30v30 roster: T1 combined arms (24 line infantry + 6 MBT per side) ------------------
 function formation(n, infantry, tank) {
@@ -273,7 +254,7 @@ const scenario = {
   schemaVersion: 2,
   seed: 3,
   ticks: 2400,
-  map: { width: W, height: H, blocked: rects },
+  map: simMap,
   veins: fields.flatMap(fl => fl.veins),
   units: [...formation(coalition, 'rifleman', 'lancer-mbt'), ...formation(hegemony, 'conscript', 'bulwark')],
   commands: [
@@ -282,7 +263,7 @@ const scenario = {
   ],
 };
 writeFileSync(join(repo, 'content', 'scenarios', 'tri-point-30.json'), JSON.stringify(scenario, null, 1) + '\n');
-console.log(`tri-point: ${W}x${H}, ${rects.length} blocked rects, ${scenario.units.length} units, ${fields.length} fields`);
+console.log(`tri-point: ${W}x${H} terrain rows, ${scenario.units.length} units, ${fields.length} fields`);
 
 // ---- skirmish start (T36): the canon opening, one MCV each on its main ---------------------
 // economy.md: 5000 credits and one undeployed MCV. Unreal loads this without its commands; the
@@ -294,7 +275,7 @@ const skirmish = {
   schemaVersion: 2,
   seed: 5,
   ticks: 900,
-  map: { width: W, height: H, blocked: rects },
+  map: simMap,
   veins: fields.flatMap(fl => fl.veins),
   units: [
     { unit: 'mobile-command', at: centreOf(coalition.main) },

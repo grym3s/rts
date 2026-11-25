@@ -375,6 +375,7 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 				++Fielded[S.Faction];
 			A->SetSimUnitId(S.Id);
 			A->SetFaction(S.Faction);
+			A->SetAirborne(S.Domain == TEXT("air")); // T25
 			A->SnapToSimPosition(S.X, S.Y);
 			ActorsById.Add(S.Id, A);
 		}
@@ -610,8 +611,8 @@ void ARtsBridgeGameMode::RebuildBuildOptions(bool bHaveBase)
 		return;
 	for (const FRtsBuildingType& B : BuildingTypes)
 	{
-		// Yards come from the MCV. Naval/offshore are listed but greyed: the sim has no water
-		// placement yet (T25), and hiding them left their dependants with an unmeetable prereq.
+		// Yards come from the MCV. Naval/offshore go on water (T25): the sim's query says
+		// "water" / "shore" when the ghost is on the wrong ground.
 		if (B.Faction != 0 || B.Category == TEXT("construction-yard"))
 			continue;
 		FBuildOption O;
@@ -631,7 +632,7 @@ void ARtsBridgeGameMode::RebuildBuildOptions(bool bHaveBase)
 	BuildOptions.StableSort([](const FBuildOption& A, const FBuildOption& B)
 	{
 		if (A.bNeedsWater != B.bNeedsWater)
-			return !A.bNeedsWater; // water buildings last
+			return !A.bNeedsWater; // water buildings last (they need a coast near your base)
 		if (A.bPrereqOk != B.bPrereqOk)
 			return A.bPrereqOk;
 		if (A.Cost != B.Cost)

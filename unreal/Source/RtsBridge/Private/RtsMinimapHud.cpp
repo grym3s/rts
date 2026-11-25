@@ -713,6 +713,8 @@ FString ARtsMinimapHud::PlaceReasonText(const FString& Reason)
 	if (Reason == TEXT("radius")) return TEXT("Too far from your base");
 	if (Reason == TEXT("credits")) return TEXT("Not enough credits");
 	if (Reason == TEXT("wrong_faction")) return TEXT("Not your faction's building");
+	if (Reason == TEXT("water")) return TEXT("Must be built on water");
+	if (Reason == TEXT("shore")) return TEXT("Must be next to the shore");
 	return Reason;
 }
 
@@ -774,12 +776,7 @@ void ARtsMinimapHud::DrawBuildMenu()
 			R.Max.X - 6.0f - CW, R.Min.Y + 3.0f, Font, 1.0f);
 		FString Sub;
 		FLinearColor SubCol(0.7f, 0.7f, 0.7f);
-		if (O.bNeedsWater)
-		{
-			Sub = TEXT("needs water - coming with T25");
-			SubCol = FLinearColor(0.45f, 0.7f, 1.0f);
-		}
-		else if (!O.bPrereqOk)
+		if (!O.bPrereqOk)
 		{
 			Sub = O.PrereqName.IsEmpty() ? TEXT("needs a prerequisite") : FString::Printf(TEXT("needs %s"), *O.PrereqName);
 			SubCol = FLinearColor(0.8f, 0.55f, 0.35f);
@@ -793,6 +790,11 @@ void ARtsMinimapHud::DrawBuildMenu()
 		{
 			Sub = TEXT("will cause low power");
 			SubCol = FLinearColor(1.0f, 0.7f, 0.2f);
+		}
+		else if (O.bNeedsWater)
+		{
+			Sub = TEXT("builds on water by the shore");
+			SubCol = FLinearColor(0.45f, 0.7f, 1.0f);
 		}
 		if (!Sub.IsEmpty())
 			DrawText(Sub, SubCol, R.Min.X + 6.0f, R.Min.Y + 22.0f, Small, 1.0f);

@@ -44,7 +44,8 @@ public sealed class UnitStore
 public sealed record UnitProfile(int Faction, Fix64 Hp, Fix64 Sight,
     Fix64 Damage, Fix64 Range, int CooldownTicks,
     ArmorClass Armor = ArmorClass.Infantry, DamageType DamageType = DamageType.SmallArms,
-    bool Harvest = false, string? DeploysTo = null);
+    bool Harvest = false, string? DeploysTo = null,
+    MoveDomain Domain = MoveDomain.Land, TargetMask Targets = TargetMask.All);
 
 /// <summary>Mutable unit state owned by the world.</summary>
 public sealed class Unit
@@ -70,6 +71,10 @@ public sealed class Unit
     public bool Harvest { get; }
     /// <summary>MCV-style unit (T32): the construction-yard building id a `deploy` turns it into, else null.</summary>
     public string? DeploysTo { get; }
+    /// <summary>T25: how it moves (navigation) and what can shoot it (combat).</summary>
+    public MoveDomain Domain { get; }
+    /// <summary>T25: domains its weapon can engage. All for hand-built test profiles.</summary>
+    public TargetMask Targets { get; }
     /// <summary>Harvest load in whole credits; Carrying = full, trip to refinery.</summary>
     public int Load { get; set; }
     public bool Carrying { get; set; }
@@ -106,5 +111,7 @@ public sealed class Unit
         DamageType = profile?.DamageType ?? DamageType.SmallArms;
         Harvest = profile?.Harvest ?? false;
         DeploysTo = profile?.DeploysTo;
+        Domain = profile?.Domain ?? MoveDomain.Land;
+        Targets = profile?.Targets ?? TargetMask.All;
     }
 }

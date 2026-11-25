@@ -30,7 +30,9 @@ public static class CombatSystem
 
             if (u.TargetId == EntityId.None || u.Damage.Raw == 0) continue;
             var target = units.Find(u.TargetId);
-            if (target == null || target.Hp.Raw <= 0)
+            // T25: a weapon that can't engage the target's domain (rifle vs jet, torpedo vs tank)
+            // drops it like a dead one: the order was impossible, not pending.
+            if (target == null || target.Hp.Raw <= 0 || !CanHit(u, target))
             {
                 u.TargetId = EntityId.None;
                 if (u.AttackMoving) continue; // resume route
@@ -127,14 +129,18 @@ public static class CombatSystem
         return t != null && t.Hp.Raw > 0;
     }
 
-    /// <summary>Nearest enemy strictly inside sight range; store order breaks distance ties.</summary>
+    /// <summary>T25: the weapon's `targets` include the target's domain (buildings are ground).</summary>
+    public static bool CanHit(Unit u, Unit target) => Domains.CanEngage(u.Targets, target.Domain);
+
+    /// <summary>Nearest enemy strictly inside sight range that the weapon can engage; store order
+    /// breaks distance ties.</summary>
     private static EntityId Acquire(Unit u, UnitStore units)
     {
         var best = EntityId.None;
         var bestD = Fix64.Zero;
         foreach (var e in units.Units)
         {
-            if (e.Faction == u.Faction || e.Hp.Raw <= 0) continue;
+            if (e.Faction == u.Faction || e.Hp.Raw <= 0 || !CanHit(u, e)) continue;
             var d = (e.Position - u.Position).LengthSquared;
             if (d > u.Sight * u.Sight) continue;
             if (best == EntityId.None || d < bestD)

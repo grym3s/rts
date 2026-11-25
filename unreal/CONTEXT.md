@@ -25,6 +25,9 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   cancel refunds, rally decoded, the rifleman walks there; panel layout/hit).
   T38: harvester rows add `LoadCapacity`. Test: `RtsBridge.Host.Harvest` (vein block sizes; a `harvest`
   body sends a collector to the named vein and leaves the near one untouched).
+  T25: unit rows and unit types add `Domain` (land / naval / hover / air); aircraft are drawn
+  `ARtsSimUnitActor::AirZ` above the ground (`SetAirborne`). Test: `RtsBridge.Host.Domain` (domain
+  parse from a terrain-row scenario; water / shore reason texts).
 - `Source/RtsBridge/Private/RtsBridgeRoundTripTest.cpp` — editor automation test
   `RtsBridge.Host.RoundTrip` (real host launch, init, tick-0 move, 120 steps).
 - `Config/DefaultEngine.ini` — GlobalDefaultGameMode = RtsBridgeGameMode;
@@ -82,7 +85,7 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   economy bar (T35, top centre: your credits with a +/- flash on change, power as used / produced,
   red with LOW POWER when draw > supply; text from static `EconomyBarText`);
   build sidebar (T36, right edge: with no base and an MCV, a hint + Deploy button (E key does the
-  same); with a base, faction-0 buildings except yards from `GetBuildOptions` (naval/offshore listed last, greyed "needs water" until T25) --
+  same); with a base, faction-0 buildings except yards from `GetBuildOptions` (naval/offshore listed last with a blue "builds on water by the shore" hint; T25 the sim answers `water` / `shore` when the ghost is on the wrong ground) --
   prereq from the sim's own query (re-asked only when your buildings or their finished state
   change), affordability and a low-power warning from the snapshot; static `BuildMenuLayout`/
   `BuildMenuHit`); placement ghost (footprint cells under the cursor, green/red from
@@ -111,7 +114,8 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   (land top Z=0, cliffs 80 UU, bridges just above land). Collision = query-only so RMB
   ground traces hit any tile. `TileColor` is shared with the minimap.
 - `RtsContentLoader` (`RtsContent::LoadMatch`) — reads scenario + typed map from
-  content. Test: `RtsBridge.Content.TriPoint` (loads, host accepts the init, 30 per
+  content; T25 the scenario's own `map.terrain` rows win (they are what the sim walks on), then the
+  typed map file, then `blocked` rects drawn as cliff. Test: `RtsBridge.Content.TriPoint` (loads, host accepts the init, 30 per
   faction, every spawn on a walkable tile).
   Order feedback (T12, pillar 1), drawn the same frame the order is queued and only if
   it was: move = green ground ping, attack-move = orange ping, attack = red ring on the

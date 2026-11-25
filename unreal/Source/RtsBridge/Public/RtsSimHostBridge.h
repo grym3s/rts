@@ -87,6 +87,10 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	int32 LoadCapacity = 0;
 
+	/** T25: how it moves: "land" (also buildings), "naval", "hover" or "air". */
+	UPROPERTY(BlueprintReadOnly)
+	FString Domain = TEXT("land");
+
 	UPROPERTY(BlueprintReadOnly)
 	bool bCarrying = false;
 
@@ -171,6 +175,8 @@ public:
 	UPROPERTY(BlueprintReadOnly) FString BuiltFrom;
 	UPROPERTY(BlueprintReadOnly) FString DeploysTo;
 	UPROPERTY(BlueprintReadOnly) bool bHarvest = false;
+	/** T25: land / naval / hover / air. */
+	UPROPERTY(BlueprintReadOnly) FString Domain = TEXT("land");
 };
 
 /** One sim event from a step reply (T09 contract): shot (Amount = damage), death

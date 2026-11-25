@@ -64,6 +64,12 @@ static FVector SimToWorld(double X, double Y, double Z)
 	return FVector(X * SimCellUU, Y * SimCellUU, Z);
 }
 
+void ARtsSimUnitActor::SetAirborne(bool bAir)
+{
+	if (!bIsBuilding)
+		GroundZ = bAir ? AirZ : 50.0f;
+}
+
 void ARtsSimUnitActor::SnapToSimPosition(double X, double Y)
 {
 	InterpFrom = InterpTo = SimToWorld(X, Y, GroundZ);
