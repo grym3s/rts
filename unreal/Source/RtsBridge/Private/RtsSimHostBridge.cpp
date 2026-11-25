@@ -314,6 +314,7 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				B.Hp = RawHp / 4294967296.0;
 				B.MaxHp = RawMax / 4294967296.0;
 				BO->TryGetBoolField(TEXT("broken"), B.bBroken);
+				BO->TryGetBoolField(TEXT("causeway"), B.bCauseway);
 				const TArray<TSharedPtr<FJsonValue>>* CellsArr = nullptr;
 				if (BO->TryGetArrayField(TEXT("cells"), CellsArr))
 					for (const TSharedPtr<FJsonValue>& CV : *CellsArr)

@@ -67,20 +67,24 @@ const seams = [0, 1, 2].map(i => ({
 // ---- rasterise ---------------------------------------------------------------------------
 const T = { LAND: '.', WATER: '~', CLIFF: '#', BRIDGE: '=' };
 const tiles = Array.from({ length: H }, () => Array(W).fill(T.WATER));
+const causewayCells = {}; // T26: player id -> causeway cells over water (destructible)
 for (let y = 0; y < H; y++) {
   for (let x = 0; x < W; x++) {
     const p = { x: x + 0.5, y: y + 0.5 };
     const dc = dist(p, C);
     let t = T.WATER;
     let land = dc > G.atollIn && dc <= G.atollOut;               // atoll ring
+    let causewayOf = null;                                       // T26: land only because of this causeway
     for (const n of nodes) {
       if (dist(p, n.natural) <= G.natR || dist(p, n.main) <= G.mainR ||
           dist(p, n.harbour) <= G.harbR || dist(p, n.seamCw) <= G.seamR ||
           segDist(p, n.natural, n.seamCw) <= G.lane || segDist(p, n.natural, n.seamCcw) <= G.lane ||
-          segDist(p, n.natural, n.ringLanding) <= G.causeway ||
           segDist(p, n.natural, n.harbour) <= G.harbPath ||
           segDist(p, n.main, n.natural) <= G.ramp) land = true;
     }
+    if (!land)
+      for (const n of nodes)
+        if (segDist(p, n.natural, n.ringLanding) <= G.causeway) { land = true; causewayOf ??= n.id; }
     if (land) t = T.LAND;
     for (const n of nodes) {
       // Cliffs ring each main; the one ramp toward the natural cuts through them.
@@ -105,6 +109,7 @@ for (let y = 0; y < H; y++) {
       }
     }
     tiles[y][x] = t;
+    if (causewayOf && t === T.LAND) (causewayCells[causewayOf] ??= []).push([x, y]);
   }
 }
 const landWalk = t => t === T.LAND || t === T.BRIDGE;
@@ -226,7 +231,8 @@ const map = {
 writeFileSync(join(repo, 'content', 'maps', 'tri-point.json'), JSON.stringify(map, null, 1) + '\n');
 
 // ---- sim map (T25): the typed rows themselves; the sim reads `.~#=` per cell ---------------
-const simMap = { width: W, height: H, terrain: map.rows };
+// T26: causeways (one per player, node order) are destructible land over water.
+const simMap = { width: W, height: H, terrain: map.rows, causeways: nodes.map(n => causewayCells[n.id] ?? []).filter(c => c.length) };
 
 // ---- 30v30 roster: T1 combined arms (24 line infantry + 6 MBT per side) ------------------
 function formation(n, infantry, tank) {

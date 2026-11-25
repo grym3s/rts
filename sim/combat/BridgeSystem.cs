@@ -82,7 +82,7 @@ public static class BridgeSystem
     {
         b.Hp = Fix64.Zero;
         b.Broken = true;
-        map.SetBridgeIntact(b.Cells, false);
+        map.SetBridgeIntact(b.Cells, false, b.IntactTerrain);
         events?.Emit(SimEventKind.BridgeDown, new EntityId(b.Id), by.Id);
         foreach (var v in units.Units)
         {
@@ -96,7 +96,7 @@ public static class BridgeSystem
 
     private static void Repair(Bridge b, GameMap map)
     {
-        if (b.Broken) map.SetBridgeIntact(b.Cells, true);
+        if (b.Broken) map.SetBridgeIntact(b.Cells, true, b.IntactTerrain);
         b.Broken = false;
         b.Hp = b.MaxHp;
     }

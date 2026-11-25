@@ -363,7 +363,7 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 		for (const FIntPoint& C : B.Cells)
 			if (TerrainRows.IsValidIndex(C.Y) && C.X >= 0 && C.X < TerrainRows[C.Y].Len())
 			{
-				const TCHAR Want = B.bBroken ? TEXT('~') : TEXT('=');
+				const TCHAR Want = B.bBroken ? TEXT('~') : B.bCauseway ? TEXT('.') : TEXT('=');
 				if (TerrainRows[C.Y][C.X] != Want)
 				{
 					TerrainRows[C.Y][C.X] = Want;

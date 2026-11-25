@@ -86,11 +86,14 @@ public sealed class GameMap
 
     /// <summary>T26: a bridge stands (cells are Bridge) or has fallen (cells are Water: ships pass,
     /// ground units don't). Bumps StructureEpoch so paths across it re-check.</summary>
-    public void SetBridgeIntact(IEnumerable<(int X, int Y)> cells, bool intact)
+    public void SetBridgeIntact(IEnumerable<(int X, int Y)> cells, bool intact, Terrain standing = Terrain.Bridge)
     {
-        foreach (var (x, y) in cells) _terrain[y * Width + x] = intact ? Terrain.Bridge : Terrain.Water;
+        foreach (var (x, y) in cells) _terrain[y * Width + x] = intact ? standing : Terrain.Water;
         StructureEpoch++;
     }
+
+    /// <summary>T26: no building may cover this cell (causeways: they can fall into the sea).</summary>
+    public void MarkNoBuild(int cx, int cy) { if (InBounds(cx, cy)) _resource[cy * Width + cx] = true; }
 
     /// <summary>T25: every cell of the rect is in bounds and of terrain `t`.</summary>
     public bool AllTerrain(int x0, int y0, int w, int h, Terrain t)

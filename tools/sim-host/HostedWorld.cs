@@ -46,7 +46,7 @@ public sealed class HostedWorld
 
         var seed = scenario.GetProperty("seed").GetUInt64();
         var map = GameMap.FromJson(scenario.GetProperty("map")); // T25: terrain rows and/or blocked rects
-        var bridges = BridgeStore.FromMap(map); // T26: `=` groups, each with its own hit points
+        var bridges = BridgeStore.FromMap(map, scenario.GetProperty("map")); // T26: `=` groups, each with its own hit points
 
         var catalog = UnitCatalog.LoadFromDirectory(Path.Combine(repoRoot, "content", "units"));
         var world = new SimWorld(seed);
@@ -280,7 +280,7 @@ public sealed class HostedWorld
             Veins = veins,
             Refineries = refineries,
             Bridges = Bridges.Bridges.Count == 0 ? null : Bridges.Bridges
-                .Select(b => new HostBridge(b.Id, b.Hp.Raw, b.MaxHp.Raw, b.Broken, b.Cells.Select(c => new[] { c.X, c.Y }).ToList()))
+                .Select(b => new HostBridge(b.Id, b.Hp.Raw, b.MaxHp.Raw, b.Broken, b.Cells.Select(c => new[] { c.X, c.Y }).ToList(), b.Causeway))
                 .ToList(),
         };
     }

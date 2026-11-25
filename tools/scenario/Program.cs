@@ -31,7 +31,7 @@ var ticks = doc.GetProperty("ticks").GetInt32();
 
 // --- map ---
 var map = GameMap.FromJson(doc.GetProperty("map")); // T25: terrain rows and/or blocked rects
-var bridges = BridgeStore.FromMap(map); // T26: `=` groups, each with its own hit points
+var bridges = BridgeStore.FromMap(map, doc.GetProperty("map")); // T26: `=` groups, each with its own hit points
 
 // --- units (spawn order == EntityId order) ---
 var catalog = UnitCatalog.LoadFromDirectory(Path.Combine(repoRoot, "content", "units"));

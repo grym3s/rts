@@ -112,8 +112,9 @@ public sealed record HostVein(int Id, long X, long Y, int Pool);
 public sealed record HostRefinery(int Faction, long X, long Y);
 
 /// <summary>T26: a bridge: id (the `bridge` command's target), hp / maxHp (Q32.32 raw), broken
-/// (its cells are water: ground units can't cross, ships pass), cells [[x, y], ...].</summary>
-public sealed record HostBridge(int Id, long Hp, long MaxHp, bool Broken, IReadOnlyList<int[]> Cells);
+/// (its cells are water: ground units can't cross, ships pass), cells [[x, y], ...], causeway
+/// (land when standing, so ships can't pass it; a bridge is `=`).</summary>
+public sealed record HostBridge(int Id, long Hp, long MaxHp, bool Broken, IReadOnlyList<int[]> Cells, bool Causeway = false);
 
 public sealed record HostMatch(bool Over, int Winner, int EndTick);
 

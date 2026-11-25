@@ -142,6 +142,10 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	bool bBroken = false;
 
+	/** Causeway: land when standing (a bridge is `=`). */
+	UPROPERTY(BlueprintReadOnly)
+	bool bCauseway = false;
+
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FIntPoint> Cells;
 

@@ -2,8 +2,9 @@ using Rts.Sim.Core;
 
 namespace Rts.Sim.World;
 
-/// <summary>T26: one bridge: a 4-connected group of `=` cells with its own hit points. Not a
-/// unit (no faction, never in the roster, never auto-targeted, never counted by the match).</summary>
+/// <summary>T26: one bridge: a 4-connected group of `=` cells with its own hit points — or a
+/// causeway (land cells laid over water, listed by the map). Not a unit (no faction, never in the
+/// roster, never auto-targeted, never counted by the match).</summary>
 public sealed class Bridge
 {
     public int Id { get; }
@@ -14,13 +15,18 @@ public sealed class Bridge
     /// <summary>Down: its cells are water (ground units can't cross, ships still pass).</summary>
     public bool Broken { get; set; }
     public bool Damaged => Broken || Hp < MaxHp;
+    /// <summary>A causeway: Land when standing (ships can't pass it), Water when down.
+    /// A bridge is Bridge when standing (ships pass under it either way).</summary>
+    public bool Causeway { get; }
+    public Terrain IntactTerrain => Causeway ? Terrain.Land : Terrain.Bridge;
 
-    public Bridge(int id, IReadOnlyList<(int X, int Y)> cells, Fix64 hp)
+    public Bridge(int id, IReadOnlyList<(int X, int Y)> cells, Fix64 hp, bool causeway = false)
     {
         Id = id;
         Cells = cells;
         MaxHp = hp;
         Hp = hp;
+        Causeway = causeway;
     }
 
     public bool Covers(int cx, int cy)
@@ -62,6 +68,31 @@ public sealed class BridgeStore
     {
         foreach (var b in _bridges) if (b.Covers(cx, cy)) return b;
         return null;
+    }
+
+    /// <summary>Bridges from the tiles, then causeways from the scenario `map.causeways`
+    /// (a list of cell lists [[x, y], ...], each cell plain Land; numbered after the bridges).
+    /// Causeway cells are marked unbuildable so nothing stands on them when they fall.</summary>
+    public static BridgeStore FromMap(GameMap map, System.Text.Json.JsonElement mapEl)
+    {
+        var store = FromMap(map);
+        if (!mapEl.TryGetProperty("causeways", out var cws)) return store;
+        foreach (var cw in cws.EnumerateArray())
+        {
+            var cells = new List<(int X, int Y)>();
+            foreach (var c in cw.EnumerateArray())
+            {
+                var (x, y) = (c[0].GetInt32(), c[1].GetInt32());
+                if (map.TerrainAt(x, y) != Terrain.Land)
+                    throw new InvalidDataException($"causeway cell ({x},{y}) is not land");
+                cells.Add((x, y));
+                map.MarkNoBuild(x, y);
+            }
+            if (cells.Count == 0) continue;
+            cells.Sort((a, b) => a.Y != b.Y ? a.Y.CompareTo(b.Y) : a.X.CompareTo(b.X));
+            store._bridges.Add(new Bridge(store._bridges.Count, cells, BridgeHp, causeway: true));
+        }
+        return store;
     }
 
     public static BridgeStore FromMap(GameMap map)

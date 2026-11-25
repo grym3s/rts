@@ -186,4 +186,46 @@ public class BridgeTests
         x.Bridges.Get(1)!.Hp -= Fix64.One;
         Assert.NotEqual(empty.Hash(42), x.Bridges.Hash(42));
     }
+
+    [Fact]
+    public void A_causeway_is_land_that_blocks_ships_until_it_falls_and_nothing_may_be_built_on_it()
+    {
+        // 12 x 3 sea with a land strip across row 1 at x 4..7 joining land at both ends.
+        var json = JsonSerializer.Serialize(new
+        {
+            width = 12,
+            height = 3,
+            terrain = new[] { "....~~~~....", "............", "....~~~~...." },
+            causeways = new[] { new[] { new[] { 4, 1 }, new[] { 5, 1 }, new[] { 6, 1 }, new[] { 7, 1 } } },
+        });
+        var mapEl = JsonDocument.Parse(json).RootElement;
+        var x = World();
+        x.Map = GameMap.FromJson(mapEl);
+        x.Bridges = BridgeStore.FromMap(x.Map, mapEl);
+        var cw = Assert.Single(x.Bridges.Bridges);
+        Assert.True(cw.Causeway);
+        Assert.Equal(4, cw.Cells.Count);
+        Assert.False(x.Map.CanOccupy(5, 1, 1, 1));                                     // never built on
+        Assert.Null(Pathfinding.FindPath(x.Map, (5, 0), (5, 2), MoveDomain.Naval));    // ships can't cross it
+
+        var tank = Spawn(x, "lancer-mbt", 0, 1, 1);
+        x.Step(Order(x, cw.Id, tank));
+        x.RunUntil(() => cw.Broken);
+        Assert.True(cw.Broken);
+        Assert.Equal(Terrain.Water, x.Map.TerrainAt(5, 1));
+        Assert.NotNull(Pathfinding.FindPath(x.Map, (5, 0), (5, 2), MoveDomain.Naval)); // now they can
+
+        var eng = Spawn(x, "engineer", 0, 2, 1);
+        x.Step(Order(x, cw.Id, eng));
+        x.RunUntil(() => !cw.Broken, 600);
+        Assert.Equal(Terrain.Land, x.Map.TerrainAt(5, 1));                             // back as land, not bridge
+    }
+
+    [Fact]
+    public void A_causeway_cell_that_is_not_land_fails_loudly()
+    {
+        var json = JsonSerializer.Serialize(new { width = 3, height = 1, terrain = new[] { ".~." }, causeways = new[] { new[] { new[] { 1, 0 } } } });
+        var mapEl = JsonDocument.Parse(json).RootElement;
+        Assert.Throws<InvalidDataException>(() => BridgeStore.FromMap(GameMap.FromJson(mapEl), mapEl));
+    }
 }
