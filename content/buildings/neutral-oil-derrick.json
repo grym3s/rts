@@ -17,7 +17,8 @@
     "credits"
   ],
   "verbs": {
-    "oilIncome": 5
+    "oilIncome": 5,
+    "restoredByEngineer": true
   },
   "stats": {
     "hp": 1500

@@ -43,6 +43,7 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   it (`RequestCaptureOrAttack`; neutrals can't be attacked, so with no engineer it is a plain move).
   A captured actor re-tints to its new owner; neutral is grey. Trainable lists ignore the unit's
   faction (a captured barracks offers its own units); the build menu lists every tree in `Trees`.
+  A destroyed derrick (`bWrecked`) draws as a dark slab until an engineer restores it (same RMB).
   Test: `RtsBridge.Host.Capture`.
 - `Source/RtsBridge/Private/RtsBridgeRoundTripTest.cpp` — editor automation test
   `RtsBridge.Host.RoundTrip` (real host launch, init, tick-0 move, 120 steps).

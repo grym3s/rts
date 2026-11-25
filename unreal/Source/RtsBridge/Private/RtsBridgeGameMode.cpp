@@ -412,8 +412,8 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 		}
 		A->SetHealth(S.Hp, S.MaxHp);
 		if (S.IsBuilding())
-			A->SetBuildingShape(FMath::Max(1, S.FootprintW), FMath::Max(1, S.FootprintH), S.ConstructionTotal > 0
-				? 1.0f - float(S.ConstructionRemaining) / float(S.ConstructionTotal) : 1.0f);
+			A->SetBuildingShape(FMath::Max(1, S.FootprintW), FMath::Max(1, S.FootprintH), S.bWrecked ? 0.0f // T28: a wreck is a dark slab
+				: S.ConstructionTotal > 0 ? 1.0f - float(S.ConstructionRemaining) / float(S.ConstructionTotal) : 1.0f);
 		else if (S.bHarvester)
 			A->SetCargo(S.LoadCapacity > 0 ? float(S.Load) / float(S.LoadCapacity) : 0.0f, S.bCarrying);
 		UnitActors.Add(A);

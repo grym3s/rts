@@ -192,7 +192,7 @@ public static class ProductionSystem
         var b = units.Spawn(ids.Next(), centre, Fix64.Zero, UnitCatalog.DefaultRadius,
             new UnitProfile(faction, bp.Hp, Fix64.Zero, Fix64.Zero, Fix64.Zero, 0, ArmorClass.Structure, DamageType.SmallArms,
                 TypeId: bp.Id, MarkRadius: bp.MarkRadius));
-        b.Building = new BuildingState { Id = bp.Id, ConstructionRemaining = bp.BuildTicks };
+        b.Building = new BuildingState { Id = bp.Id, ConstructionRemaining = bp.BuildTicks, Restorable = bp.Restorable };
         map.OccupyStructure(b.Id.Value, ox, oy, bp.FootprintW, bp.FootprintH);
         return b;
     }

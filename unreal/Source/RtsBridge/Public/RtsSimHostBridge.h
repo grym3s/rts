@@ -99,6 +99,10 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	bool bCanCapture = false;
 
+	/** T28: a destroyed oil derrick: a neutral wreck until an engineer restores it. */
+	UPROPERTY(BlueprintReadOnly)
+	bool bWrecked = false;
+
 	/** T29 owned verbs: catalog id; marked by an enemy's Marking; can be conscripted; phase
 	 *  state (PhaseTicks -1 = can't phase, else ticks left phased; PhaseCooldown = until ready). */
 	UPROPERTY(BlueprintReadOnly)

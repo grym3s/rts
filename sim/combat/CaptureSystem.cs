@@ -11,7 +11,8 @@ namespace Rts.Sim.Combat;
 /// its hit points; what that ownership then allows lives where the rules already are:
 /// production fields a captured building's units for its new owner, and owning a yard (or MCV)
 /// of another tree opens that tree's buildings (`ProductionSystem.HasTree`); an owned oil
-/// derrick drips credits (`EconomySystem.DripStep`). Bridges are not captured: an engineer
+/// derrick drips credits (`EconomySystem.DripStep`). A destroyed derrick is a neutral wreck
+/// until an engineer restores it (full hp, the restorer owns it). Bridges are not captured: an engineer
 /// repairs them (BridgeSystem). Deterministic: store order, no RNG, no floats.</summary>
 public static class CaptureSystem
 {
@@ -27,6 +28,19 @@ public static class CaptureSystem
     public static void Step(GameMap map, UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick,
         SimWorld? events = null, Action<int, string>? refundQueued = null)
     {
+        // A restorable building (the oil derrick) killed this tick stays as a neutral wreck:
+        // 1 hp so cleanup keeps it (and its footprint), untargetable, paying nobody.
+        foreach (var w in units.Units)
+            if (w.Hp.Raw <= 0 && w.Building is { Restorable: true, Wrecked: false } wb)
+            {
+                wb.Wrecked = true;
+                wb.Queue.Clear();
+                wb.QueueHeadRemaining = 0;
+                wb.Rally = null;
+                w.Hp = Fix64.One;
+                w.Faction = Factions.Neutral;
+            }
+
         foreach (var u in units.Units)
         {
             if (u.CaptureTarget == EntityId.None || u.Hp.Raw <= 0) continue;
@@ -73,6 +87,11 @@ public static class CaptureSystem
     {
         if (t.Building is { } b)
         {
+            if (b.Wrecked) // restored: back to full hp for whoever fixed it
+            {
+                b.Wrecked = false;
+                t.Hp = t.MaxHp;
+            }
             if (t.Faction != Factions.Neutral)
                 foreach (var q in b.Queue) refundQueued?.Invoke(t.Faction, q);
             b.Queue.Clear();

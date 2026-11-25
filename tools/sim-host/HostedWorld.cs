@@ -276,7 +276,8 @@ public sealed class HostedWorld
                 u.Conscriptable ? true : null,
                 u.Phases ? Math.Max(0, u.PhaseUntilTick - World.Tick) : null,
                 u.Phases ? Math.Max(0, u.PhaseReadyTick - World.Tick) : null,
-                u.Engineer && !u.CannotCapture ? true : null));
+                u.Engineer && !u.CannotCapture ? true : null,
+                u.Building is { Wrecked: true } ? true : null));
         }
 
         var factions = new List<HostFaction>(2);

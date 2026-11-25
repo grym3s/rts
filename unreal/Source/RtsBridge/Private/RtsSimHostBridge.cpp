@@ -258,6 +258,7 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				UO->TryGetStringField(TEXT("domain"), U.Domain); // T25: absent = land
 				UO->TryGetBoolField(TEXT("engineer"), U.bEngineer); // T26: absent = no
 				UO->TryGetBoolField(TEXT("canCapture"), U.bCanCapture); // T28: absent = no
+				UO->TryGetBoolField(TEXT("wrecked"), U.bWrecked);
 				UO->TryGetStringField(TEXT("type"), U.Type); // T29 owned verbs (all optional)
 				UO->TryGetBoolField(TEXT("marked"), U.bMarked);
 				UO->TryGetBoolField(TEXT("conscriptable"), U.bConscriptable);

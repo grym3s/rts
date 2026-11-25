@@ -106,7 +106,8 @@ public sealed record HostUnit(
     bool? Conscriptable = null, // T29: can be cashed in (`conscript`)
     int? PhaseTicks = null, // T29: phase-capable: ticks left phased (0 = not phased)
     int? PhaseCooldown = null, // T29: phase-capable: ticks until it may phase again (0 = ready)
-    bool? CanCapture = null); // T28: an engineer that may capture (not the Weaver)
+    bool? CanCapture = null, // T28: an engineer that may capture (not the Weaver)
+    bool? Wrecked = null); // T28: a destroyed derrick waiting for an engineer (neutral, 1 hp)
 
 /// <summary>T30: credits and the power ledger (net = supply − draw; low power when net &lt; 0).</summary>
 public sealed record HostFaction(int Faction, int Credits, int PowerSupply = 0, int PowerDraw = 0,

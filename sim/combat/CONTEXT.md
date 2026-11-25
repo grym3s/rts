@@ -52,6 +52,9 @@ owner and cleared, its rally dropped; an MCV stops; the new owner's units stop s
 engineer is consumed (no death event); event `Captured` (subject = captured, target = engineer,
 faction = new owner). Neutrals (`Factions.Neutral` = -1, the oil derrick) are never a target
 (`CanHit` refuses them; no marks, no Sapper blast); once captured they are ordinary buildings.
+A destroyed restorable building (the derrick, `BuildingState.Restorable`) is not removed: at the
+start of the capture step it becomes a wreck (`Wrecked`, 1 hp, neutral, queue cleared), so it is
+untargetable and pays nobody; capturing the wreck restores it to full hp for the engineer's side.
 What ownership then allows lives in production (captured trees) and economy (the drip). Tests:
 `../tests/CaptureTests.cs`.
 Not modelled yet: projectiles, targeting priorities, multi-shot, domain (ground/air) targeting flags.

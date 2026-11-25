@@ -10,7 +10,7 @@ public sealed class BuildingCatalog
 {
     public record PlacementParams(string Id, int Faction, string Category, int Cost, int BuildTicks, Fix64 Hp, string? Prereq, int Power,
         int FootprintW = 1, int FootprintH = 1, string Name = "", bool RequiresShore = false,
-        Fix64 MarkRadius = default, bool ConscriptionHall = false, int OilIncome = 0)
+        Fix64 MarkRadius = default, bool ConscriptionHall = false, int OilIncome = 0, bool Restorable = false)
     {
         /// <summary>T25: naval and offshore buildings stand on water (shipyards, sea platforms).</summary>
         public bool OnWater => Category is "naval" or "offshore";
@@ -62,7 +62,8 @@ public sealed class BuildingCatalog
                 root.TryGetProperty("verbs", out var vb) && vb.TryGetProperty("markRadius", out var mr) ? Fix64.FromDouble(mr.GetDouble()) : Fix64.Zero,
                 UnitCatalog.Verb(root, "conscriptionHall"),
                 // T28: an owned oil derrick drips this many credits per second to its owner
-                root.TryGetProperty("verbs", out var vb3) && vb3.TryGetProperty("oilIncome", out var oi) ? oi.GetInt32() : 0);
+                root.TryGetProperty("verbs", out var vb3) && vb3.TryGetProperty("oilIncome", out var oi) ? oi.GetInt32() : 0,
+                UnitCatalog.Verb(root, "restoredByEngineer")); // T28: destroyed = a wreck an engineer restores
         }
         return cat;
     }

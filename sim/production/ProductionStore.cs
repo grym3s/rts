@@ -18,6 +18,12 @@ public sealed class BuildingState
     public int QueueEnqueuedAtTick { get; set; }
     /// <summary>T37: where trained units walk after spawning; null = they stay at the door.</summary>
     public FixVec2? Rally { get; set; }
+    /// <summary>T28: destroyed, it becomes a wreck instead of leaving (the oil derrick, content
+    /// `verbs.restoredByEngineer`).</summary>
+    public bool Restorable { get; init; }
+    /// <summary>T28: a wreck: neutral, 1 hp, untargetable, pays nothing, until an engineer restores
+    /// it (sim/combat CaptureSystem): full hp, and the restorer's side owns it.</summary>
+    public bool Wrecked { get; set; }
 }
 
 /// <summary>Production state that isn't per-building: nothing today (queue lives on the

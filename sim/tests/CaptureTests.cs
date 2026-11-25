@@ -203,6 +203,37 @@ public class CaptureTests
     }
 
     [Fact]
+    public void A_destroyed_derrick_is_a_neutral_wreck_until_an_engineer_restores_it()
+    {
+        var x = World();
+        var d = ProductionSystem.SpawnStructure(BuildingsCat, x.Units, x.Map, x.Sim.Ids, "neutral-oil-derrick", 20, 20);
+        var ours = Spawn(x, "engineer", 0, 18, 20);
+        x.Step(Capture(x, d, ours));
+        Assert.Equal(0, d.Faction);
+
+        var foe = Spawn(x, "lancer-mbt", 1, 26, 26);
+        x.Step(new AttackCommand(x.Sim.Tick, 1, new[] { foe.Id }, d.Id, false));
+        x.RunUntil(() => d.Building!.Wrecked, 4000);
+        Assert.True(d.Building!.Wrecked);
+        x.Step();
+        Assert.NotNull(x.Units.Find(d.Id));                 // still there, footprint and all
+        Assert.Equal(Factions.Neutral, d.Faction);
+        Assert.Equal(Fix64.One, d.Hp);
+        Assert.Equal(EntityId.None, foe.TargetId);           // nothing left to shoot
+        var c = x.Econ.Credits(0);
+        for (var i = 0; i < 60; i++) x.Step();
+        Assert.Equal(c, x.Econ.Credits(0));                  // a wreck pays nobody
+        Assert.Equal(Fix64.One, d.Hp);                       // and can't be finished off
+
+        var theirs = Spawn(x, "sapper", 1, 22, 20);         // whoever fixes it owns it
+        x.Step(Capture(x, d, theirs));
+        x.RunUntil(() => !d.Building!.Wrecked, 400);
+        Assert.False(d.Building!.Wrecked);
+        Assert.Equal(d.MaxHp, d.Hp);
+        Assert.Equal(1, d.Faction);
+    }
+
+    [Fact]
     public void Only_engineers_capture_and_only_buildings_or_mcvs_of_someone_else()
     {
         var x = World();
