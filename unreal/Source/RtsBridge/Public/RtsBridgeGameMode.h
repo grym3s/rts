@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "RtsSelection.h"
+#include "RtsSimHostBridge.h"
 #include "RtsBridgeGameMode.generated.h"
 
 class URtsSimHostBridge;
@@ -60,6 +61,18 @@ public:
 	bool CanRestart() const;
 	/** Leave the match (ends PIE in the editor, quits a packaged game). */
 	void QuitMatch();
+
+	/** T20 debug overlays (F4, read-only views of sim state). Bits combine. */
+	enum EDebugOverlay : int32 { DebugStats = 1, DebugPaths = 2, DebugTargets = 4, DebugLabels = 8 };
+	void SetDebugMask(int32 Mask);
+	int32 GetDebugMask() const { return DebugMask; }
+	bool IsDebugOn(int32 Bit) const { return (DebugMask & Bit) != 0; }
+	/** Latest host debug row for a unit (null when overlays are off or the unit is gone). */
+	const FRtsDebugUnit* GetDebugUnit(int32 SimUnitId) const { return DebugById.Find(SimUnitId); }
+	/** Smoothed host World.Step time and bridge round trip, in ms; ticks simulated so far. */
+	double GetStepMs() const { return StepMsAvg; }
+	double GetRoundTripMs() const { return RoundTripMsAvg; }
+	int32 GetSimTick() const { return NextTickToSend; }
 
 	bool IsHostAlive() const { return bHostAlive; }
 
@@ -119,6 +132,10 @@ private:
 	static constexpr double MatchScreenFade = 0.4;
 	TArray<int32> Fielded = {0, 0, 0};
 	TArray<int32> Lost = {0, 0, 0};
+	int32 DebugMask = 0;
+	TMap<int32, FRtsDebugUnit> DebugById;
+	double StepMsAvg = 0.0;
+	double RoundTripMsAvg = 0.0;
 	bool bCameraFramedOnPlayer = false;  // start the view on your own units (once)
 	double WaitStart = 0.0;
 	double StepAccum = 0.0; // per match (a function static leaked across PIE sessions)

@@ -383,6 +383,53 @@ public class ProtocolTests
         return last.State!.Hash;
     }
 
+    // ---------- debug overlays (T20) ----------
+
+    [Fact]
+    public void Debug_block_is_absent_unless_the_step_asks_for_it()
+    {
+        var s = new SimHostSession(RepoRoot());
+        s.Handle($$"""{"protocolVersion":1,"kind":"init","scenario":{{TwoRiflemen}}}""");
+        var plain = Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":0,"commands":[]}"""));
+        Assert.Null(plain.State!.Debug);
+        var off = Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":1,"commands":[],"debug":false}"""));
+        Assert.Null(off.State!.Debug);
+    }
+
+    [Fact]
+    public void Debug_block_reports_move_path_attack_target_and_step_time()
+    {
+        // Two riflemen of the same faction (TwoRiflemen: both faction 0): one moves, one idles.
+        var s = new SimHostSession(RepoRoot());
+        s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":16,"height":8,"blocked":[]},"units":[{"unit":"rifleman","at":[1,1]},{"unit":"rifleman","at":[1,6]}]}}""");
+        Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":0,"commands":[{"tick":0,"faction":0,"units":[0],"type":"move","target":[12,1]}]}"""));
+        var r = Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":1,"commands":[],"debug":true}"""));
+        Assert.True(r.Ok, r.Error);
+        var dbg = r.State!.Debug!;
+        Assert.True(dbg.StepMicros >= 0);
+        var mover = dbg.Units.Single(u => u.Id == 0);
+        Assert.Equal("move", mover.State);
+        Assert.Equal(-1, mover.Target);
+        Assert.NotEmpty(mover.Path);
+        Assert.Equal(12.0, mover.Path[^1][0] / 4294967296.0, 1);
+        var idle = dbg.Units.Single(u => u.Id == 1);
+        Assert.Equal("idle", idle.State);
+        Assert.Empty(idle.Path);
+
+        // Same-faction attack is still an order the sim honours: the target id must show.
+        var a = Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":2,"commands":[{"tick":2,"faction":0,"units":[1],"type":"attack","target":0}],"debug":true}"""));
+        var attacker = a.State!.Debug!.Units.Single(u => u.Id == 1);
+        Assert.Equal(0, attacker.Target);
+        Assert.Equal("attack", attacker.State);
+    }
+
+    [Fact]
+    public void Debug_flag_must_be_a_boolean()
+    {
+        var e = Assert.Throws<ProtocolException>(() => Codec.DecodeRequest("""{"protocolVersion":1,"kind":"step","tick":0,"debug":1}"""));
+        Assert.Equal("malformed_request", e.Code);
+    }
+
     // ---------- events and match (T09, T06) ----------
 
     [Fact]

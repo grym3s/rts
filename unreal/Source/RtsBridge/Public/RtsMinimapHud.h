@@ -65,6 +65,9 @@ private:
 	static constexpr int32 MaxTracers = 256; // a 500-unit brawl stays bounded
 	void DrawTracers();
 	void DrawMatchScreen();
+	/** T20 F1-F4 overlays (reads the game mode's debug rows; draws nothing when off). */
+	void DrawDebugOverlays();
+	double FpsAvg = 0.0;
 	void DrawButton(const FBox2D& R, const FString& Label, bool bHover, float Alpha);
 	void DrawCentredText(const FString& Text, UFont* Font, float CentreX, float Y, float Scale, const FLinearColor& Color);
 	/** Terrain image, one texel per cell, built once from the game mode's tile rows. */

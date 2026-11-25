@@ -59,6 +59,28 @@ public:
 	int32 Faction = -1;
 };
 
+/** T20 debug row for one unit (only when the step asked for `debug`). */
+USTRUCT(BlueprintType)
+struct FRtsDebugUnit
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadOnly)
+	int32 Id = INDEX_NONE;
+
+	/** idle, move, attack-move, attack, guard, returning (host names). */
+	UPROPERTY(BlueprintReadOnly)
+	FString State;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Target = INDEX_NONE;
+
+	/** Remaining path waypoints in map coords (cells). */
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FVector2D> Path;
+};
+
 /** Result of one host request/response round trip. */
 USTRUCT(BlueprintType)
 struct FRtsHostReply
@@ -89,6 +111,20 @@ public:
 	/** Events of the step this reply answers (empty for init/reset). */
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FRtsSimEvent> Events;
+
+	/** T20: state.debug was present. StepMicros = host World.Step wall time. */
+	UPROPERTY(BlueprintReadOnly)
+	bool bHasDebug = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	int64 StepMicros = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FRtsDebugUnit> DebugUnits;
+
+	/** Wall time of this request/response round trip, measured by the bridge. */
+	UPROPERTY(BlueprintReadOnly)
+	double RoundTripMs = 0.0;
 
 	/** Error text/code from the host, or a local protocol/host-failure reason. */
 	UPROPERTY(BlueprintReadOnly)

@@ -117,4 +117,44 @@ bool FRtsBridgeRestartTest::RunTest(const FString& Parameters)
 	return bOk;
 }
 
+// T20: a step with "debug":true brings back state.debug (state, target, path, step time);
+// a plain step does not.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRtsBridgeDebugTest, "RtsBridge.Host.Debug",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRtsBridgeDebugTest::RunTest(const FString& Parameters)
+{
+	URtsSimHostBridge* Bridge = NewObject<URtsSimHostBridge>();
+	FString Err;
+	if (!TestTrue(TEXT("start + init"), Bridge->StartAndInit(RoundTripInit, Err)))
+	{
+		AddError(Err);
+		Bridge->Shutdown();
+		return false;
+	}
+	FRtsHostReply R;
+	const bool bPlain = Bridge->Step(TEXT(
+		"{\"protocolVersion\":1,\"kind\":\"step\",\"tick\":0,"
+		"\"commands\":[{\"tick\":0,\"faction\":0,\"type\":\"move\",\"target\":[10,5]}]}"), 5.0, R) && R.bOk;
+	TestTrue(TEXT("plain step accepted"), bPlain);
+	TestFalse(TEXT("plain step has no debug block"), R.bHasDebug);
+	TestTrue(TEXT("round trip is timed"), R.RoundTripMs > 0.0);
+
+	const bool bDebug = Bridge->Step(TEXT(
+		"{\"protocolVersion\":1,\"kind\":\"step\",\"tick\":1,\"commands\":[],\"debug\":true}"), 5.0, R) && R.bOk;
+	TestTrue(TEXT("debug step accepted"), bDebug);
+	TestTrue(TEXT("debug block present"), R.bHasDebug);
+	TestTrue(TEXT("step time reported"), R.StepMicros >= 0);
+	const FRtsDebugUnit* Mover = R.DebugUnits.Num() > 0 ? &R.DebugUnits[0] : nullptr;
+	if (TestNotNull(TEXT("one debug row"), Mover))
+	{
+		TestEqual(TEXT("mover state"), Mover->State, FString(TEXT("move")));
+		TestEqual(TEXT("no target"), Mover->Target, -1);
+		TestTrue(TEXT("path ends at the move target (x=10)"),
+			Mover->Path.Num() > 0 && FMath::IsNearlyEqual(Mover->Path.Last().X, 10.0, 0.6));
+	}
+	Bridge->Shutdown();
+	return bPlain && bDebug;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

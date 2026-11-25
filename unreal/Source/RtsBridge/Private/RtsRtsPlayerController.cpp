@@ -8,6 +8,7 @@
 #include "Engine/GameViewportClient.h"
 #include "UnrealClient.h"
 #include "Components/InputComponent.h"
+#include "GameFramework/PlayerInput.h"
 #include "InputCoreTypes.h"
 #include "RtsSelection.h"
 #include "HAL/PlatformTime.h"
@@ -47,6 +48,10 @@ void ARtsRtsPlayerController::SetupInputComponent()
 	// A and S are camera keys (WASD), so attack-move is F and stop is X.
 	PIC->BindKey(EKeys::F, IE_Pressed, this, &ARtsRtsPlayerController::OnAttackMoveKey);
 	PIC->BindKey(EKeys::X, IE_Pressed, this, &ARtsRtsPlayerController::OnStopKey);
+	// T20: F4 toggles every debug overlay (stats, paths, targets, ids + state). The editor
+	// swallows F1-F3 in PIE (help/view modes) and F8/F11 are taken, so one reliable key.
+	ReleaseEngineDebugFKeys();
+	PIC->BindKey(EKeys::F4, IE_Pressed, this, &ARtsRtsPlayerController::OnDebugKey);
 }
 
 bool ARtsRtsPlayerController::IsShiftDown() const
@@ -102,6 +107,7 @@ void ARtsRtsPlayerController::BeginPlay()
 	if (RtsCamera)
 		SetViewTarget(RtsCamera);
 	// Game-only input mode captures and hides the mouse; an RTS needs a free, visible cursor.
+	ReleaseEngineDebugFKeys(); // PlayerInput may be (re)built after SetupInputComponent
 	FInputModeGameAndUI Mode;
 	Mode.SetHideCursorDuringCapture(false);
 	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::LockInFullscreen);
@@ -331,4 +337,23 @@ bool ARtsRtsPlayerController::HandleMatchScreenClick()
 	default: break;
 	}
 	return true;
+}
+
+void ARtsRtsPlayerController::OnDebugKey()
+{
+	constexpr int32 All = ARtsBridgeGameMode::DebugStats | ARtsBridgeGameMode::DebugPaths
+		| ARtsBridgeGameMode::DebugTargets | ARtsBridgeGameMode::DebugLabels;
+	if (ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>())
+		GM->SetDebugMask(GM->GetDebugMask() == 0 ? All : 0);
+}
+
+void ARtsRtsPlayerController::ReleaseEngineDebugFKeys()
+{
+	if (!PlayerInput)
+		return;
+	// Engine dev binding F4 = "viewmode lit_detaillighting" fires next to our overlay toggle
+	// and greys out the view, so remove it for this player only.
+	const int32 Removed = PlayerInput->DebugExecBindings.RemoveAll([](const FKeyBind& B) { return B.Key == EKeys::F4; });
+	if (Removed > 0)
+		UE_LOG(LogTemp, Display, TEXT("RTS_INPUT: released %d engine debug F-key bindings for the overlays"), Removed);
 }

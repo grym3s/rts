@@ -134,8 +134,10 @@ void ARtsBridgeGameMode::Tick(float DeltaSeconds)
 			Commands = FString::Printf(TEXT("[%s]"), *Joined);
 			PendingCommandBodies.Reset();
 		}
+		// T20: ask for the debug block only while an overlay is on (it costs host time).
 		const FString Step = FString::Printf(
-			TEXT("{\"protocolVersion\":1,\"kind\":\"step\",\"tick\":%d,\"commands\":%s}"), NextTickToSend, *Commands);
+			TEXT("{\"protocolVersion\":1,\"kind\":\"step\",\"tick\":%d,\"commands\":%s%s}"), NextTickToSend, *Commands,
+			DebugMask != 0 ? TEXT(",\"debug\":true") : TEXT(""));
 		FRtsHostReply Reply;
 		if (!Bridge->Step(Step, 5.0, Reply))
 		{
@@ -149,6 +151,14 @@ void ARtsBridgeGameMode::Tick(float DeltaSeconds)
 		}
 		NextTickToSend++;
 		SyncActorsFromReply(Reply);
+		RoundTripMsAvg = FMath::Lerp(RoundTripMsAvg, Reply.RoundTripMs, 0.1);
+		if (Reply.bHasDebug)
+		{
+			StepMsAvg = FMath::Lerp(StepMsAvg, Reply.StepMicros / 1000.0, 0.1);
+			DebugById.Reset();
+			for (FRtsDebugUnit& D : Reply.DebugUnits)
+				DebugById.Add(D.Id, MoveTemp(D));
+		}
 		if (Reply.bMatchOver && !bMatchReported)
 		{
 			// T06 result -> T19 screen (shown by the HUD after MatchScreenDelay).
@@ -492,4 +502,12 @@ bool ARtsBridgeGameMode::CanRestart() const
 void ARtsBridgeGameMode::QuitMatch()
 {
 	UKismetSystemLibrary::QuitGame(this, UGameplayStatics::GetPlayerController(this, 0), EQuitPreference::Quit, false);
+}
+
+void ARtsBridgeGameMode::SetDebugMask(int32 Mask)
+{
+	DebugMask = Mask;
+	if (DebugMask == 0)
+		DebugById.Reset(); // overlays off: stop showing stale rows
+	UE_LOG(LogTemp, Display, TEXT("RTS_DEBUG_OVERLAYS: mask=%d"), DebugMask);
 }

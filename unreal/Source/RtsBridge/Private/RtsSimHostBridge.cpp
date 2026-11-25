@@ -113,6 +113,7 @@ bool URtsSimHostBridge::StartAndInit(const FString& InitRequestJson, FString& Ou
 bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, FRtsHostReply& OutReply)
 {
 	OutReply = FRtsHostReply();
+	const double SentAt = FPlatformTime::Seconds();
 	if (!bPipeOpen)
 	{
 		OutReply.Error = TEXT("host bridge not started");
@@ -138,6 +139,7 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 		bPipeOpen = false;
 		return false;
 	}
+	OutReply.RoundTripMs = (FPlatformTime::Seconds() - SentAt) * 1000.0;
 
 	TSharedPtr<FJsonObject> Root;
 	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseLine);
@@ -183,6 +185,35 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 		{
 			(*MatchObj)->TryGetBoolField(TEXT("over"), OutReply.bMatchOver);
 			(*MatchObj)->TryGetNumberField(TEXT("winner"), OutReply.MatchWinner);
+		}
+		const TSharedPtr<FJsonObject>* DebugObj = nullptr;
+		if ((*StateObj)->TryGetObjectField(TEXT("debug"), DebugObj))
+		{
+			OutReply.bHasDebug = true;
+			double Micros = 0.0;
+			(*DebugObj)->TryGetNumberField(TEXT("stepMicros"), Micros);
+			OutReply.StepMicros = static_cast<int64>(Micros);
+			const TArray<TSharedPtr<FJsonValue>>* DUnits = nullptr;
+			if ((*DebugObj)->TryGetArrayField(TEXT("units"), DUnits))
+				for (const TSharedPtr<FJsonValue>& DV : *DUnits)
+				{
+					const TSharedPtr<FJsonObject> DO = DV->AsObject();
+					if (!DO.IsValid())
+						continue;
+					FRtsDebugUnit D;
+					DO->TryGetNumberField(TEXT("id"), D.Id);
+					DO->TryGetStringField(TEXT("state"), D.State);
+					DO->TryGetNumberField(TEXT("target"), D.Target);
+					const TArray<TSharedPtr<FJsonValue>>* Pts = nullptr;
+					if (DO->TryGetArrayField(TEXT("path"), Pts))
+						for (const TSharedPtr<FJsonValue>& PV : *Pts)
+						{
+							const TArray<TSharedPtr<FJsonValue>>* XY = nullptr;
+							if (PV->TryGetArray(XY) && XY->Num() == 2)
+								D.Path.Add(FVector2D((*XY)[0]->AsNumber() / 4294967296.0, (*XY)[1]->AsNumber() / 4294967296.0));
+						}
+					OutReply.DebugUnits.Add(MoveTemp(D));
+				}
 		}
 		const TArray<TSharedPtr<FJsonValue>>* UnitsArr = nullptr;
 		if ((*StateObj)->TryGetArrayField(TEXT("units"), UnitsArr))

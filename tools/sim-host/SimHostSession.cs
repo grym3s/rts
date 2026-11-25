@@ -112,14 +112,19 @@ public sealed class SimHostSession(string repoRoot)
                 return Codec.Encode(HostResponse.Fail("command_tick_mismatch",
                     $"command stamped tick {c.Tick} in step {want}"));
 
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         _world.World.Step(commands);
+        var stepMicros = (long)sw.Elapsed.TotalMicroseconds;
         var events = _world.CaptureEvents(); // before the next Step flushes them
+        var state = _world.Snapshot();
+        if (req.Debug)
+            state = state with { Debug = _world.DebugBlock(stepMicros) };
 
         return Codec.Encode(new HostResponse
         {
             Ok = true,
             Tick = _world.World.Tick,
-            State = _world.Snapshot(),
+            State = state,
             Events = events,
         });
     }

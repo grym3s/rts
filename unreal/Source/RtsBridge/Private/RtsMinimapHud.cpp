@@ -178,6 +178,7 @@ void ARtsMinimapHud::DrawHUD()
 	const FVector2D Vp(Canvas->SizeX, Canvas->SizeY);
 	DrawTracers();
 	DrawHealthBars();
+	DrawDebugOverlays();
 
 	// Box-select drag rectangle (screen space, under the minimap).
 	if (const ARtsRtsPlayerController* RPC = Cast<ARtsRtsPlayerController>(PlayerOwner))
@@ -479,4 +480,99 @@ void ARtsMinimapHud::DrawMatchScreen()
 	if (L.PlayAgain.bIsValid)
 		DrawButton(L.PlayAgain, TEXT("Play again"), L.PlayAgain.IsInside(Mouse), A);
 	DrawButton(L.Quit, TEXT("Quit"), L.Quit.IsInside(Mouse), A);
+}
+
+void ARtsMinimapHud::DrawDebugOverlays()
+{
+	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (!GM || !PlayerOwner || !Canvas)
+		return;
+	const float Dt = GetWorld()->GetDeltaSeconds();
+	if (Dt > 0.0f)
+		FpsAvg = FpsAvg <= 0.0 ? 1.0 / Dt : FMath::Lerp(FpsAvg, 1.0 / Dt, 0.05);
+
+	// Paths and targets: the selection, or everyone when nothing is selected.
+	const TSet<int32>& Sel = GM->GetSelectedIds();
+	auto Shown = [&Sel](int32 Id) { return Sel.Num() == 0 || Sel.Contains(Id); };
+	auto Proj = [this](const FVector& W, FVector2D& Out) { return PlayerOwner->ProjectWorldLocationToScreen(W, Out); };
+	UFont* Small = GEngine ? GEngine->GetSmallFont() : nullptr;
+
+	int32 PerFaction[3] = {0, 0, 0};
+	for (const ARtsSimUnitActor* U : GM->GetUnitActors())
+	{
+		if (!U)
+			continue;
+		PerFaction[FMath::Clamp(U->GetFaction(), 0, 2)]++;
+		const FRtsDebugUnit* D = GM->GetDebugUnit(U->GetSimUnitId());
+		if (!D)
+			continue;
+		const FVector At = U->GetActorLocation();
+
+		if (GM->IsDebugOn(ARtsBridgeGameMode::DebugPaths) && Shown(D->Id) && D->Path.Num() > 0)
+		{
+			const FLinearColor PathCol(0.2f, 0.85f, 1.0f, 0.85f);
+			FVector2D Prev;
+			bool bPrev = Proj(FVector(At.X, At.Y, 5.0), Prev);
+			for (const FVector2D& P : D->Path)
+			{
+				FVector2D S;
+				const bool bS = Proj(FVector(P.X * ARtsBridgeGameMode::CellUU, P.Y * ARtsBridgeGameMode::CellUU, 5.0), S);
+				if (bS && bPrev)
+					DrawLine(Prev.X, Prev.Y, S.X, S.Y, PathCol, 1.5f);
+				if (bS)
+					DrawRect(PathCol, S.X - 2.0f, S.Y - 2.0f, 4.0f, 4.0f);
+				Prev = S;
+				bPrev = bS;
+			}
+		}
+
+		if (GM->IsDebugOn(ARtsBridgeGameMode::DebugTargets) && Shown(D->Id) && D->Target != INDEX_NONE)
+			if (const ARtsSimUnitActor* T = GM->FindUnitActor(D->Target))
+			{
+				FVector2D A, B;
+				if (Proj(At, A) && Proj(T->GetActorLocation(), B))
+				{
+					DrawLine(A.X, A.Y, B.X, B.Y, FLinearColor(1.0f, 0.35f, 0.2f, 0.9f), 1.5f);
+					DrawRect(FLinearColor(1.0f, 0.35f, 0.2f, 0.9f), B.X - 3.0f, B.Y - 3.0f, 6.0f, 6.0f);
+				}
+			}
+
+		if (GM->IsDebugOn(ARtsBridgeGameMode::DebugLabels))
+		{
+			FVector2D S;
+			if (Proj(At - FVector(0.0, 0.0, 45.0), S))
+			{
+				const FString Label = FString::Printf(TEXT("#%d %s"), D->Id, *D->State);
+				float W = 0.0f, H = 0.0f;
+				GetTextSize(Label, W, H, Small, 1.0f);
+				DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.55f), S.X - W * 0.5f - 2.0f, S.Y, W + 4.0f, H);
+				DrawText(Label, FLinearColor::White, S.X - W * 0.5f, S.Y, Small, 1.0f);
+			}
+		}
+	}
+
+	if (GM->IsDebugOn(ARtsBridgeGameMode::DebugStats))
+	{
+		const TArray<FString> Lines = {
+			FString::Printf(TEXT("tick %d   (20 t/s, sim time %.1f s)"), GM->GetSimTick(), GM->GetSimTick() / 20.0),
+			FString::Printf(TEXT("sim step %.3f ms   round trip %.3f ms"), GM->GetStepMs(), GM->GetRoundTripMs()),
+			FString::Printf(TEXT("units %d   (yours %d, enemy %d)"), GM->GetUnitActors().Num(), PerFaction[0], PerFaction[1] + PerFaction[2]),
+			FString::Printf(TEXT("%.0f fps   selected %d"), FpsAvg, Sel.Num()),
+			TEXT("F4 debug overlays on/off"),
+		};
+		float Y = 12.0f;
+		const float X = 12.0f;
+		float MaxW = 0.0f, LineH = 0.0f;
+		for (const FString& L : Lines)
+		{
+			float W = 0.0f, H = 0.0f;
+			GetTextSize(L, W, H, Small, 1.0f);
+			MaxW = FMath::Max(MaxW, W);
+			LineH = FMath::Max(LineH, H);
+		}
+		DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.6f), X - 6.0f, Y - 4.0f, MaxW + 12.0f, LineH * Lines.Num() + 8.0f);
+		for (int32 i = 0; i < Lines.Num(); ++i)
+			DrawText(Lines[i], i == Lines.Num() - 1 ? FLinearColor(0.7f, 0.7f, 0.7f) : FLinearColor(0.4f, 1.0f, 0.5f),
+				X, Y + LineH * i, Small, 1.0f);
+	}
 }

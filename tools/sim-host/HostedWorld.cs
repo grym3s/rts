@@ -21,6 +21,8 @@ public sealed class HostedWorld
     public required Rts.Sim.Economy.EconomyStore Econ { get; init; }
     public required GameMap Map { get; init; }
     public required Rts.Sim.Match.MatchState Match { get; init; }
+    /// <summary>Live move orders (read-only use: debug paths). Owned by the sim systems.</summary>
+    public required Dictionary<EntityId, MoveOrder> Orders { get; init; }
 
     /// <summary>Roster at load time. The scenario runner resolves a command with no explicit
     /// `units` against THIS list (computed once at scenario load), not the live roster —
@@ -94,7 +96,7 @@ public sealed class HostedWorld
         world.HashMixers.Add(h => Rts.Sim.Production.ProductionStore.Hash(units, h));
         world.HashMixers.Add(power.Hash);
 
-        return new HostedWorld { World = world, Units = units, Econ = econ, Map = map, Match = match, _initialRoster = roster };
+        return new HostedWorld { World = world, Units = units, Econ = econ, Map = map, Match = match, Orders = orders, _initialRoster = roster };
     }
 
     /// <summary>Decode scenario-format command objects (tick-stamped). `allUnits` fills the
@@ -155,6 +157,28 @@ public sealed class HostedWorld
 
     /// <summary>Read-only snapshot of post-step state. Events must be captured BEFORE the next
     /// Step (SimWorld flushes the buffer at step start).</summary>
+    /// <summary>T20: per-unit state, target and remaining path for the debug overlays.
+    /// Reads sim state only; State names mirror the guard/order flags in sim/combat and sim/orders.</summary>
+    public HostDebug DebugBlock(long stepMicros)
+    {
+        var list = new List<HostDebugUnit>(Units.Units.Count);
+        foreach (var u in Units.Units)
+        {
+            var path = new List<long[]>();
+            if (Orders.TryGetValue(u.Id, out var o))
+                for (var i = Math.Max(0, o.Waypoint); i < o.Path.Count && path.Count < HostDebug.MaxPathPoints; i++)
+                    path.Add([o.Path[i].X.Raw, o.Path[i].Y.Raw]);
+            var state = u.Returning ? "returning"
+                : u.Guarding ? "guard"
+                : u.AttackMoving ? "attack-move"
+                : u.TargetId != EntityId.None ? "attack"
+                : o is not null ? "move"
+                : "idle";
+            list.Add(new HostDebugUnit(u.Id.Value, state, u.TargetId == EntityId.None ? -1 : u.TargetId.Value, path));
+        }
+        return new HostDebug(stepMicros, list);
+    }
+
     public HostState Snapshot()
     {
         var units = new List<HostUnit>(Units.Units.Count);

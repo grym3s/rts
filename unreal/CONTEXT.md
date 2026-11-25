@@ -58,7 +58,13 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   VICTORY/DEFEAT/DRAW, match time from the end tick, units lost/fielded per side from
   snapshots + death events, and Play again (standalone only, `CanRestart`) / Quit buttons;
   layout + hit test are static `MatchScreenLayout`/`MatchScreenHit`, test `RtsBridge.UI.MatchScreen`;
-  while up, the controller routes left clicks to it and the game mode refuses orders); canvas-drawn minimap,
+  while up, the controller routes left clicks to it and the game mode refuses orders);
+  debug overlays (T20, F4 toggles all of them via `SetDebugMask`; in PIE the editor swallows
+  F1-F3 and F8/F11 are taken, and the engine's own F4 view-mode binding is removed per
+  player): stats panel (tick, smoothed host step ms and bridge round trip ms, units per
+  side, fps), remaining paths and target lines (the selection, or all units when nothing is
+  selected), `#id state` labels. The game mode adds `"debug":true` to steps only while
+  overlays are on; test `RtsBridge.Host.Debug`; canvas-drawn minimap,
   bottom-left: terrain (transient texture, one texel per cell, built once from the
   tile rows), faction-coloured unit dots (selected = white outline), camera
   footprint (viewport corners deprojected to Z=0). `MinimapToWorld` for clicks. Map

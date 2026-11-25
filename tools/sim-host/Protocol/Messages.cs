@@ -20,6 +20,9 @@ public sealed record HostRequest
     /// and the commands stamped with that tick. Absent commands = empty list.</summary>
     public int? Tick { get; init; }
     public JsonElement? Commands { get; init; }
+
+    /// <summary>step: true = include `state.debug` (T20 overlays). Opt-in, so normal play pays nothing.</summary>
+    public bool Debug { get; init; }
 }
 
 /// <summary>Response envelope. ok=true carries the completed tick, read-only state snapshot and
@@ -52,6 +55,8 @@ public sealed record HostState
     public IReadOnlyList<HostFaction>? Factions { get; init; }
     /// <summary>Match outcome (T06): over, winner faction (-1 = draw or not over), end tick (-1 while running).</summary>
     public HostMatch? Match { get; init; }
+    /// <summary>T20 debug block, present only when the step asked for it.</summary>
+    public HostDebug? Debug { get; init; }
 }
 
 /// <summary>Serializes a ulong as an exact lowercase 16-hex-char JSON string; parses the same
@@ -80,6 +85,16 @@ public sealed record HostUnit(
 public sealed record HostFaction(int Faction, int Credits);
 
 public sealed record HostMatch(bool Over, int Winner, int EndTick);
+
+/// <summary>T20 overlays. StepMicros = wall time of the World.Step that produced this snapshot.
+/// Per unit: State (idle, move, attack-move, attack, guard, returning), Target (-1 = none) and the
+/// remaining path as [x, y] Q32.32 raw pairs (capped at MaxPathPoints). Presentation only; never hashed.</summary>
+public sealed record HostDebug(long StepMicros, IReadOnlyList<HostDebugUnit> Units)
+{
+    public const int MaxPathPoints = 32;
+}
+
+public sealed record HostDebugUnit(int Id, string State, int Target, IReadOnlyList<long[]> Path);
 
 /// <summary>One sim event (T09). kind: "shot" (subject hit target for amount, Q32.32 raw),
 /// "death" (subject died, target = killer, faction = dead unit's), "match_end" (faction = winner,
@@ -120,6 +135,7 @@ public static class Codec
             Tick = kind == "step" ? GetInt(root, "tick") : null,
             Commands = kind == "step" && root.TryGetProperty("commands", out var cmds) && cmds.ValueKind == JsonValueKind.Array
                 ? cmds.Clone() : null,
+            Debug = kind == "step" && root.TryGetProperty("debug", out var dbg) && GetBool(dbg, "debug"),
         };
 
         if (kind is not ("init" or "step" or "reset"))
@@ -156,10 +172,17 @@ public static class Codec
     }
 
     private static readonly string[] allowedInit = ["protocolVersion", "kind", "scenario"];
-    private static readonly string[] allowedStep = ["protocolVersion", "kind", "tick", "commands"];
+    private static readonly string[] allowedStep = ["protocolVersion", "kind", "tick", "commands", "debug"];
     private static readonly string[] allowedReset = ["protocolVersion", "kind"];
 
     public static string Encode(HostResponse resp) => JsonSerializer.Serialize(resp, WriteOptions);
+
+    private static bool GetBool(JsonElement el, string name) => el.ValueKind switch
+    {
+        JsonValueKind.True => true,
+        JsonValueKind.False => false,
+        _ => throw new ProtocolException("malformed_request", $"'{name}' must be a boolean"),
+    };
 
     private static int GetInt(JsonElement o, string name)
     {
