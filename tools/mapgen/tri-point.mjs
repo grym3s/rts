@@ -169,6 +169,32 @@ console.table(report);
 const unreachable = report.some(r => Object.values(r).some(v => String(v).includes('UNREACHABLE')));
 if (unreachable) { console.error('mapgen: a required route is unreachable'); process.exit(1); }
 
+// ---- resource fields (T34) -----------------------------------------------------------------
+// One field = a plus of 5 ore cells, FIELD_POOL credits split evenly (canon: 25,000 per field,
+// docs/factions/economy.md). Main: behind the base, away from the ramp, inside the plateau.
+// Natural: the natural's centre. Contested: each Seam, pushed outward from the map centre so the
+// Seam's centre stays free for its radar. Veins sit at cell centres (sim: cell = floor).
+const FIELD_POOL = 25000;
+const unit = (a, b) => { const d = dist(a, b); return { x: (b.x - a.x) / d, y: (b.y - a.y) / d }; };
+function field(kind, owner, centre) {
+  const c = cell(centre);
+  const cells = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => ({ x: c.x + dx, y: c.y + dy }));
+  for (const v of cells)
+    if (tiles[v.y]?.[v.x] !== T.LAND) { console.error(`mapgen: ${kind} field ore off land at ${v.x},${v.y}`); process.exit(1); }
+  const pool = FIELD_POOL / cells.length;
+  return { kind, ...owner, veins: cells.map(v => ({ at: [v.x + 0.5, v.y + 0.5], pool })) };
+}
+const fields = [];
+for (const n of nodes) {
+  const back = unit(n.natural, n.main); // natural -> main, continued behind the main
+  fields.push(field('main', { player: n.id }, { x: n.main.x + back.x * 5, y: n.main.y + back.y * 5 }));
+  fields.push(field('natural', { player: n.id }, n.natural));
+}
+for (const s of seams) {
+  const out = unit(C, s.at);
+  fields.push(field('contested', { between: s.between }, { x: s.at.x + out.x * 3.5, y: s.at.y + out.y * 3.5 }));
+}
+
 // ---- map file ----------------------------------------------------------------------------
 const r1 = v => Math.round(v * 10) / 10;
 const pt = p => [r1(p.x), r1(p.y)];
@@ -184,6 +210,7 @@ for (const s of seams) {
   features.push({ type: 'radar', between: s.between, at: pt(s.at), capturedBy: 'engineer' });
 }
 features.push({ type: 'rig', capture: 'engineer-or-hold', at: pt(C) });
+for (const fl of fields) features.push({ type: 'field', ...fl });
 const map = {
   schemaVersion: 1,
   id: 'tri-point',
@@ -247,6 +274,7 @@ const scenario = {
   seed: 3,
   ticks: 2400,
   map: { width: W, height: H, blocked: rects },
+  veins: fields.flatMap(fl => fl.veins),
   units: [...formation(coalition, 'rifleman', 'lancer-mbt'), ...formation(hegemony, 'conscript', 'bulwark')],
   commands: [
     { tick: 1, faction: 0, type: 'attack-move', target: pt(shared.at) },
@@ -254,7 +282,7 @@ const scenario = {
   ],
 };
 writeFileSync(join(repo, 'content', 'scenarios', 'tri-point-30.json'), JSON.stringify(scenario, null, 1) + '\n');
-console.log(`tri-point: ${W}x${H}, ${rects.length} blocked rects, ${scenario.units.length} units`);
+console.log(`tri-point: ${W}x${H}, ${rects.length} blocked rects, ${scenario.units.length} units, ${fields.length} fields`);
 
 // ---- preview ------------------------------------------------------------------------------
 if (previewPath) {
@@ -267,6 +295,8 @@ if (previewPath) {
   }
   const dot = (p, c, r = 0.6) => `<circle cx="${p[0]}" cy="${p[1]}" r="${r}" fill="${c}"/>`;
   for (const u of scenario.units) svg += dot(u.at, scenario.units.indexOf(u) < 30 ? '#e04030' : '#3070e0', 0.45);
+  for (const fl of fields) for (const v of fl.veins)
+    svg += `<rect x="${v.at[0] - 0.5}" y="${v.at[1] - 0.5}" width="1" height="1" fill="#d9b21c"/>`;
   for (const f of features) if (f.type === 'radar') svg += dot(f.at, '#ffd24a', 1.2);
   svg += dot(pt(C), '#ffffff', 1.0);
   svg += '</svg>';

@@ -331,7 +331,7 @@ public class ProtocolTests
     [Theory]
     [InlineData("chokepoint-30.json", "1727e6d2adb5efb8")]
     [InlineData("skirmish-10v10.json", "e97bc24d4f7fd6c3")] // re-pinned for T05 guard (idle units hold, chase, return): 0fbba65f760574ce -> e97bc24d4f7fd6c3
-    [InlineData("tri-point-30.json", "5526cd76fdce4754")] // re-pinned for T05 guard (idle units hold, chase, return): 7e1eb94ae7d983f3 -> 5526cd76fdce4754
+    [InlineData("tri-point-30.json", "c209ac08ca9974f4")] // re-pinned for T34 fields: 5526cd76fdce4754 -> c209ac08ca9974f4 (ore pools hashed; same battle)
     [InlineData("counters-6v4.json", "39ac951e73e99076")] // re-pinned for T05 guard (idle units hold, chase, return): a418be859c7550c7 -> 39ac951e73e99076
     [InlineData("guard-hold.json", "e7a820c12422dad2")]
     [InlineData("match-end.json", "3c75053acd9d4698")]
@@ -381,6 +381,37 @@ public class ProtocolTests
 
         Assert.Equal(ticks, last.Tick);
         return last.State!.Hash;
+    }
+
+    // ---------- Tri-Point resource fields (T34) ----------
+
+    [Fact]
+    public void Tri_point_ships_nine_fields_of_ore_on_walkable_ground()
+    {
+        var path = Path.Combine(RepoRoot(), "content", "scenarios", "tri-point-30.json");
+        var doc = JsonDocument.Parse(File.ReadAllText(path)).RootElement;
+        var scen = new Dictionary<string, JsonElement>();
+        foreach (var p in doc.EnumerateObject())
+            if (p.Name is not ("ticks" or "commands" or "assert")) scen[p.Name] = p.Value.Clone();
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle(JsonSerializer.Serialize(new { protocolVersion = 1, kind = "init", scenario = scen })));
+        Assert.True(init.Ok, init.Error);
+
+        var veins = init.State!.Veins!;
+        Assert.Equal(9 * 5, veins.Count);
+        Assert.Equal(9 * 25_000, veins.Sum(v => v.Pool));
+
+        var map = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoRoot(), "content", "maps", "tri-point.json"))).RootElement;
+        var rows = map.GetProperty("rows").EnumerateArray().Select(r => r.GetString()!).ToArray();
+        foreach (var v in veins)
+        {
+            var (cx, cy) = ((int)(v.X >> 32), (int)(v.Y >> 32));
+            Assert.Equal('.', rows[cy][cx]);
+        }
+        var fields = map.GetProperty("features").EnumerateArray().Where(f => f.GetProperty("type").GetString() == "field").ToList();
+        Assert.Equal(3, fields.Count(f => f.GetProperty("kind").GetString() == "main"));
+        Assert.Equal(3, fields.Count(f => f.GetProperty("kind").GetString() == "natural"));
+        Assert.Equal(3, fields.Count(f => f.GetProperty("kind").GetString() == "contested"));
     }
 
     // ---------- MCV deploy (T32) ----------

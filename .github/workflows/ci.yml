@@ -19,7 +19,7 @@ jobs:
       - run: dotnet run --project tools/scenario/Scenario.csproj --no-build -- content/scenarios/smoke.json
       - run: dotnet run --project tools/scenario/Scenario.csproj --no-build -- content/scenarios/chokepoint-30.json --expect 1727e6d2adb5efb8
       - run: dotnet run --project tools/scenario/Scenario.csproj --no-build -- content/scenarios/skirmish-10v10.json --expect e97bc24d4f7fd6c3  # re-pinned for T05 guard (idle units hold, chase, return): 0fbba65f760574ce -> e97bc24d4f7fd6c3
-      - run: dotnet run --project tools/scenario/Scenario.csproj --no-build -- content/scenarios/tri-point-30.json --expect 5526cd76fdce4754  # re-pinned for T05 guard (idle units hold, chase, return): 7e1eb94ae7d983f3 -> 5526cd76fdce4754
+      - run: dotnet run --project tools/scenario/Scenario.csproj --no-build -- content/scenarios/tri-point-30.json --expect c209ac08ca9974f4  # re-pinned for T34 resource fields: 5526cd76fdce4754 -> c209ac08ca9974f4 (9 fields of ore now in the economy hash; same battle, 17 survivors)
       - run: dotnet run --project tools/scenario/Scenario.csproj --no-build -- content/scenarios/counters-6v4.json --expect 39ac951e73e99076  # re-pinned for T05 guard (idle units hold, chase, return): a418be859c7550c7 -> 39ac951e73e99076
       - run: dotnet run --project tools/scenario/Scenario.csproj --no-build -- content/scenarios/guard-hold.json --expect e7a820c12422dad2
       - run: dotnet run --project tools/scenario/Scenario.csproj --no-build -- content/scenarios/match-end.json --expect 3c75053acd9d4698
