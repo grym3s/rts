@@ -610,10 +610,12 @@ void ARtsBridgeGameMode::RebuildBuildOptions(bool bHaveBase)
 		return;
 	for (const FRtsBuildingType& B : BuildingTypes)
 	{
-		// Yards come from the MCV; naval/offshore need water the sim does not have yet (T25).
-		if (B.Faction != 0 || B.Category == TEXT("construction-yard") || B.Category == TEXT("naval") || B.Category == TEXT("offshore"))
+		// Yards come from the MCV. Naval/offshore are listed but greyed: the sim has no water
+		// placement yet (T25), and hiding them left their dependants with an unmeetable prereq.
+		if (B.Faction != 0 || B.Category == TEXT("construction-yard"))
 			continue;
 		FBuildOption O;
+		O.bNeedsWater = B.Category == TEXT("naval") || B.Category == TEXT("offshore");
 		O.BuildingId = B.Id;
 		O.Name = B.Name.IsEmpty() ? B.Id : B.Name;
 		O.Cost = B.Cost;
@@ -628,6 +630,8 @@ void ARtsBridgeGameMode::RebuildBuildOptions(bool bHaveBase)
 	// Buildable first, then by cost (cheap basics on top), then name: stable order.
 	BuildOptions.StableSort([](const FBuildOption& A, const FBuildOption& B)
 	{
+		if (A.bNeedsWater != B.bNeedsWater)
+			return !A.bNeedsWater; // water buildings last
 		if (A.bPrereqOk != B.bPrereqOk)
 			return A.bPrereqOk;
 		if (A.Cost != B.Cost)

@@ -108,7 +108,8 @@ public:
 		bool bAffordable = false;
 		bool bPowerWarn = false;
 		FString PrereqName; // what is missing, when !bPrereqOk
-		bool IsEnabled() const { return bPrereqOk && bAffordable; }
+		bool bNeedsWater = false; // naval/offshore: shown greyed until the sim can place on water (T25)
+		bool IsEnabled() const { return bPrereqOk && bAffordable && !bNeedsWater; }
 	};
 	/** Faction-0 build options (refreshed when your buildings change); empty without a base. */
 	const TArray<FBuildOption>& GetBuildOptions();

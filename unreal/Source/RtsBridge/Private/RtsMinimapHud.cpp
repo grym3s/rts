@@ -774,7 +774,12 @@ void ARtsMinimapHud::DrawBuildMenu()
 			R.Max.X - 6.0f - CW, R.Min.Y + 3.0f, Font, 1.0f);
 		FString Sub;
 		FLinearColor SubCol(0.7f, 0.7f, 0.7f);
-		if (!O.bPrereqOk)
+		if (O.bNeedsWater)
+		{
+			Sub = TEXT("needs water - coming with T25");
+			SubCol = FLinearColor(0.45f, 0.7f, 1.0f);
+		}
+		else if (!O.bPrereqOk)
 		{
 			Sub = O.PrereqName.IsEmpty() ? TEXT("needs a prerequisite") : FString::Printf(TEXT("needs %s"), *O.PrereqName);
 			SubCol = FLinearColor(0.8f, 0.55f, 0.35f);
