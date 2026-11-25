@@ -41,6 +41,9 @@ bool FRtsDomainTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("rifleman walks"), Init.Units[0].Domain, FString(TEXT("land")));
 		TestEqual(TEXT("cutter sails"), Init.Units[1].Domain, FString(TEXT("naval")));
 		TestEqual(TEXT("falcon flies"), Init.Units[2].Domain, FString(TEXT("air")));
+		TestEqual(TEXT("T29 type id"), Init.Units[0].Type, FString(TEXT("rifleman")));
+		TestEqual(TEXT("rifleman can't phase"), Init.Units[0].PhaseTicks, -1);
+		TestFalse(TEXT("nobody marked at start"), Init.Units[0].bMarked);
 	}
 	const FRtsUnitType* Cutter = Init.UnitTypes.FindByPredicate([](const FRtsUnitType& U) { return U.Id == TEXT("cutter"); });
 	if (TestNotNull(TEXT("catalog has the cutter"), Cutter))

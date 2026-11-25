@@ -49,7 +49,7 @@ A unit file has three parts, and the split is the point: **identity is canon** (
 
 ### `verbs` — optional flags (owned-verb applicability, `owned-verbs.md`)
 
-Present only where canon says the unit has it: `marksOnHit` (Coalition — a weapon that marks the struck target), `marksAura` (Coalition — a radius Marking source: Comms Rig, Spotter Drone), `conscriptable` (Hegemony infantry), `phases` (Ascendant phase-capable, per `owned-verbs.md`). Post-slice behaviour; authored now because which unit carries the verb *is* canon.
+Present only where canon says the unit has it: `marksOnHit` (Coalition — a weapon that marks the struck target), `marksAura` (Coalition — a radius Marking source: Comms Rig, Spotter Drone), `conscriptable` (Hegemony infantry), `phases` (Ascendant phase-capable, per `owned-verbs.md`). T29 live: aura sources also carry `markRadius` (cells; canon Comms Rig 8, Spotter Drone 7), and the Sapper `conscriptEffect: "detonate"`. Buildings may carry `verbs` too: `coalition-sensor-command` `{marksAura, markRadius: 14}` (and it gates the aura network), `hegemony-conscription-hall` `{conscriptionHall: true}` (the 50% refund zone).
 
 ## `buildings/` schema (v1)
 

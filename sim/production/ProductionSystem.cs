@@ -23,7 +23,7 @@ public static class ProductionSystem
         EntityIdAllocator ids,
         IReadOnlyList<Command> due,
         TryOp spend, TryOp refund, PowerStore? power, int tick,
-        Action<EntityId, FixVec2>? rallyTo = null)
+        Action<EntityId, FixVec2>? rallyTo = null, SimWorld? events = null)
     {
         // T31: destroyed buildings were despawned last tick (cleanup); free their footprints
         // before anything places or paths this tick.
@@ -37,6 +37,7 @@ public static class ProductionSystem
                 case DeployCommand d: Deploy(buildings, units, map, ids, d); break;
                 case CancelProductionCommand x: Cancel(unitsCatalog, units, x, refund); break;
                 case RallyCommand r: Rally(units, r); break;
+                case ConscriptCommand k: Conscript(buildings, unitsCatalog, units, k, refund, events); break;
             }
 
         // progress: snapshot the roster — completions append units, must not iterate live
@@ -147,7 +148,8 @@ public static class ProductionSystem
     {
         var centre = new FixVec2(Fix64.FromInt(ox) + Fix64.Ratio(bp.FootprintW, 2), Fix64.FromInt(oy) + Fix64.Ratio(bp.FootprintH, 2));
         var b = units.Spawn(ids.Next(), centre, Fix64.Zero, UnitCatalog.DefaultRadius,
-            new UnitProfile(faction, bp.Hp, Fix64.Zero, Fix64.Zero, Fix64.Zero, 0, ArmorClass.Structure, DamageType.SmallArms));
+            new UnitProfile(faction, bp.Hp, Fix64.Zero, Fix64.Zero, Fix64.Zero, 0, ArmorClass.Structure, DamageType.SmallArms,
+                TypeId: bp.Id, MarkRadius: bp.MarkRadius));
         b.Building = new BuildingState { Id = bp.Id, ConstructionRemaining = bp.BuildTicks };
         map.OccupyStructure(b.Id.Value, ox, oy, bp.FootprintW, bp.FootprintH);
     }
@@ -195,6 +197,38 @@ public static class ProductionSystem
         if (!FootprintClear(units, map, ox, oy, bp.FootprintW, bp.FootprintH, mcv.Id)) return;
         mcv.Hp = Fix64.Zero; // gone at cleanup (step 8); combat skips it this tick
         SpawnBuilding(units, map, ids, bp, d.Faction, ox, oy);
+    }
+
+    /// <summary>T29 Conscription: each valid unit (own, alive, conscriptable, catalog-spawned)
+    /// leaves the roster at cleanup. A Sapper detonates (Explosive, radius 3, through the matrix,
+    /// enemies only); everyone else refunds floor(cost × 50%) within 10 of the faction's own
+    /// finished Conscription Hall, else 30%.</summary>
+    private static void Conscript(BuildingCatalog buildings, UnitCatalog unitsCatalog, UnitStore units,
+        ConscriptCommand k, TryOp refund, SimWorld? events)
+    {
+        foreach (var id in k.Units)
+        {
+            if (units.Find(id) is not { } u || u.Faction != k.Faction || u.Hp.Raw <= 0 || !u.Conscriptable || u.TypeId is null) continue;
+            u.Hp = Fix64.Zero;
+            if (u.Detonates)
+            {
+                var r2 = Rts.Sim.Combat.OwnedVerbs.SapperRadius * Rts.Sim.Combat.OwnedVerbs.SapperRadius;
+                foreach (var e in units.Units)
+                {
+                    if (e.Faction == u.Faction || e.Hp.Raw <= 0 || (e.Position - u.Position).LengthSquared > r2) continue;
+                    var dmg = Rts.Sim.Combat.OwnedVerbs.SapperDamage * Rts.Sim.Combat.DamageMatrix.Get(DamageType.Explosive, e.Armor);
+                    if (dmg.Raw < Fix64.OneRaw) dmg = Fix64.One;
+                    e.Hp -= dmg;
+                    events?.Emit(SimEventKind.Shot, u.Id, e.Id, dmg);
+                    if (e.Hp.Raw <= 0) events?.Emit(SimEventKind.Death, e.Id, u.Id, faction: e.Faction);
+                }
+                continue;
+            }
+            var atHall = units.Units.Any(h => h.Faction == u.Faction && h.Hp.Raw > 0 && h.Building is { ConstructionRemaining: 0 } hb
+                && buildings.Get(hb.Id).ConscriptionHall
+                && (h.Position - u.Position).LengthSquared <= Rts.Sim.Combat.OwnedVerbs.HallRadius * Rts.Sim.Combat.OwnedVerbs.HallRadius);
+            refund(u.Faction, Rts.Sim.Combat.OwnedVerbs.Refund(unitsCatalog.Get(u.TypeId).Cost, atHall));
+        }
     }
 
     private static void Train(UnitCatalog unitsCatalog, UnitStore units, TrainCommand t, TryOp spend, int tick)

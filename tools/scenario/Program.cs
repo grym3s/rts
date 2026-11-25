@@ -76,7 +76,7 @@ world.Systems.Add((w, due) => Rts.Sim.Production.ProductionSystem.Step(
     buildingsCat, catalog, units, map, w.Ids, due,
     (f, a) => econ.TrySpend(f, a),
     (f, a) => { econ.Deposit(f, a); return true; }, power, w.Tick,
-            (id, at) => orders[id] = new MoveOrder(at, new List<FixVec2>(), w.Tick)));
+            (id, at) => orders[id] = new MoveOrder(at, new List<FixVec2>(), w.Tick), w));
 world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
 world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick, map, catalog.IsRefinery));
 world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick, w));
@@ -118,6 +118,8 @@ if (doc.TryGetProperty("commands", out var cmds))
             "cancel" => new CancelProductionCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("index").GetInt32()),
             "harvest" => new HarvestCommand(tick, faction, unitIds, c.GetProperty("vein").GetInt32()),
             "bridge" => new BridgeCommand(tick, faction, unitIds, c.GetProperty("bridge").GetInt32()),
+            "phase" => new PhaseCommand(tick, faction, unitIds),
+            "conscript" => new ConscriptCommand(tick, faction, unitIds),
             "rally" => new RallyCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()),
                 new FixVec2(Fix64.FromDouble(c.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(c.GetProperty("at")[1].GetDouble()))),
             var t => throw new InvalidDataException($"unknown command type '{t}'")

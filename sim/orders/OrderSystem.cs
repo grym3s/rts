@@ -81,6 +81,16 @@ public static class OrderSystem
                         u.BridgeTarget = bc.Bridge;
                     }
                     break;
+                case PhaseCommand ph:
+                    // T29: not a move order: the unit keeps doing what it was doing, untargetable
+                    foreach (var unit in ph.Units)
+                    {
+                        if (unitOf == null || unitOf(unit) is not { } u) continue;
+                        if (u.Faction != ph.Faction || !u.Phases || u.Hp.Raw <= 0 || ph.Tick < u.PhaseReadyTick) continue;
+                        u.PhaseUntilTick = ph.Tick + Rts.Sim.Combat.OwnedVerbs.PhaseTicks;
+                        u.PhaseReadyTick = u.PhaseUntilTick + Rts.Sim.Combat.OwnedVerbs.PhaseCooldownTicks;
+                    }
+                    break;
                 case StopCommand:
                     foreach (var unit in ((StopCommand)c).Units)
                     {

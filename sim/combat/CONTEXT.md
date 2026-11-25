@@ -33,4 +33,13 @@ attackers drop the job. Engineers (`Unit.Engineer`, role `engineer`) walk to a d
 bridge and within 1.5 cells mend it to full in one touch and are consumed (event
 `BridgeRepaired`); on a sound bridge they drop the job. A bridge job is an order: no guard
 auto-acquire while it lasts. Static guns never chase a bridge. Tests: `../tests/BridgeTests.cs`.
+Owned verbs (T29, `docs/factions/owned-verbs.md`, knobs in `OwnedVerbs.cs`): **Marking** — the step
+opens with `RefreshAuras` (post-move positions): aura sources (`MarkRadius`: Comms Rig 8, Spotter
+Drone 7, Sensor Command 14) mark living unphased enemies in radius until tick + 30, but only while
+their faction has a finished aura building (the Sensor Command network gate); a `MarksOnHit`
+weapon (Rifleman) marks what it hits until tick + 40. A hit on a target marked by the shooter's
+faction does ×1.25 after the matrix cell (before the chip floor). Binary, no stacking. Line of
+sight is not modelled yet (radius only). **Phase** — a phased unit (tick < `PhaseUntilTick`) is
+never acquired, can't be hit (an attack on it waits, it isn't dropped) and can't fire (bridges
+included); it still moves. Tests: `../tests/OwnedVerbsTests.cs`.
 Not modelled yet: projectiles, targeting priorities, multi-shot, domain (ground/air) targeting flags.

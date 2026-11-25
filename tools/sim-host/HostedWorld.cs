@@ -92,7 +92,7 @@ public sealed class HostedWorld
             buildingsCat, catalog, units, map, w.Ids, due,
             (f, a) => econ.TrySpend(f, a),
             (f, a) => { econ.Deposit(f, a); return true; }, power, w.Tick,
-            (id, at) => orders[id] = new MoveOrder(at, new List<FixVec2>(), w.Tick)));
+            (id, at) => orders[id] = new MoveOrder(at, new List<FixVec2>(), w.Tick), w));
         world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
         world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick, map, catalog.IsRefinery));
         world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick, w));
@@ -160,6 +160,8 @@ public sealed class HostedWorld
                 "cancel" => new CancelProductionCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("index").GetInt32()),
                 "harvest" => new HarvestCommand(tick, faction, unitIds, c.GetProperty("vein").GetInt32()),
                 "bridge" => new BridgeCommand(tick, faction, unitIds, c.GetProperty("bridge").GetInt32()),
+                "phase" => new PhaseCommand(tick, faction, unitIds),
+                "conscript" => new ConscriptCommand(tick, faction, unitIds),
                 "rally" => new RallyCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()),
                     new FixVec2(Fix64.FromDouble(c.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(c.GetProperty("at")[1].GetDouble()))),
                 var t => throw new ProtocolException("unknown_command_type", $"unknown command type '{t}'"),
@@ -260,7 +262,12 @@ public sealed class HostedWorld
                 u.Building?.Rally is { } rp ? new[] { rp.X.Raw, rp.Y.Raw } : null,
                 u.Harvest ? Rts.Sim.Economy.EconomySystem.Capacity : 0,
                 u.Domain == Rts.Sim.World.MoveDomain.Land ? null : Rts.Sim.World.Domains.Name(u.Domain),
-                u.Engineer ? true : null));
+                u.Engineer ? true : null,
+                u.TypeId,
+                u.IsMarked(World.Tick) ? true : null,
+                u.Conscriptable ? true : null,
+                u.Phases ? Math.Max(0, u.PhaseUntilTick - World.Tick) : null,
+                u.Phases ? Math.Max(0, u.PhaseReadyTick - World.Tick) : null));
         }
 
         var factions = new List<HostFaction>(2);

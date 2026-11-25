@@ -52,5 +52,12 @@ public sealed record RallyCommand(int Tick, int Faction, EntityId BuildingId, Fi
 /// Ignored for a dry or unknown vein and for units that are not your live harvesters.</summary>
 public sealed record HarvestCommand(int Tick, int Faction, EntityId[] Units, int Vein) : Command(Tick, Faction);
 
+/// <summary>T29 Phase: phase-capable units go untargetable for 2 s (10 s cooldown after).</summary>
+public sealed record PhaseCommand(int Tick, int Faction, EntityId[] Units) : Command(Tick, Faction);
+
+/// <summary>T29 Conscription: cash in conscriptable infantry (50% of cost near a hall, else 30%;
+/// a Sapper detonates instead).</summary>
+public sealed record ConscriptCommand(int Tick, int Faction, EntityId[] Units) : Command(Tick, Faction);
+
 /// <summary>T26: work on bridge `Bridge` (BridgeStore id): armed units attack it, engineers repair it.</summary>
 public sealed record BridgeCommand(int Tick, int Faction, EntityId[] Units, int Bridge) : Command(Tick, Faction);

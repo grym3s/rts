@@ -257,6 +257,11 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				UO->TryGetNumberField(TEXT("loadCapacity"), U.LoadCapacity);
 				UO->TryGetStringField(TEXT("domain"), U.Domain); // T25: absent = land
 				UO->TryGetBoolField(TEXT("engineer"), U.bEngineer); // T26: absent = no
+				UO->TryGetStringField(TEXT("type"), U.Type); // T29 owned verbs (all optional)
+				UO->TryGetBoolField(TEXT("marked"), U.bMarked);
+				UO->TryGetBoolField(TEXT("conscriptable"), U.bConscriptable);
+				UO->TryGetNumberField(TEXT("phaseTicks"), U.PhaseTicks);
+				UO->TryGetNumberField(TEXT("phaseCooldown"), U.PhaseCooldown);
 				// T37: rally point [x, y] Q32.32 raw, present only on buildings that have one.
 				const TArray<TSharedPtr<FJsonValue>>* RallyArr = nullptr;
 				if (UO->TryGetArrayField(TEXT("rally"), RallyArr) && RallyArr->Num() == 2)

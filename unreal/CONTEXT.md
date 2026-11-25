@@ -34,6 +34,10 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   selected engineers to mend it; Ctrl+RMB or an attack-move click on a standing bridge sends
   selected armed units to shoot it (`RequestBridgeAt`). Damaged bridges get an orange HP bar,
   `bridge_hit` events draw tracers. Test: `RtsBridge.Host.Domain` also checks bridge + engineer parse.
+  T29: unit rows add `Type`, `bMarked`, `bConscriptable`, `PhaseTicks` (-1 = can't phase) and
+  `PhaseCooldown`. The HUD puts a red pip over marked units and a cyan ring under phased ones. No
+  player buttons for Phase / Conscription yet: the player is Coalition (faction 0), whose verb
+  (Marking) is passive.
 - `Source/RtsBridge/Private/RtsBridgeRoundTripTest.cpp` — editor automation test
   `RtsBridge.Host.RoundTrip` (real host launch, init, tick-0 move, 120 steps).
 - `Config/DefaultEngine.ini` — GlobalDefaultGameMode = RtsBridgeGameMode;

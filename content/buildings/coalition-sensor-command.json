@@ -16,5 +16,6 @@
   ],
   "stats": {
     "hp": 1000
-  }
+  },
+  "verbs": { "marksAura": true, "markRadius": 14 }
 }

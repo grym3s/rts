@@ -95,6 +95,25 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	bool bEngineer = false;
 
+	/** T29 owned verbs: catalog id; marked by an enemy's Marking; can be conscripted; phase
+	 *  state (PhaseTicks -1 = can't phase, else ticks left phased; PhaseCooldown = until ready). */
+	UPROPERTY(BlueprintReadOnly)
+	FString Type;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bMarked = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bConscriptable = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 PhaseTicks = -1;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 PhaseCooldown = 0;
+
+	bool IsPhased() const { return PhaseTicks > 0; }
+
 	UPROPERTY(BlueprintReadOnly)
 	bool bCarrying = false;
 

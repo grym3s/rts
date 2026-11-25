@@ -16,5 +16,6 @@
   ],
   "stats": {
     "hp": 1800
-  }
+  },
+  "verbs": { "conscriptionHall": true }
 }

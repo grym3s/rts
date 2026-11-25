@@ -330,12 +330,13 @@ public class ProtocolTests
     /// scenario-runner run.</summary>
     [Theory]
     [InlineData("chokepoint-30.json", "1727e6d2adb5efb8")]
-    [InlineData("skirmish-10v10.json", "e97bc24d4f7fd6c3")] // re-pinned for T05 guard (idle units hold, chase, return): 0fbba65f760574ce -> e97bc24d4f7fd6c3
-    [InlineData("tri-point-30.json", "c209ac08ca9974f4")] // re-pinned for T34 fields: 5526cd76fdce4754 -> c209ac08ca9974f4 (ore pools hashed; same battle)
+    // T29 re-pin (Rifleman marks on hit): skirmish-10v10, tri-point-30, counters-6v4, guard-hold, match-end
+    [InlineData("skirmish-10v10.json", "b379d768bf134db0")] // re-pinned for T05 guard (idle units hold, chase, return): 0fbba65f760574ce -> e97bc24d4f7fd6c3
+    [InlineData("tri-point-30.json", "f1f744d1b3354994")] // re-pinned for T34 fields: 5526cd76fdce4754 -> c209ac08ca9974f4 (ore pools hashed; same battle)
     [InlineData("tri-point-skirmish.json", "13b90027de9182fe")] // T36 skirmish start (MCV deploy + reactor); T27 re-pin: Ascendant seated, 1v1v1
-    [InlineData("counters-6v4.json", "39ac951e73e99076")] // re-pinned for T05 guard (idle units hold, chase, return): a418be859c7550c7 -> 39ac951e73e99076
-    [InlineData("guard-hold.json", "e7a820c12422dad2")]
-    [InlineData("match-end.json", "3c75053acd9d4698")]
+    [InlineData("counters-6v4.json", "d2343b13b00b679f")] // re-pinned for T05 guard (idle units hold, chase, return): a418be859c7550c7 -> 39ac951e73e99076
+    [InlineData("guard-hold.json", "26db13b0d757bcea")]
+    [InlineData("match-end.json", "3c7502ae4d9d4698")]
     [InlineData("economy-2h.json", "05829563b6901d19")]
     [InlineData("produce-1t1.json", "5752e0ece297f09b")] // re-pinned for T33: 2cb5e49325482ab9 -> 5752e0ece297f09b (refinery building ships a harvester; spawns at cell centres)
     public void Host_replay_matches_scenario_runner_golden_hash(string scenarioFile, string expectedHex)
@@ -535,6 +536,30 @@ public class ProtocolTests
         Assert.Equal(0, r.State.Bridges[0].Hp);
         Assert.Contains("bridge_hit", kinds);
         Assert.Contains("bridge_down", kinds);
+    }
+
+    // ---------- owned verbs (T29) ----------
+
+    [Fact]
+    public void Phase_and_conscript_commands_round_trip_and_rows_show_the_verb_state()
+    {
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":24,"height":24,"blocked":[]},"units":[{"unit":"conscript","at":[3.5,3.5]},{"unit":"adept","at":[20.5,20.5]},{"unit":"rifleman","at":[3.5,20.5]}]}}"""));
+        Assert.True(init.Ok, init.Error);
+        var (cons, adept, rifle) = (init.State!.Units[0], init.State.Units[1], init.State.Units[2]);
+        Assert.Equal(("conscript", true), (cons.Type, cons.Conscriptable));
+        Assert.Equal((0, 0), (adept.PhaseTicks, adept.PhaseCooldown));
+        Assert.Null(rifle.PhaseTicks);
+        Assert.Null(rifle.Conscriptable);
+        var credits = init.State.Factions![1].Credits;
+
+        var r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":0,"commands":[{"tick":0,"faction":1,"type":"conscript","units":[{{cons.Id}}]},{"tick":0,"faction":2,"type":"phase","units":[{{adept.Id}}]}]}"""));
+        Assert.True(r.Ok, r.Error);
+        Assert.DoesNotContain(r.State!.Units, u => u.Id == cons.Id);
+        Assert.True(r.State.Factions![1].Credits > credits);
+        var a = r.State.Units.Single(u => u.Id == adept.Id);
+        Assert.True(a.PhaseTicks > 30);
+        Assert.True(a.PhaseCooldown > a.PhaseTicks);
     }
 
     // ---------- MCV deploy (T32) ----------

@@ -100,7 +100,12 @@ public sealed record HostUnit(
     long[]? Rally = null, // T37: [x, y] Q32.32 raw, buildings with a rally point only
     int LoadCapacity = 0, // T38: a harvester's full load (credits), 0 for everything else
     string? Domain = null, // T25: "naval" / "hover" / "air"; absent = land (and buildings)
-    bool? Engineer = null); // T26: true for engineers (repair bridges); absent otherwise
+    bool? Engineer = null, // T26: true for engineers (repair bridges); absent otherwise
+    string? Type = null, // T29: catalog id (unit or building) it was spawned from
+    bool? Marked = null, // T29: marked (by an enemy's Marking) this tick
+    bool? Conscriptable = null, // T29: can be cashed in (`conscript`)
+    int? PhaseTicks = null, // T29: phase-capable: ticks left phased (0 = not phased)
+    int? PhaseCooldown = null); // T29: phase-capable: ticks until it may phase again (0 = ready)
 
 /// <summary>T30: credits and the power ledger (net = supply − draw; low power when net &lt; 0).</summary>
 public sealed record HostFaction(int Faction, int Credits, int PowerSupply = 0, int PowerDraw = 0);

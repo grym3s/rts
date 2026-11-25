@@ -9,7 +9,8 @@ namespace Rts.Sim.Units;
 public sealed class BuildingCatalog
 {
     public record PlacementParams(string Id, int Faction, string Category, int Cost, int BuildTicks, Fix64 Hp, string? Prereq, int Power,
-        int FootprintW = 1, int FootprintH = 1, string Name = "", bool RequiresShore = false)
+        int FootprintW = 1, int FootprintH = 1, string Name = "", bool RequiresShore = false,
+        Fix64 MarkRadius = default, bool ConscriptionHall = false)
     {
         /// <summary>T25: naval and offshore buildings stand on water (shipyards, sea platforms).</summary>
         public bool OnWater => Category is "naval" or "offshore";
@@ -56,7 +57,10 @@ public sealed class BuildingCatalog
                 root.TryGetProperty("power", out var powerEl) ? powerEl.GetInt32() : 0,
                 fpW, fpH,
                 root.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? "" : "",
-                root.TryGetProperty("requiresShore", out var shoreEl) && shoreEl.GetBoolean());
+                root.TryGetProperty("requiresShore", out var shoreEl) && shoreEl.GetBoolean(),
+                // T29: Sensor Command's mark aura (and network gate); a hall's full-refund zone
+                root.TryGetProperty("verbs", out var vb) && vb.TryGetProperty("markRadius", out var mr) ? Fix64.FromDouble(mr.GetDouble()) : Fix64.Zero,
+                UnitCatalog.Verb(root, "conscriptionHall"));
         }
         return cat;
     }

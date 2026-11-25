@@ -72,6 +72,8 @@ One owned verb per faction is the strongest identity tool we use (ADR 0005: iden
 
 ---
 
+**Implementation status (T29, 2026-11-26):** all three verbs are live in the sim — `sim/combat/OwnedVerbs.cs` holds the knobs above. Gaps: Marking uses radius only (no line of sight yet); the Sapper's blast base damage is a placeholder 60 pending the balance pass; the per-unit Phase stat tax is not applied yet.
+
 ## What to tune first (balance sensitivity)
 
 These three magnitudes move whole matchups; tune them right after the MBT mirror, one at a time, via `../../tools/scenario`:

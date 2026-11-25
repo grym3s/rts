@@ -7,7 +7,12 @@ Reads: `content/buildings` (BuildingCatalog: cost, buildTicks, prereq, category)
 Writes: building Units (`Unit.Building` state, Structure armor, speed 0, raidable), spawned units,
 money via the spend/refund callbacks it is given. Nothing else — never touches EconomyStore directly.
 Runs at: tick step 2, after economy harvest in the same slot (`../CONTEXT.md`). Commands it consumes:
-PlaceBuilding / Train / CancelProduction / Deploy (delivered via the due list alongside OrderSystem).
+PlaceBuilding / Train / CancelProduction / Deploy / Rally / Conscript (delivered via the due list alongside OrderSystem).
+Conscription (T29, Hegemony, `docs/factions/owned-verbs.md`): `ConscriptCommand` cashes in own,
+living, conscriptable units (they leave the roster at cleanup): `OwnedVerbs.Refund` = floor(cost ×
+50%) within 10 of the faction's own finished building flagged `conscriptionHall`, else 30%. A unit
+with `conscriptEffect: detonate` (Sapper) instead bursts: Explosive 60 base × matrix on enemies
+within 3 (Shot / Death events), no refund. Tests: `sim/tests/OwnedVerbsTests.cs`.
 Tests: `sim/tests/ProductionTests.cs`, `make test`.
 Numbers: canon lives in `docs/factions/CONTEXT.md` (timing ladders) + `docs/factions/economy.md`;
 this folder cites, never restates. Queue cap 5 is our tuning const (canon silent).

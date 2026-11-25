@@ -12,11 +12,14 @@ public sealed class UnitCatalog
         ArmorClass Armor, DamageType DamageType, bool Harvest,
         int Cost, int BuildTicks, string BuiltFrom, string? DeploysTo = null, string Name = "",
         Rts.Sim.World.MoveDomain Domain = Rts.Sim.World.MoveDomain.Land,
-        Rts.Sim.World.TargetMask Targets = Rts.Sim.World.TargetMask.None, bool Engineer = false)
+        Rts.Sim.World.TargetMask Targets = Rts.Sim.World.TargetMask.None, bool Engineer = false,
+        bool MarksOnHit = false, Fix64 MarkRadius = default, bool Conscriptable = false, bool Detonates = false,
+        bool Phases = false)
     {
         /// <summary>The spawn-time stat block (every spawner builds the same one).</summary>
         public Rts.Sim.World.UnitProfile Profile() => new(Faction, Hp, Sight, Damage, Range, CooldownTicks,
-            Armor, DamageType, Harvest, DeploysTo, Domain, Targets, Engineer);
+            Armor, DamageType, Harvest, DeploysTo, Domain, Targets, Engineer,
+            Id, MarksOnHit, MarkRadius, Conscriptable, Detonates, Phases);
     }
 
     /// <summary>True when unitId names a unit this building (catalog id) fields:
@@ -77,10 +80,19 @@ public sealed class UnitCatalog
                 root.GetProperty("builtFrom").GetString()!,
                 root.TryGetProperty("deploysTo", out var dep) ? dep.GetString() : null,
                 root.TryGetProperty("name", out var nm) ? nm.GetString() ?? "" : "",
-                domain, targets, root.GetProperty("role").GetString() == "engineer");
+                domain, targets, root.GetProperty("role").GetString() == "engineer",
+                Verb(root, "marksOnHit"),
+                root.TryGetProperty("verbs", out var vb) && vb.TryGetProperty("markRadius", out var mr) ? Fix64.FromDouble(mr.GetDouble()) : Fix64.Zero,
+                Verb(root, "conscriptable"),
+                root.TryGetProperty("verbs", out var vb2) && vb2.TryGetProperty("conscriptEffect", out var ce) && ce.GetString() == "detonate",
+                Verb(root, "phases"));
         }
         return cat;
     }
+
+    /// <summary>T29: a boolean owned-verb flag under `verbs` (absent = false).</summary>
+    internal static bool Verb(JsonElement root, string name) =>
+        root.TryGetProperty("verbs", out var v) && v.TryGetProperty(name, out var f) && f.ValueKind == JsonValueKind.True;
 
     /// <summary>T33: the harvester a refinery ships and drops off at (a harvester unit whose
     /// `builtFrom` is this building), first by ordinal id; null when the building is no refinery.</summary>

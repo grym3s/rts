@@ -45,7 +45,9 @@ public sealed record UnitProfile(int Faction, Fix64 Hp, Fix64 Sight,
     Fix64 Damage, Fix64 Range, int CooldownTicks,
     ArmorClass Armor = ArmorClass.Infantry, DamageType DamageType = DamageType.SmallArms,
     bool Harvest = false, string? DeploysTo = null,
-    MoveDomain Domain = MoveDomain.Land, TargetMask Targets = TargetMask.All, bool Engineer = false);
+    MoveDomain Domain = MoveDomain.Land, TargetMask Targets = TargetMask.All, bool Engineer = false,
+    string? TypeId = null, bool MarksOnHit = false, Fix64 MarkRadius = default,
+    bool Conscriptable = false, bool Detonates = false, bool Phases = false);
 
 /// <summary>Mutable unit state owned by the world.</summary>
 public sealed class Unit
@@ -80,6 +82,27 @@ public sealed class Unit
     /// <summary>T26: bridge this unit is attacking or repairing (BridgeStore id); -1 = none.
     /// Set by a `bridge` command, cleared by any other order (sim/combat owns it after that).</summary>
     public int BridgeTarget { get; set; } = -1;
+
+    // T29 owned verbs (docs/factions/owned-verbs.md; rules in sim/combat/OwnedVerbs.cs)
+    /// <summary>Catalog id (unit or building) it was spawned from; null for hand-built test units.</summary>
+    public string? TypeId { get; }
+    /// <summary>Marking: its hits mark the struck target (Rifleman).</summary>
+    public bool MarksOnHit { get; }
+    /// <summary>Marking: aura radius (Comms Rig, Spotter Drone, Sensor Command); zero = none.</summary>
+    public Fix64 MarkRadius { get; }
+    /// <summary>Marked by faction MarkedBy through tick MarkedUntilTick (-1 = never).</summary>
+    public int MarkedUntilTick { get; set; } = -1;
+    public int MarkedBy { get; set; } = -1;
+    /// <summary>Conscription: can be cashed in (Hegemony infantry); Detonates = Sapper blast.</summary>
+    public bool Conscriptable { get; }
+    public bool Detonates { get; }
+    /// <summary>Phase: can phase; phased (untargetable, can't fire) while tick &lt; PhaseUntilTick;
+    /// may phase again from PhaseReadyTick.</summary>
+    public bool Phases { get; }
+    public int PhaseUntilTick { get; set; }
+    public int PhaseReadyTick { get; set; }
+    public bool IsPhased(int tick) => tick < PhaseUntilTick;
+    public bool IsMarked(int tick) => tick <= MarkedUntilTick;
     /// <summary>Harvest load in whole credits; Carrying = full, trip to refinery.</summary>
     public int Load { get; set; }
     public bool Carrying { get; set; }
@@ -119,5 +142,11 @@ public sealed class Unit
         Domain = profile?.Domain ?? MoveDomain.Land;
         Targets = profile?.Targets ?? TargetMask.All;
         Engineer = profile?.Engineer ?? false;
+        TypeId = profile?.TypeId;
+        MarksOnHit = profile?.MarksOnHit ?? false;
+        MarkRadius = profile?.MarkRadius ?? Fix64.Zero;
+        Conscriptable = profile?.Conscriptable ?? false;
+        Detonates = profile?.Detonates ?? false;
+        Phases = profile?.Phases ?? false;
     }
 }

@@ -15,6 +15,7 @@
     "sight": 13.0
   },
   "verbs": {
-    "marksAura": true
+    "marksAura": true,
+    "markRadius": 7
   }
 }

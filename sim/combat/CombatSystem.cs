@@ -13,6 +13,7 @@ public static class CombatSystem
     /// `events` (optional) receives a Shot per hit and a Death per kill (T09).</summary>
     public static void Step(UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick, SimWorld? events = null)
     {
+        OwnedVerbs.RefreshAuras(units, tick); // T29 Marking: post-move positions, before anyone fires
         foreach (var u in units.Units)
         {
             if (u.Hp.Raw <= 0) continue; // killed earlier this tick: no actions
@@ -20,7 +21,7 @@ public static class CombatSystem
             // auto-acquire for attack-move: nearest living enemy in sight, first wins on ties (store order)
             if (u.AttackMoving && !HasLiveTarget(u, units))
             {
-                if (orders.ContainsKey(u.Id)) u.TargetId = Acquire(u, units);
+                if (orders.ContainsKey(u.Id)) u.TargetId = Acquire(u, units, tick);
                 else u.AttackMoving = false; // route finished: from here on the unit guards where it stopped
             }
 
@@ -44,13 +45,17 @@ public static class CombatSystem
             var fireRange = u.Range + u.Radius + target.Radius;
             if (dist <= fireRange)
             {
-                if (u.CooldownRemaining == 0)
+                // T29 Phase: a phased unit can't fire, and nothing can hit a phased target (the
+                // attack waits; it is not dropped)
+                if (u.CooldownRemaining == 0 && !u.IsPhased(tick) && !target.IsPhased(tick))
                 {
                     // counter matrix: base damage x canon cell (tools/refmodel_counter_matrix.py).
                     // Chip floor: a live weapon always does >= 1 whole damage — soft-with-cliffs
                     // means chip, never bounce (ADR 0005); floor decided in the reference model.
                     var applied = u.Damage * DamageMatrix.Get(u.DamageType, target.Armor);
+                    applied = OwnedVerbs.WithMark(applied, u, target, tick); // T29 Marking ×1.25
                     if (applied.Raw < Fix64.OneRaw) applied = Fix64.One;
+                    if (u.MarksOnHit) OwnedVerbs.Mark(target, u.Faction, tick + OwnedVerbs.OnHitTicks);
                     var wasAlive = target.Hp.Raw > 0;
                     target.Hp -= applied;
                     events?.Emit(SimEventKind.Shot, u.Id, target.Id, applied);
@@ -101,14 +106,14 @@ public static class CombatSystem
                 return;
             }
             if (hasLive) return;
-            var next = Acquire(u, units);
+            var next = Acquire(u, units, tick);
             if (next != EntityId.None) { u.TargetId = next; return; }
             ReturnToAnchor(u, orders, tick);
             return;
         }
 
         if (hasOrder || hasLive) return; // under a player order or an explicit attack
-        var found = Acquire(u, units);
+        var found = Acquire(u, units, tick);
         if (found == EntityId.None) return;
         u.GuardAnchor = u.Position;
         u.Guarding = true;
@@ -135,13 +140,13 @@ public static class CombatSystem
 
     /// <summary>Nearest enemy strictly inside sight range that the weapon can engage; store order
     /// breaks distance ties.</summary>
-    private static EntityId Acquire(Unit u, UnitStore units)
+    private static EntityId Acquire(Unit u, UnitStore units, int tick)
     {
         var best = EntityId.None;
         var bestD = Fix64.Zero;
         foreach (var e in units.Units)
         {
-            if (e.Faction == u.Faction || e.Hp.Raw <= 0 || !CanHit(u, e)) continue;
+            if (e.Faction == u.Faction || e.Hp.Raw <= 0 || !CanHit(u, e) || e.IsPhased(tick)) continue; // T29: phased = untargetable
             var d = (e.Position - u.Position).LengthSquared;
             if (d > u.Sight * u.Sight) continue;
             if (best == EntityId.None || d < bestD)

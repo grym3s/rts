@@ -338,6 +338,33 @@ void ARtsMinimapHud::DrawHealthBars()
 		DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.75f), X - 1.0f, Y - 1.0f, W + 2.0f, H + 2.0f);
 		DrawRect(Fill, X, Y, W * F, H);
 	}
+	// T29: owned-verb markers above units: a red pip on marked enemies (your Marking pays +25%),
+	// a cyan ring on phased units (untargetable, not firing).
+	for (const ARtsSimUnitActor* U : GM->GetUnitActors())
+	{
+		if (!U || U->IsDying())
+			continue;
+		const FRtsUnitSnapshot* Row = GM->GetUnitRow(U->GetSimUnitId());
+		if (!Row || (!Row->bMarked && !Row->IsPhased()))
+			continue;
+		const FVector S = Project(U->GetActorLocation() + FVector(0.0, 0.0, AboveUU + 18.0));
+		if (S.Z <= 0.0)
+			continue;
+		if (Row->bMarked)
+			DrawRect(FLinearColor(1.0f, 0.15f, 0.1f), S.X - 4.0f, S.Y - 4.0f, 8.0f, 8.0f);
+		if (Row->IsPhased())
+		{
+			const FVector C0 = Project(U->GetActorLocation());
+			if (C0.Z > 0.0)
+				for (int32 i = 0; i < 12; ++i)
+				{
+					const float A0 = i * PI / 6.0f, A1 = (i + 1) * PI / 6.0f;
+					DrawLine(C0.X + 18.0f * FMath::Cos(A0), C0.Y + 9.0f * FMath::Sin(A0),
+						C0.X + 18.0f * FMath::Cos(A1), C0.Y + 9.0f * FMath::Sin(A1), FLinearColor(0.3f, 0.95f, 1.0f), 2.0f);
+				}
+		}
+	}
+
 	// T26: damaged (still standing) bridges get a wider bar over their middle cell.
 	const float C = ARtsBridgeGameMode::CellUU;
 	for (const FRtsBridgeSnapshot& B : GM->GetBridges())

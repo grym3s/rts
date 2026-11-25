@@ -48,7 +48,7 @@ public static class BridgeSystem
             if (dist <= u.Range + u.Radius + Fix64.Half)
             {
                 orders.Remove(u.Id); // in range: stand and fire
-                if (u.CooldownRemaining != 0) continue;
+                if (u.CooldownRemaining != 0 || u.IsPhased(tick)) continue; // T29: phased units can't fire
                 var applied = u.Damage * DamageMatrix.Get(u.DamageType, ArmorClass.Structure);
                 if (applied.Raw < Fix64.OneRaw) applied = Fix64.One;
                 b.Hp -= applied;

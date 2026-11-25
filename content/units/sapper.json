@@ -15,6 +15,7 @@
     "sight": 6.0
   },
   "verbs": {
-    "conscriptable": true
+    "conscriptable": true,
+    "conscriptEffect": "detonate"
   }
 }
