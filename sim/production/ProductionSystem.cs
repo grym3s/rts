@@ -33,6 +33,7 @@ public static class ProductionSystem
             {
                 case PlaceBuildingCommand p: Place(buildings, units, map, ids, p, spend); break;
                 case TrainCommand t: Train(unitsCatalog, units, t, spend, tick); break;
+                case DeployCommand d: Deploy(buildings, units, map, ids, d); break;
                 case CancelProductionCommand x: Cancel(unitsCatalog, units, x, refund); break;
             }
 
@@ -67,7 +68,7 @@ public static class ProductionSystem
             var p = unitsCatalog.Get(unitId);
             var cell = ProductionRules.FindSpawnCell(map, units, u.Position);
             units.Spawn(ids.Next(), cell, p.Speed, p.Radius,
-                new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest));
+                new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest, p.DeploysTo));
             if (b.Queue.Count > 0) { b.QueueHeadRemaining = unitsCatalog.Get(b.Queue[0]).BuildTicks; b.QueueEnqueuedAtTick = tick; }
         }
     }
@@ -93,18 +94,70 @@ public static class ProductionSystem
         // T31: the whole footprint must be in bounds, on open terrain, free of other buildings
         // and of units (a unit standing there would be sealed in).
         var (ox, oy) = BuildingCatalog.FootprintOrigin(Cell(p.Cell.X), Cell(p.Cell.Y), bp.FootprintW, bp.FootprintH);
-        if (!map.CanOccupy(ox, oy, bp.FootprintW, bp.FootprintH)) return;
-        if (units.Units.Any(u => u.Hp.Raw > 0
-                && Cell(u.Position.X) >= ox && Cell(u.Position.X) < ox + bp.FootprintW
-                && Cell(u.Position.Y) >= oy && Cell(u.Position.Y) < oy + bp.FootprintH)) return;
+        if (!FootprintClear(units, map, ox, oy, bp.FootprintW, bp.FootprintH, EntityId.None)) return;
+        // T32: build radius. Anything but a construction yard must come within BuildRadius of one
+        // of the faction's own live buildings. (A yard by `place` is the scenario bootstrap; in
+        // play yards come from deploying the MCV, see Deploy.)
+        if (bp.Category != "construction-yard" && !InBuildRadius(units, map, p.Faction, ox, oy, bp.FootprintW, bp.FootprintH)) return;
         if (!spend(p.Faction, bp.Cost)) return; // money last: every earlier failure costs nothing
+        SpawnBuilding(units, map, ids, bp, p.Faction, ox, oy);
+    }
 
-        // The building stands at its footprint's centre (combat ranges and spawns measure from it).
+    /// <summary>A building unit at its footprint's centre (combat ranges and spawns measure from
+    /// it), under construction for its BuildTicks, its footprint marked on the map.</summary>
+    private static void SpawnBuilding(UnitStore units, Rts.Sim.World.GameMap map, EntityIdAllocator ids,
+        BuildingCatalog.PlacementParams bp, int faction, int ox, int oy)
+    {
         var centre = new FixVec2(Fix64.FromInt(ox) + Fix64.Ratio(bp.FootprintW, 2), Fix64.FromInt(oy) + Fix64.Ratio(bp.FootprintH, 2));
         var b = units.Spawn(ids.Next(), centre, Fix64.Zero, UnitCatalog.DefaultRadius,
-            new UnitProfile(p.Faction, bp.Hp, Fix64.Zero, Fix64.Zero, Fix64.Zero, 0, ArmorClass.Structure, DamageType.SmallArms));
-        b.Building = new BuildingState { Id = p.BuildingId, ConstructionRemaining = bp.BuildTicks };
+            new UnitProfile(faction, bp.Hp, Fix64.Zero, Fix64.Zero, Fix64.Zero, 0, ArmorClass.Structure, DamageType.SmallArms));
+        b.Building = new BuildingState { Id = bp.Id, ConstructionRemaining = bp.BuildTicks };
         map.OccupyStructure(b.Id.Value, ox, oy, bp.FootprintW, bp.FootprintH);
+    }
+
+    /// <summary>Build radius (T32, our tuning const; canon says the yard gives "the base's build
+    /// radius" without a number): a new footprint must be within this many cells (Chebyshev, 1 =
+    /// touching) of a footprint of one of the faction's live buildings.</summary>
+    public const int BuildRadius = 6;
+
+    public static bool InBuildRadius(UnitStore units, Rts.Sim.World.GameMap map, int faction, int ox, int oy, int w, int h)
+    {
+        foreach (var u in units.Units)
+        {
+            if (u.Faction != faction || u.Building == null || u.Hp.Raw <= 0) continue;
+            if (!map.TryGetFootprint(u.Id.Value, out var r)) continue;
+            var dx = Math.Max(0, Math.Max(r.X - (ox + w - 1), ox - (r.X + r.W - 1)));
+            var dy = Math.Max(0, Math.Max(r.Y - (oy + h - 1), oy - (r.Y + r.H - 1)));
+            if (Math.Max(dx, dy) <= BuildRadius) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Footprint in bounds, open terrain, no building, no live unit standing in it
+    /// (a unit there would be sealed in) other than `except`.</summary>
+    private static bool FootprintClear(UnitStore units, Rts.Sim.World.GameMap map, int ox, int oy, int w, int h, EntityId except)
+    {
+        if (!map.CanOccupy(ox, oy, w, h)) return false;
+        return !units.Units.Any(u => u.Hp.Raw > 0 && u.Id != except
+            && Cell(u.Position.X) >= ox && Cell(u.Position.X) < ox + w
+            && Cell(u.Position.Y) >= oy && Cell(u.Position.Y) < oy + h);
+    }
+
+    /// <summary>T32: an MCV becomes its construction yard where it stands. Free (paid when the
+    /// MCV was trained); the yard footprint is centred on the MCV's cell and must be clear but
+    /// for the MCV itself; no build radius (this is how a base starts). The MCV leaves the roster
+    /// at cleanup with no death event; the yard then builds for its BuildTicks.</summary>
+    private static void Deploy(BuildingCatalog buildings, UnitStore units, Rts.Sim.World.GameMap map,
+        EntityIdAllocator ids, DeployCommand d)
+    {
+        var mcv = units.Find(d.Unit);
+        if (mcv is null || mcv.Hp.Raw <= 0 || mcv.Faction != d.Faction || mcv.DeploysTo is null) return;
+        var bp = buildings.Get(mcv.DeploysTo);
+        if (bp.Faction != d.Faction) return;
+        var (ox, oy) = BuildingCatalog.FootprintOrigin(Cell(mcv.Position.X), Cell(mcv.Position.Y), bp.FootprintW, bp.FootprintH);
+        if (!FootprintClear(units, map, ox, oy, bp.FootprintW, bp.FootprintH, mcv.Id)) return;
+        mcv.Hp = Fix64.Zero; // gone at cleanup (step 8); combat skips it this tick
+        SpawnBuilding(units, map, ids, bp, d.Faction, ox, oy);
     }
 
     private static void Train(UnitCatalog unitsCatalog, UnitStore units, TrainCommand t, TryOp spend, int tick)

@@ -37,3 +37,8 @@ public sealed record TrainCommand(int Tick, int Faction, EntityId BuildingId, st
 
 /// <summary>Step-1 command: remove queue item `Index` at a building, refunding its cost.</summary>
 public sealed record CancelProductionCommand(int Tick, int Faction, EntityId BuildingId, int Index) : Command(Tick, Faction);
+
+/// <summary>Step-1 command (T32): an MCV-style unit (`Unit.DeploysTo`) becomes its construction
+/// yard where it stands — free (paid when trained), the yard's footprint must be clear, the yard
+/// then builds for its BuildTicks like any placed building. Rejected whole otherwise.</summary>
+public sealed record DeployCommand(int Tick, int Faction, EntityId Unit) : Command(Tick, Faction);

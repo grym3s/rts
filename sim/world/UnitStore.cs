@@ -44,7 +44,7 @@ public sealed class UnitStore
 public sealed record UnitProfile(int Faction, Fix64 Hp, Fix64 Sight,
     Fix64 Damage, Fix64 Range, int CooldownTicks,
     ArmorClass Armor = ArmorClass.Infantry, DamageType DamageType = DamageType.SmallArms,
-    bool Harvest = false);
+    bool Harvest = false, string? DeploysTo = null);
 
 /// <summary>Mutable unit state owned by the world.</summary>
 public sealed class Unit
@@ -68,6 +68,8 @@ public sealed class Unit
     public DamageType DamageType { get; }
     // economy (sim/economy owns mutation; others read)
     public bool Harvest { get; }
+    /// <summary>MCV-style unit (T32): the construction-yard building id a `deploy` turns it into, else null.</summary>
+    public string? DeploysTo { get; }
     /// <summary>Harvest load in whole credits; Carrying = full, trip to refinery.</summary>
     public int Load { get; set; }
     public bool Carrying { get; set; }
@@ -103,5 +105,6 @@ public sealed class Unit
         Armor = profile?.Armor ?? ArmorClass.Infantry;
         DamageType = profile?.DamageType ?? DamageType.SmallArms;
         Harvest = profile?.Harvest ?? false;
+        DeploysTo = profile?.DeploysTo;
     }
 }

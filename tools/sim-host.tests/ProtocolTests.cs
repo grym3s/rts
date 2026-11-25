@@ -383,6 +383,30 @@ public class ProtocolTests
         return last.State!.Hash;
     }
 
+    // ---------- MCV deploy (T32) ----------
+
+    [Fact]
+    public void Deploy_turns_the_mcv_into_a_yard_that_the_snapshot_shows_with_its_footprint()
+    {
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":3,"map":{"width":24,"height":24,"blocked":[]},"units":[{"unit":"mobile-command","at":[8.5,8.5]}]}}"""));
+        Assert.True(init.Ok, init.Error);
+        var mcv = Assert.Single(init.State!.Units);
+        Assert.Equal("coalition-construction-yard", mcv.DeploysTo);
+        Assert.Null(mcv.BuildingId);
+        Assert.Equal(0, mcv.FootprintW);
+
+        var r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":0,"commands":[{"tick":0,"faction":0,"type":"deploy","unit":{{mcv.Id}}}]}"""));
+        Assert.True(r.Ok, r.Error);
+        var yard = Assert.Single(r.State!.Units); // the MCV left the roster in the same tick
+        Assert.Equal("coalition-construction-yard", yard.BuildingId);
+        Assert.Null(yard.DeploysTo);
+        Assert.Equal((3, 3), (yard.FootprintW, yard.FootprintH));
+        Assert.Equal(8.5, yard.X / 4294967296.0);
+        Assert.Equal(5000, r.State.Factions![0].Credits); // deploying is free
+        Assert.DoesNotContain(r.Events ?? [], e => e.Kind == "death");
+    }
+
     // ---------- economy in the snapshot (T30) ----------
 
     [Fact]

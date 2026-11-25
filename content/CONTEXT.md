@@ -71,6 +71,8 @@ Same identity/provisional split as units. Structures are **faction-namespaced**:
 | `produces` | string[] | Produces/unlocks column | short slugs of what it builds or unlocks; the authoritative building→unit link is the unit's `builtFrom`, not this list |
 | `requiresShore` | bool | `T1*` / "+ shore" | present & `true` for shipyards, coastal batteries, offshore platforms |
 
+Optional `deploysTo` on a unit (T32, MCVs with role `mcv`): the construction-yard building id a `deploy` turns it into. Canon prices the MCV row at the yard's 2500 (`coalition.md` etc.); its unit build time (30 s) and stats are provisional.
+
 Optional `footprint: [w, h]` (cells, provisional tuning — canon gives no sizes): when absent the sim uses a category default (`BuildingCatalog.DefaultFootprint`: 3x3 construction-yard/production/economy/naval/air/superweapon, 2x2 power/tech/logistics/offshore, 1x1 defense). Barracks and conscription hall override to 2x2.
 
 `stats.hp` is a provisional object (qualitative HP tier from the table → a placeholder number), same rule as units. Optional flags (`garrisonable`) where canon states them.

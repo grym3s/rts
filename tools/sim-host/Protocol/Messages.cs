@@ -84,7 +84,8 @@ public sealed record HostUnit(
     int Id, int Faction, long X, long Y, long Vx, long Vy, long Hp, long MaxHp,
     bool Harvest, int Load, bool Carrying,
     string? BuildingId, int ConstructionRemaining, IReadOnlyList<string>? ProductionQueue,
-    int ConstructionTotal = 0, int QueueHeadRemaining = 0, int QueueHeadTotal = 0);
+    int ConstructionTotal = 0, int QueueHeadRemaining = 0, int QueueHeadTotal = 0,
+    string? DeploysTo = null, int FootprintW = 0, int FootprintH = 0);
 
 /// <summary>T30: credits and the power ledger (net = supply − draw; low power when net &lt; 0).</summary>
 public sealed record HostFaction(int Faction, int Credits, int PowerSupply = 0, int PowerDraw = 0);

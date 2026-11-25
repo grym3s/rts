@@ -58,7 +58,7 @@ public sealed class HostedWorld
                 units.Spawn(world.Ids.Next(),
                     new FixVec2(Fix64.FromDouble(u.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(u.GetProperty("at")[1].GetDouble())),
                     p.Speed, p.Radius,
-                    new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest));
+                    new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest, p.DeploysTo));
             }
         var roster = new EntityId[units.Units.Count];
         for (var i = 0; i < units.Units.Count; i++) roster[i] = units.Units[i].Id;
@@ -149,6 +149,7 @@ public sealed class HostedWorld
                 "place" => new PlaceBuildingCommand(tick, faction, c.GetProperty("building").GetString()!,
                     new FixVec2(Fix64.FromDouble(c.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(c.GetProperty("at")[1].GetDouble()))),
                 "train" => new TrainCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("unit").GetString()!),
+                "deploy" => new DeployCommand(tick, faction, new EntityId(c.GetProperty("unit").GetInt32())),
                 "cancel" => new CancelProductionCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("index").GetInt32()),
                 var t => throw new ProtocolException("unknown_command_type", $"unknown command type '{t}'"),
             });
@@ -210,7 +211,10 @@ public sealed class HostedWorld
                 u.Building is { } b && b.Queue.Count > 0 ? b.Queue.ToList() : null,
                 u.Building is { } bc ? BuildingsCatalog.Get(bc.Id).BuildTicks : 0,
                 u.Building is { } bq && bq.Queue.Count > 0 ? bq.QueueHeadRemaining : 0,
-                u.Building is { } bt && bt.Queue.Count > 0 ? UnitsCatalog.Get(bt.Queue[0]).BuildTicks : 0));
+                u.Building is { } bt && bt.Queue.Count > 0 ? UnitsCatalog.Get(bt.Queue[0]).BuildTicks : 0,
+                u.DeploysTo,
+                u.Building is { } bf ? BuildingsCatalog.Get(bf.Id).FootprintW : 0,
+                u.Building is { } bh ? BuildingsCatalog.Get(bh.Id).FootprintH : 0));
         }
 
         var factions = new List<HostFaction>(2);

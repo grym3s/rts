@@ -46,7 +46,7 @@ if (doc.TryGetProperty("units", out var unitEls))
         units.Spawn(world.Ids.Next(),
             new FixVec2(Fix64.FromDouble(u.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(u.GetProperty("at")[1].GetDouble())),
             p.Speed, p.Radius,
-            new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest));
+            new UnitProfile(p.Faction, p.Hp, p.Sight, p.Damage, p.Range, p.CooldownTicks, p.Armor, p.DamageType, p.Harvest, p.DeploysTo));
     }
 
 // --- orders + economy + production + navigation wired to the tick (steps 1-4 of sim/CONTEXT.md) ---
@@ -110,6 +110,7 @@ if (doc.TryGetProperty("commands", out var cmds))
             "place" => new PlaceBuildingCommand(tick, faction, c.GetProperty("building").GetString()!,
                 new FixVec2(Fix64.FromDouble(c.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(c.GetProperty("at")[1].GetDouble()))),
             "train" => new TrainCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("unit").GetString()!),
+            "deploy" => new DeployCommand(tick, faction, new EntityId(c.GetProperty("unit").GetInt32())),
             "cancel" => new CancelProductionCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("index").GetInt32()),
             var t => throw new InvalidDataException($"unknown command type '{t}'")
         });

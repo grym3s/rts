@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 2,
+  "id": "seed-core",
+  "name": "Seed Core",
+  "faction": "ascendant",
+  "role": "mcv",
+  "tier": 1,
+  "builtFrom": "ascendant-forge",
+  "cost": 2500,
+  "buildTimeSeconds": 30,
+  "armor": "heavy",
+  "deploysTo": "ascendant-construction-yard",
+  "stats": {
+    "hp": 1000,
+    "speed": 1.5,
+    "sight": 6.0
+  }
+}

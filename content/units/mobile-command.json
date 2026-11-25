@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 2,
+  "id": "mobile-command",
+  "name": "Mobile Command",
+  "faction": "coalition",
+  "role": "mcv",
+  "tier": 1,
+  "builtFrom": "coalition-vehicle-bay",
+  "cost": 2500,
+  "buildTimeSeconds": 30,
+  "armor": "heavy",
+  "deploysTo": "coalition-construction-yard",
+  "stats": {
+    "hp": 1000,
+    "speed": 1.5,
+    "sight": 6.0
+  }
+}

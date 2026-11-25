@@ -10,7 +10,7 @@ public sealed class UnitCatalog
     public record SpawnParams(string Id, Fix64 Speed, Fix64 Radius, Fix64 Hp, Fix64 Sight,
         int Faction, Fix64 Damage, Fix64 Range, int CooldownTicks,
         ArmorClass Armor, DamageType DamageType, bool Harvest,
-        int Cost, int BuildTicks, string BuiltFrom);
+        int Cost, int BuildTicks, string BuiltFrom, string? DeploysTo = null);
 
     /// <summary>True when unitId names a unit this building (catalog id) fields:
     /// canon link is the unit's `builtFrom` (content/CONTEXT.md), nothing else.</summary>
@@ -48,7 +48,8 @@ public sealed class UnitCatalog
                 Fix64.FromDouble(hp), Fix64.FromDouble(sight), faction, dmg, rng, cd, armor, dtype, harvest,
                 root.GetProperty("cost").GetInt32(),
                 root.GetProperty("buildTimeSeconds").GetInt32() * Rts.Sim.Core.SimWorld.TicksPerSecond,
-                root.GetProperty("builtFrom").GetString()!);
+                root.GetProperty("builtFrom").GetString()!,
+                root.TryGetProperty("deploysTo", out var dep) ? dep.GetString() : null);
         }
         return cat;
     }
