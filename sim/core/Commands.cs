@@ -46,3 +46,8 @@ public sealed record DeployCommand(int Tick, int Faction, EntityId Unit) : Comma
 /// <summary>Step-1 command (T37): set a producing building's rally point. Units it trains from
 /// then on walk there (a plain move order) as they spawn. Own, live buildings only.</summary>
 public sealed record RallyCommand(int Tick, int Faction, EntityId BuildingId, FixVec2 Target) : Command(Tick, Faction);
+
+/// <summary>Step-2 command (T38): send own harvesters to a vein. It becomes their home vein; an
+/// empty or part-filled one walks there now, a carrying one delivers first and then returns to it.
+/// Ignored for a dry or unknown vein and for units that are not your live harvesters.</summary>
+public sealed record HarvestCommand(int Tick, int Faction, EntityId[] Units, int Vein) : Command(Tick, Faction);

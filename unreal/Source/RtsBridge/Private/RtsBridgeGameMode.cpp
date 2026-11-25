@@ -9,6 +9,7 @@
 #include "RtsMinimapHud.h"
 #include "RtsContentLoader.h"
 #include "RtsTerrainActor.h"
+#include "RtsVeinActor.h"
 #include "Engine/World.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/DirectionalLight.h"
@@ -68,6 +69,9 @@ void ARtsBridgeGameMode::StartPlay()
 	SP.Name = TEXT("Battlefield");
 	if (ARtsTerrainActor* Terrain = GetWorld()->SpawnActor<ARtsTerrainActor>(FVector::ZeroVector, FRotator::ZeroRotator, SP))
 		Terrain->Build(TerrainRows, SimCellUU);
+	FActorSpawnParameters VP;
+	VP.Name = TEXT("Veins");
+	VeinActor = GetWorld()->SpawnActor<ARtsVeinActor>(FVector::ZeroVector, FRotator::ZeroRotator, VP);
 	// Lights spawned at runtime into an unbuilt level must be Movable to light anything.
 	if (ADirectionalLight* Sun = GetWorld()->SpawnActor<ADirectionalLight>(FVector::ZeroVector, FRotator(-45.0f, 30.0f, 0.0f)))
 	{
@@ -174,7 +178,7 @@ void ARtsBridgeGameMode::Tick(float DeltaSeconds)
 	}
 }
 
-bool ARtsBridgeGameMode::QueueOrderForSelection(const TCHAR* Type, const FString& TargetJson)
+bool ARtsBridgeGameMode::QueueOrderForSelection(const TCHAR* Type, const FString& TargetJson, bool bSkipHarvesters)
 {
 	if (!bHostAlive || Selection.GetSelected().Num() == 0)
 		return false;
@@ -185,6 +189,9 @@ bool ARtsBridgeGameMode::QueueOrderForSelection(const TCHAR* Type, const FString
 	{
 		if (IsBuildingId(Id))
 			continue; // T37: buildings take rally points, not unit orders
+		if (bSkipHarvesters)
+			if (const FRtsUnitSnapshot* HR = RowsById.Find(Id); HR && HR->bHarvester)
+				continue; // T38: they got a `harvest` instead
 		if (Ids.Len())
 			Ids += TEXT(",");
 		Ids += FString::Printf(TEXT("%d"), Id);
@@ -347,6 +354,8 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 	// T35: economy rows are read straight from the snapshot (presentation only).
 	Factions = Reply.Factions;
 	Veins = Reply.Veins;
+	if (VeinActor)
+		VeinActor->UpdateVeins(Veins, SimCellUU);
 	RowsById.Reset();
 	for (const FRtsUnitSnapshot& S : Reply.Units)
 		RowsById.Add(S.Id, S);
@@ -377,6 +386,8 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 		if (S.IsBuilding())
 			A->SetBuildingShape(FMath::Max(1, S.FootprintW), FMath::Max(1, S.FootprintH), S.ConstructionTotal > 0
 				? 1.0f - float(S.ConstructionRemaining) / float(S.ConstructionTotal) : 1.0f);
+		else if (S.bHarvester)
+			A->SetCargo(S.LoadCapacity > 0 ? float(S.Load) / float(S.LoadCapacity) : 0.0f, S.bCarrying);
 		UnitActors.Add(A);
 	}
 	// T16: one tracer per shot, read while both actors are still mapped (a killing shot's
@@ -744,4 +755,44 @@ bool ARtsBridgeGameMode::RequestRallySelected(const FVector& WorldPoint)
 				bAny = true;
 			}
 	return bAny;
+}
+
+// ---- T38: harvest orders ---------------------------------------------------------------------
+
+int32 ARtsBridgeGameMode::VeinAt(const FVector& WorldPoint) const
+{
+	const FVector2D P(WorldPoint.X / SimCellUU, WorldPoint.Y / SimCellUU);
+	int32 Best = INDEX_NONE;
+	double BestD = 1.0; // within one cell of the vein centre
+	for (const FRtsVeinSnapshot& V : Veins)
+	{
+		if (V.Pool <= 0)
+			continue;
+		const double D = FVector2D::Distance(P, FVector2D(V.X, V.Y));
+		if (D <= BestD)
+		{
+			BestD = D;
+			Best = V.Id;
+		}
+	}
+	return Best;
+}
+
+bool ARtsBridgeGameMode::RequestHarvestAt(const FVector& WorldPoint)
+{
+	if (!bHostAlive || IsMatchScreenUp())
+		return false;
+	const int32 Vein = VeinAt(WorldPoint);
+	if (Vein == INDEX_NONE)
+		return false;
+	FString Ids;
+	for (const int32 Id : Selection.GetSelected())
+		if (const FRtsUnitSnapshot* R = RowsById.Find(Id))
+			if (R->Faction == 0 && R->bHarvester)
+				Ids += (Ids.IsEmpty() ? TEXT("") : TEXT(",")) + FString::FromInt(Id);
+	if (Ids.IsEmpty())
+		return false; // no harvesters: an ordinary move onto the field
+	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"harvest\",\"units\":[%s],\"vein\":%d"), *Ids, Vein));
+	QueueOrderForSelection(TEXT("move"), MapPointJson(WorldPoint), /*bSkipHarvesters=*/true); // the rest, if any
+	return true;
 }

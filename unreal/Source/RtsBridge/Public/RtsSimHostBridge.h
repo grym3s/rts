@@ -83,6 +83,10 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	int32 Load = 0;
 
+	/** T38: a full load in credits (harvesters only; 0 otherwise). */
+	UPROPERTY(BlueprintReadOnly)
+	int32 LoadCapacity = 0;
+
 	UPROPERTY(BlueprintReadOnly)
 	bool bCarrying = false;
 

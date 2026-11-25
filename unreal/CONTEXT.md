@@ -23,6 +23,8 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   never advances the tick, sidebar layout/hit).
   T37: per building `rally` (bHasRally, RallyX/Y in cells). Test: `RtsBridge.Host.Production` (train x2,
   cancel refunds, rally decoded, the rifleman walks there; panel layout/hit).
+  T38: harvester rows add `LoadCapacity`. Test: `RtsBridge.Host.Harvest` (vein block sizes; a `harvest`
+  body sends a collector to the named vein and leaves the near one untouched).
 - `Source/RtsBridge/Private/RtsBridgeRoundTripTest.cpp` — editor automation test
   `RtsBridge.Host.RoundTrip` (real host launch, init, tick-0 move, 120 steps).
 - `Config/DefaultEngine.ini` — GlobalDefaultGameMode = RtsBridgeGameMode;
@@ -60,7 +62,8 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   cancels; the minimap still moves the camera while placing. E = `deploy` the selected MCVs. T37:
   clicking a building selects it; unit orders skip buildings; RMB ground with a producing building
   selected also sends `rally` (`RequestRallySelected`); the production panel takes LMB (`train`,
-  Shift = 5) and RMB (`cancel` the last of that unit, or the clicked queue slot). All orders go through
+  Shift = 5) and RMB (`cancel` the last of that unit, or the clicked queue slot). T38: RMB within a
+  cell of a live vein (`VeinAt`) with harvesters selected sends them `harvest` for it and the rest a move. All orders go through
   `QueueOrderForSelection` (game mode); never sim state.
   Test: `RtsBridge.Host.Orders` (real host accepts the exact attack/stop/attack-move bodies). `RtsBridge.Host.Restart`: reset + init replays the same hash; init without reset is refused.
 - `RtsSelection.h` (`FRtsSelection`) — pure selection + control groups 1–3 over sim
@@ -99,6 +102,10 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   tile rows), faction-coloured unit dots (selected = white outline), camera
   footprint (viewport corners deprojected to Z=0). `MinimapToWorld` for clicks. Map
   size comes from `ARtsBridgeGameMode::MapCellsW/H` (set from the loaded scenario).
+- `RtsVeinActor` (T38) — one gold block per vein (instanced cubes, no collision), shrinking with its pool
+  as a fraction of the largest pool seen (`VeinScale`, pure), gone when dry; updated from every snapshot.
+  Harvesters carry a gold cargo block sized by load / `LoadCapacity`, brighter when full
+  (`ARtsSimUnitActor::SetCargo`); the minimap draws live veins as gold squares.
 - `RtsTerrainActor` — T14-lite: water plane under the map, then land / cliff / bridge
   tiles as row-run-merged boxes, one Movable instanced-mesh component per tile type
   (land top Z=0, cliffs 80 UU, bridges just above land). Collision = query-only so RMB

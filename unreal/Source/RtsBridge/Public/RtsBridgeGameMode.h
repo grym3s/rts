@@ -11,6 +11,7 @@
 
 class URtsSimHostBridge;
 class ARtsSimUnitActor;
+class ARtsVeinActor;
 struct FRtsHostReply;
 
 UCLASS()
@@ -141,6 +142,10 @@ public:
 	bool RequestCancelLastOf(int32 BuildingSimId, const FString& UnitId);
 	/** `rally` every selected own producing building at a world ground point. */
 	bool RequestRallySelected(const FVector& WorldPoint);
+	/** T38: a live vein within a cell of the point (nearest), else INDEX_NONE. */
+	int32 VeinAt(const FVector& WorldPoint) const;
+	/** T38: RMB on a vein: selected harvesters get `harvest` (that vein), the rest a plain move. */
+	bool RequestHarvestAt(const FVector& WorldPoint);
 
 	/** Fixture map size in cells (must match the init request's map) and world scale. */
 	// Set from the loaded scenario in StartPlay (before any HUD/camera use of them).
@@ -175,6 +180,9 @@ private:
 
 	UPROPERTY()
 	TArray<TObjectPtr<ARtsSimUnitActor>> UnitActors;
+
+	UPROPERTY()
+	TObjectPtr<ARtsVeinActor> VeinActor; // T38
 
 	// Actors are keyed by sim id, so a death never hands one unit's actor to another
 	// (that would glide it across the map under interpolation). UnitActors = snapshot order.
@@ -227,7 +235,7 @@ private:
 	int32 PickOwnUnitAt(const FVector2D& ScreenPos) const;
 	int32 PickUnitAt(const FVector2D& ScreenPos, bool bOwn) const;
 	/** Queue one order for the selected units; TargetJson is the raw `target` value or empty. */
-	bool QueueOrderForSelection(const TCHAR* Type, const FString& TargetJson);
+	bool QueueOrderForSelection(const TCHAR* Type, const FString& TargetJson, bool bSkipHarvesters = false);
 	void RefreshSelectionRings();
 	void FailHost(const FString& Reason);
 };

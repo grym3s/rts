@@ -68,7 +68,7 @@ public class RefineryTests
             Power = new PowerStore(),
         };
         x.Sim.Systems.Add((_, due) => PowerSystem.Step(x.Power, BuildingsCat, x.Units));
-        x.Sim.Systems.Add((sw, due) => EconomySystem.IncomeStep(x.Econ, x.Units, x.Orders, sw.Tick, x.Map, UnitsCat.IsRefinery));
+        x.Sim.Systems.Add((sw, due) => EconomySystem.IncomeStep(x.Econ, x.Units, x.Orders, sw.Tick, x.Map, UnitsCat.IsRefinery, due));
         x.Sim.Systems.Add((_, due) => OrderSystem.ApplyCommands(x.Orders, due, x.Units.Find, (f, a) => x.Econ.TrySpend(f, a)));
         x.Sim.Systems.Add((sw, due) => ProductionSystem.Step(BuildingsCat, UnitsCat, x.Units, x.Map, x.Sim.Ids, due,
             (f, a) => x.Econ.TrySpend(f, a), (f, a) => { x.Econ.Deposit(f, a); return true; }, x.Power, sw.Tick));
@@ -235,5 +235,62 @@ public class RefineryTests
             return x.Sim.StateHash();
         }
         Assert.Equal(Run(), Run());
+    }
+
+    // ---------- T38: send harvesters to a vein ----------
+
+    [Fact]
+    public void Harvest_command_sends_a_harvester_to_another_vein_which_becomes_its_home()
+    {
+        var x = World(40);
+        x.AddVein(14, 10, 25_000);
+        x.AddVein(14, 24, 25_000);
+        Base(x, 9, 10);
+        var h = Assert.Single(x.Harvesters);
+        x.Run(60); // settled on the near vein
+        Assert.Equal(0, h.HomeVein);
+        x.Step(new HarvestCommand(x.Sim.Tick, 0, new[] { h.Id }, 1));
+        Assert.Equal(1, h.HomeVein);
+        x.Run(1500);
+        Assert.True(x.Econ.FindVein(1)!.Pool < 25_000, $"far vein untouched; harvester at {h.Position}");
+        Assert.Equal(1, h.HomeVein);
+    }
+
+    [Fact]
+    public void A_carrying_harvester_delivers_before_it_goes_to_the_new_vein()
+    {
+        var x = World(40);
+        x.AddVein(14, 10, 25_000);
+        x.AddVein(14, 24, 25_000);
+        Base(x, 9, 10);
+        var h = Assert.Single(x.Harvesters);
+        for (var i = 0; i < 600 && !h.Carrying; i++) x.Step();
+        Assert.True(h.Carrying);
+        var credits = x.Econ.Credits(0);
+        x.Step(new HarvestCommand(x.Sim.Tick, 0, new[] { h.Id }, 1));
+        for (var i = 0; i < 300 && x.Econ.Credits(0) == credits; i++) x.Step();
+        Assert.Equal(credits + EconomySystem.Capacity, x.Econ.Credits(0)); // delivered the load
+        x.Run(900);
+        Assert.True(x.Econ.FindVein(1)!.Pool < 25_000);
+    }
+
+    [Fact]
+    public void Harvest_command_ignores_enemies_dry_veins_and_non_harvesters()
+    {
+        var x = World(40);
+        x.AddVein(14, 10, 25_000);
+        x.AddVein(14, 24, 0); // dry
+        x.AddVein(20, 24, 25_000);
+        var refinery = Base(x, 9, 10);
+        var h = Assert.Single(x.Harvesters);
+        x.Run(60);
+        x.Step(new HarvestCommand(x.Sim.Tick, 0, new[] { h.Id }, 1)); // dry vein
+        Assert.Equal(0, h.HomeVein);
+        x.Step(new HarvestCommand(x.Sim.Tick, 1, new[] { h.Id }, 2)); // not your harvester
+        Assert.Equal(0, h.HomeVein);
+        x.Step(new HarvestCommand(x.Sim.Tick, 0, new[] { refinery.Id }, 2)); // not a harvester
+        Assert.False(x.Orders.ContainsKey(refinery.Id));
+        x.Step(new HarvestCommand(x.Sim.Tick, 0, new[] { h.Id }, 99)); // unknown vein
+        Assert.Equal(0, h.HomeVein);
     }
 }

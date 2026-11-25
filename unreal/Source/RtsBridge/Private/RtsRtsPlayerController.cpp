@@ -250,6 +250,13 @@ bool ARtsRtsPlayerController::IssueOrderAtCursor(bool bAttack)
 	FHitResult Hit;
 	if (!GetHitResultUnderCursor(ECC_Visibility, false, Hit))
 		return false;
+	// T38: RMB on a vein with harvesters selected sends them there (the rest just move).
+	if (!bAttack && GM->RequestHarvestAt(Hit.Location))
+	{
+		if (Hud)
+			Hud->AddGroundMarker(FVector2D(Hit.Location.X, Hit.Location.Y), EMarker::Move);
+		return true;
+	}
 	return PointOrder(Hit.Location);
 }
 

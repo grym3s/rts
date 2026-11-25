@@ -44,6 +44,8 @@ public:
 	/** T36: draw as a W x H footprint, height and shade from construction progress (0..1). */
 	void SetBuildingShape(int32 W, int32 H, float Progress);
 	bool IsBuilding() const { return bIsBuilding; }
+	/** T38: harvester load (0..1 of capacity) as a gold block; bCarrying = full and heading home. */
+	void SetCargo(float Fraction, bool bCarrying);
 
 private:
 	UPROPERTY(VisibleAnywhere)
@@ -54,6 +56,12 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UMaterialInstanceDynamic> Mid;
+
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UStaticMeshComponent> Cargo;
+
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> CargoMid;
 
 	int32 SimUnitId = INDEX_NONE;
 	float GroundZ = 50.0f; // actor Z on the ground plane (buildings: half their height)

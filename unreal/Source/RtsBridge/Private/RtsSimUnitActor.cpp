@@ -30,6 +30,15 @@ ARtsSimUnitActor::ARtsSimUnitActor()
 	Ring->SetRelativeLocation(FVector(0.0f, 0.0f, -49.0f));
 	Ring->SetRelativeScale3D(FVector(1.4f, 1.4f, 0.05f));
 	Ring->SetCastShadow(false);
+	// T38: harvester cargo, a gold block on top, sized by the load (hidden when empty).
+	Cargo = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Cargo"));
+	Cargo->SetupAttachment(RootComponent);
+	Cargo->SetRelativeLocation(FVector(0.0f, 0.0f, 62.0f));
+	Cargo->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Cargo->SetCastShadow(false);
+	Cargo->SetVisibility(false);
+	if (CubeFinder.Succeeded())
+		Cargo->SetStaticMesh(CubeFinder.Object);
 	Ring->SetVisibility(false);
 	if (CylFinder.Succeeded())
 	{
@@ -133,6 +142,7 @@ void ARtsSimUnitActor::BeginDeath()
 	DeathFrom = GetActorLocation();
 	Hp = 0.0;
 	Ring->SetVisibility(false);
+	Cargo->SetVisibility(false);
 	SetActorEnableCollision(false); // never picked or box-selected again
 	if (Mid)
 		Mid->SetVectorParameterValue(TEXT("Color"), FactionColor(Faction) * 0.25f);
@@ -176,4 +186,24 @@ void ARtsSimUnitActor::SetBuildingShape(int32 W, int32 H, float Progress)
 		const float Shade = P >= 1.0f ? 1.0f : FMath::Lerp(0.25f, 0.6f, P);
 		Mid->SetVectorParameterValue(TEXT("Color"), FLinearColor(C.R * Shade, C.G * Shade, C.B * Shade));
 	}
+}
+
+void ARtsSimUnitActor::SetCargo(float Fraction, bool bCarrying)
+{
+	// T38: the load as a gold block on the roof; brighter once full and heading home.
+	const float F = FMath::Clamp(Fraction, 0.0f, 1.0f);
+	if (F <= 0.0f || IsDying())
+	{
+		Cargo->SetVisibility(false);
+		return;
+	}
+	if (!CargoMid)
+		if (UMaterialInterface* Base = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial")))
+			if ((CargoMid = UMaterialInstanceDynamic::Create(Base, this)) != nullptr)
+				Cargo->SetMaterial(0, CargoMid);
+	if (CargoMid)
+		CargoMid->SetVectorParameterValue(TEXT("Color"), bCarrying ? FLinearColor(1.0f, 0.8f, 0.15f) : FLinearColor(0.6f, 0.45f, 0.1f));
+	const float S = 0.3f + 0.5f * F; // relative to the unit cube
+	Cargo->SetRelativeScale3D(FVector(S, S, 0.25f + 0.35f * F));
+	Cargo->SetVisibility(true);
 }

@@ -86,7 +86,7 @@ public sealed class HostedWorld
         // proximity reads post-move positions.
         var power = new PowerStore();
         world.Systems.Add((w, due) => PowerSystem.Step(power, buildingsCat, units));
-        world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.IncomeStep(econ, units, orders, w.Tick, map, catalog.IsRefinery));
+        world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.IncomeStep(econ, units, orders, w.Tick, map, catalog.IsRefinery, due));
         world.Systems.Add((w, due) => OrderSystem.ApplyCommands(orders, due, units.Find, (f, a) => econ.TrySpend(f, a)));
         world.Systems.Add((w, due) => Rts.Sim.Production.ProductionSystem.Step(
             buildingsCat, catalog, units, map, w.Ids, due,
@@ -155,6 +155,7 @@ public sealed class HostedWorld
                 "train" => new TrainCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("unit").GetString()!),
                 "deploy" => new DeployCommand(tick, faction, new EntityId(c.GetProperty("unit").GetInt32())),
                 "cancel" => new CancelProductionCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), c.GetProperty("index").GetInt32()),
+                "harvest" => new HarvestCommand(tick, faction, unitIds, c.GetProperty("vein").GetInt32()),
                 "rally" => new RallyCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()),
                     new FixVec2(Fix64.FromDouble(c.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(c.GetProperty("at")[1].GetDouble()))),
                 var t => throw new ProtocolException("unknown_command_type", $"unknown command type '{t}'"),
@@ -249,7 +250,8 @@ public sealed class HostedWorld
                 u.DeploysTo,
                 u.Building is { } bf ? BuildingsCatalog.Get(bf.Id).FootprintW : 0,
                 u.Building is { } bh ? BuildingsCatalog.Get(bh.Id).FootprintH : 0,
-                u.Building?.Rally is { } rp ? new[] { rp.X.Raw, rp.Y.Raw } : null));
+                u.Building?.Rally is { } rp ? new[] { rp.X.Raw, rp.Y.Raw } : null,
+                u.Harvest ? Rts.Sim.Economy.EconomySystem.Capacity : 0));
         }
 
         var factions = new List<HostFaction>(2);

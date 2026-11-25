@@ -75,10 +75,15 @@ public static class EconomySystem
     /// run AFTER NavigationSystem so proximity reads post-move positions.
     /// T33: with `map` + `isRefinery`, completed live refinery buildings of the harvester's
     /// faction are drop-offs too (nearest wins; scenario points first on ties), and an idle
-    /// harvester out of reach of any vein walks back to its vein or the nearest live one.</summary>
+    /// harvester out of reach of any vein walks back to its vein or the nearest live one.
+    /// T38: `due` carries this tick's HarvestCommands, applied first.</summary>
     public static void IncomeStep(EconomyStore store, UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick,
-        GameMap? map = null, Func<string, bool>? isRefinery = null)
+        GameMap? map = null, Func<string, bool>? isRefinery = null, IReadOnlyList<Command>? due = null)
     {
+        if (due != null)
+            foreach (var c in due)
+                if (c is HarvestCommand h) Harvest(store, units, orders, h, tick);
+
         foreach (var u in units.Units)
         {
             if (!u.Harvest || u.Hp.Raw <= 0) continue;
@@ -99,6 +104,10 @@ public static class EconomySystem
                 if (map != null && !orders.ContainsKey(u.Id)) SeekVein(store, u, orders, tick);
                 continue;
             }
+            // T38: walking to a live home vein (sent there by a harvest command, or back after a
+            // deposit), it fills only at home, not at whatever vein it passes on the way.
+            if (vein.Id != u.HomeVein && store.FindVein(u.HomeVein) is { Pool: > 0 } homeVein
+                && orders.TryGetValue(u.Id, out var going) && going.Target == homeVein.Position) continue;
             u.HomeVein = vein.Id;
             var take = Math.Min(Rate, Math.Min(Capacity - u.Load, vein.Pool));
             u.Load += take;
@@ -128,6 +137,19 @@ public static class EconomySystem
                 orders[u.Id] = new MoveOrder(home.Position, new List<FixVec2>(), tick);
             else
                 orders.Remove(u.Id);
+        }
+    }
+
+    /// <summary>T38: point own live harvesters at a live vein (see HarvestCommand).</summary>
+    private static void Harvest(EconomyStore store, UnitStore units, Dictionary<EntityId, MoveOrder> orders, HarvestCommand h, int tick)
+    {
+        var vein = store.FindVein(h.Vein);
+        if (vein is not { Pool: > 0 }) return;
+        foreach (var id in h.Units)
+        {
+            if (units.Find(id) is not { Harvest: true } u || u.Faction != h.Faction || u.Hp.Raw <= 0) continue;
+            u.HomeVein = vein.Id;
+            if (!u.Carrying) orders[u.Id] = new MoveOrder(vein.Position, new List<FixVec2>(), tick);
         }
     }
 

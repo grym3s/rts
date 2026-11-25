@@ -217,6 +217,14 @@ void ARtsMinimapHud::DrawHUD()
 	if (const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr)
 	{
 		const float Dot = FMath::Max(3.0f, Sz.X / ARtsBridgeGameMode::MapCellsW * 0.45f);
+		// T38: ore under the units, one small gold square per live vein.
+		const float OreDot = FMath::Max(2.0f, Dot * 0.6f);
+		for (const FRtsVeinSnapshot& V : GM->GetVeins())
+			if (V.Pool > 0)
+			{
+				const FVector2D P = WorldToMinimap(R, FVector2D(V.X * ARtsBridgeGameMode::CellUU, V.Y * ARtsBridgeGameMode::CellUU));
+				DrawRect(FLinearColor(0.95f, 0.7f, 0.12f), P.X - OreDot * 0.5f, P.Y - OreDot * 0.5f, OreDot, OreDot);
+			}
 		for (const ARtsSimUnitActor* U : GM->GetUnitActors())
 		{
 			if (!U)

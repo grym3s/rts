@@ -563,6 +563,24 @@ public class ProtocolTests
         Assert.Equal((18, 18), ((int)(rifle.X >> 32), (int)(rifle.Y >> 32)));
     }
 
+    // ---------- harvest command (T38) ----------
+
+    [Fact]
+    public void Harvest_command_sends_a_collector_to_the_named_vein_and_the_row_shows_its_capacity()
+    {
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":32,"height":32,"blocked":[]},"veins":[{"at":[6.5,6.5],"pool":5000},{"at":[24.5,24.5],"pool":5000}],"refineries":[{"faction":0,"at":[4.5,4.5]}],"units":[{"unit":"collector","at":[10.5,10.5]}]}}"""));
+        Assert.True(init.Ok, init.Error);
+        var c = Assert.Single(init.State!.Units);
+        Assert.True(c.Harvest);
+        Assert.Equal(700, c.LoadCapacity);
+        var r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":0,"commands":[{"tick":0,"faction":0,"type":"harvest","units":[{{c.Id}}],"vein":1}]}"""));
+        Assert.True(r.Ok, r.Error);
+        for (var t = 1; t < 600; t++) r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":{{t}},"commands":[]}"""));
+        Assert.Equal(5000, r.State!.Veins![0].Pool);   // the near vein was never touched
+        Assert.True(r.State.Veins[1].Pool < 5000);      // the named one was
+    }
+
     // ---------- debug overlays (T20) ----------
 
     [Fact]

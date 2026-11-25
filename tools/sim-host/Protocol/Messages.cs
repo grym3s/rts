@@ -95,7 +95,8 @@ public sealed record HostUnit(
     string? BuildingId, int ConstructionRemaining, IReadOnlyList<string>? ProductionQueue,
     int ConstructionTotal = 0, int QueueHeadRemaining = 0, int QueueHeadTotal = 0,
     string? DeploysTo = null, int FootprintW = 0, int FootprintH = 0,
-    long[]? Rally = null); // T37: [x, y] Q32.32 raw, buildings with a rally point only
+    long[]? Rally = null, // T37: [x, y] Q32.32 raw, buildings with a rally point only
+    int LoadCapacity = 0); // T38: a harvester's full load (credits), 0 for everything else
 
 /// <summary>T30: credits and the power ledger (net = supply − draw; low power when net &lt; 0).</summary>
 public sealed record HostFaction(int Faction, int Credits, int PowerSupply = 0, int PowerDraw = 0);

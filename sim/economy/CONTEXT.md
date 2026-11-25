@@ -18,5 +18,9 @@ empty harvester with no vein in FillRadius walks to its home vein while it lasts
 nearest live vein within `SeekRadius` = 12 cells; nothing in reach and a partial load: it goes to
 unload. No refinery anywhere: it holds its load. Refinery = a building some harvester is
 `builtFrom` (`UnitCatalog.IsRefinery`). Tests: `sim/tests/RefineryTests.cs`.
+T38: `HarvestCommand` (passed to IncomeStep as `due`, applied first) makes a vein the home of your
+live harvesters; empty or part-filled ones walk there, carrying ones deliver first and return to it.
+A harvester walking to a live home vein fills only there, never at a vein it passes. Dry or unknown
+veins and units that are not your harvesters are ignored. Tests: `sim/tests/RefineryTests.cs` (T38 section).
 Known limits (2026-11-25): scenario refinery points remain for the old goldens (economy-2h);
 fill/deposit radii are tuning constants; SpendCommand fails silently by design (atomic, no events yet).
