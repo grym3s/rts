@@ -51,7 +51,7 @@ All game rules stay in the sim. Unreal only sends Commands.
 - [ ] **T17 Rifleman with `idle`, `move` and `fire` animations** (after T03). Follow the GRY-295 spec. Check axis, scale and clip names in the pinned editor first.
 - [ ] **T18 One representative explosion.** Check that it reads well at close, default and far zoom (GRY-297).
 - [x] **T19 Win/lose screen with restart** (after T06 and T07). The only menu the demo needs. Restart lives only in this menu (and a single-player pause menu), never on a hotkey; it calls `RestartMatch()` from T07. *Done on `feat/t19-match-screen`: result panel with time and losses, Play again (single player only) and Quit.*
-- [ ] **T20 Debug overlays on F-keys.** Paths, targets, unit IDs and state, tick counter and sim step in ms. The Godot version has these in `game/debug/`.
+- [x] **T20 Debug overlays on F-keys.** Paths, targets, unit IDs and state, tick counter and sim step in ms. The Godot version has these in `game/debug/`. *Done on `feat/t20-debug-overlays`: F4 toggles stats, paths, targets and id/state labels (the editor swallows F1-F3 in PIE).*
 
 ## Phase 4 — Prove it and lock it down (slice 6)
 
