@@ -46,7 +46,7 @@ All game rules stay in the sim. Unreal only sends Commands.
 
 ## Phase 3 — Make fights readable (slice 5)
 
-- [ ] **T15 Health bars, deaths and corpse removal** (after T09). Driven only by snapshots and events.
+- [x] **T15 Health bars, deaths and corpse removal** (after T09). Driven only by snapshots and events. *Done on `feat/t15-health-deaths`: HUD bars on damaged or selected units; killed units topple, lie 2 s, sink.*
 - [ ] **T16 Show who is shooting whom** (after T09). Tracers or muzzle flashes per shot. This is pillar 4.
 - [ ] **T17 Rifleman with `idle`, `move` and `fire` animations** (after T03). Follow the GRY-295 spec. Check axis, scale and clip names in the pinned editor first.
 - [ ] **T18 One representative explosion.** Check that it reads well at close, default and far zoom (GRY-297).
