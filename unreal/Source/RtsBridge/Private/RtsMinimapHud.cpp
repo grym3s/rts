@@ -179,7 +179,10 @@ void ARtsMinimapHud::DrawHUD()
 	DrawTracers();
 	DrawHealthBars();
 	DrawDebugOverlays();
+	DrawConstructionBars();
+	DrawPlacementGhost();
 	DrawEconomyBar();
+	DrawBuildMenu();
 
 	// Box-select drag rectangle (screen space, under the minimap).
 	if (const ARtsRtsPlayerController* RPC = Cast<ARtsRtsPlayerController>(PlayerOwner))
@@ -638,5 +641,219 @@ void ARtsMinimapHud::DrawEconomyBar()
 		const FString D = FString::Printf(TEXT("%+d"), CreditsDelta);
 		DrawText(D, CreditsDelta > 0 ? FLinearColor(0.4f, 1.0f, 0.45f, A) : FLinearColor(1.0f, 0.45f, 0.35f, A),
 			X + Pad, Y + H + 2.0f, Font, Scale);
+	}
+}
+
+// ---- T36: build sidebar, placement ghost, construction bars ---------------------------------
+
+namespace
+{
+	constexpr float MenuW = 240.0f, MenuMargin = 10.0f, MenuTop = 48.0f, MenuPad = 8.0f;
+	constexpr float MenuHeader = 26.0f, MenuHint = 22.0f, MenuDeployH = 36.0f, MenuEntryH = 40.0f, MenuGap = 4.0f;
+}
+
+ARtsMinimapHud::FBuildMenuLayout ARtsMinimapHud::BuildMenuLayout(const FVector2D& Vp, int32 NumEntries, bool bShowDeploy)
+{
+	FBuildMenuLayout L;
+	const float X0 = Vp.X - MenuMargin - MenuW;
+	float Y = MenuTop + MenuHeader;
+	if (bShowDeploy)
+	{
+		if (NumEntries == 0)
+			Y += MenuHint;
+		L.Deploy = FBox2D(FVector2D(X0 + MenuPad, Y), FVector2D(X0 + MenuW - MenuPad, Y + MenuDeployH));
+		Y += MenuDeployH + MenuGap;
+	}
+	for (int32 i = 0; i < NumEntries; ++i)
+	{
+		L.Entries.Add(FBox2D(FVector2D(X0 + MenuPad, Y), FVector2D(X0 + MenuW - MenuPad, Y + MenuEntryH)));
+		Y += MenuEntryH + MenuGap;
+	}
+	L.Panel = FBox2D(FVector2D(X0, MenuTop), FVector2D(X0 + MenuW, Y + MenuPad - MenuGap));
+	return L;
+}
+
+int32 ARtsMinimapHud::BuildMenuHit(const FVector2D& Vp, int32 NumEntries, bool bShowDeploy, const FVector2D& Pos)
+{
+	const FBuildMenuLayout L = BuildMenuLayout(Vp, NumEntries, bShowDeploy);
+	if (!L.Panel.IsInside(Pos))
+		return BuildMenuNone;
+	if (L.Deploy.bIsValid && L.Deploy.IsInside(Pos))
+		return BuildMenuDeploy;
+	for (int32 i = 0; i < L.Entries.Num(); ++i)
+		if (L.Entries[i].IsInside(Pos))
+			return i;
+	return BuildMenuPanel;
+}
+
+bool ARtsMinimapHud::BuildMenuShape(ARtsBridgeGameMode& GM, int32& OutEntries, bool& bOutDeploy)
+{
+	const bool bBase = GM.HasOwnBuildings();
+	bOutDeploy = GM.HasOwnMcv();
+	OutEntries = bBase ? GM.GetBuildOptions().Num() : 0;
+	return bBase || bOutDeploy;
+}
+
+FString ARtsMinimapHud::PlaceReasonText(const FString& Reason)
+{
+	if (Reason == TEXT("ok")) return TEXT("");
+	if (Reason == TEXT("prereq")) return TEXT("Needs a prerequisite building");
+	if (Reason == TEXT("blocked")) return TEXT("Can't build there");
+	if (Reason == TEXT("occupied")) return TEXT("Something is in the way");
+	if (Reason == TEXT("radius")) return TEXT("Too far from your base");
+	if (Reason == TEXT("credits")) return TEXT("Not enough credits");
+	if (Reason == TEXT("wrong_faction")) return TEXT("Not your faction's building");
+	return Reason;
+}
+
+void ARtsMinimapHud::DrawBuildMenu()
+{
+	ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (!GM || !Canvas || GM->IsMatchScreenUp())
+		return;
+	int32 N = 0;
+	bool bDeploy = false;
+	if (!BuildMenuShape(*GM, N, bDeploy))
+		return;
+	const FVector2D Vp(Canvas->SizeX, Canvas->SizeY);
+	const FBuildMenuLayout L = BuildMenuLayout(Vp, N, bDeploy);
+	const FVector2D PS = L.Panel.GetSize();
+	DrawRect(FLinearColor(0.03f, 0.04f, 0.06f, 0.85f), L.Panel.Min.X, L.Panel.Min.Y, PS.X, PS.Y);
+	UFont* Font = GEngine ? GEngine->GetMediumFont() : nullptr;
+	UFont* Small = GEngine ? GEngine->GetSmallFont() : nullptr;
+	DrawText(TEXT("Build"), FLinearColor(0.9f, 0.9f, 0.9f), L.Panel.Min.X + MenuPad, L.Panel.Min.Y + 4.0f, Font, 1.0f);
+
+	float MX = -1.0f, MY = -1.0f;
+	if (PlayerOwner)
+		PlayerOwner->GetMousePosition(MX, MY);
+	const FVector2D Mouse(MX, MY);
+
+	FString Placing;
+	FIntPoint Cell;
+	if (const ARtsRtsPlayerController* RPC = Cast<ARtsRtsPlayerController>(PlayerOwner))
+		RPC->GetPlacement(Placing, Cell);
+
+	if (L.Deploy.bIsValid)
+	{
+		if (N == 0)
+			DrawText(TEXT("Deploy your MCV to found a base (E)"), FLinearColor(1.0f, 0.86f, 0.35f),
+				L.Panel.Min.X + MenuPad, L.Panel.Min.Y + MenuHeader, Small, 1.0f);
+		DrawButton(L.Deploy, GM->SelectionHasMcv() ? TEXT("Deploy MCV  (E)") : TEXT("Select + deploy MCV"),
+			L.Deploy.IsInside(Mouse), 1.0f);
+	}
+
+	const TArray<ARtsBridgeGameMode::FBuildOption>& Opts = N > 0 ? GM->GetBuildOptions() : TArray<ARtsBridgeGameMode::FBuildOption>();
+	for (int32 i = 0; i < L.Entries.Num() && i < Opts.Num(); ++i)
+	{
+		const ARtsBridgeGameMode::FBuildOption& O = Opts[i];
+		const FBox2D& R = L.Entries[i];
+		const FVector2D S = R.GetSize();
+		const bool bOn = O.IsEnabled();
+		const bool bHover = R.IsInside(Mouse);
+		const bool bActive = O.BuildingId == Placing;
+		FLinearColor Fill = bOn ? FLinearColor(0.14f, 0.17f, 0.22f, 0.95f) : FLinearColor(0.08f, 0.08f, 0.09f, 0.9f);
+		if (bOn && bHover) Fill = FLinearColor(0.24f, 0.29f, 0.36f, 0.95f);
+		if (bActive) Fill = FLinearColor(0.15f, 0.35f, 0.18f, 0.95f);
+		DrawRect(Fill, R.Min.X, R.Min.Y, S.X, S.Y);
+		const FLinearColor TextCol = bOn ? FLinearColor::White : FLinearColor(0.5f, 0.5f, 0.5f);
+		DrawText(O.Name, TextCol, R.Min.X + 6.0f, R.Min.Y + 3.0f, Font, 1.0f);
+		const FString CostText = FString::Printf(TEXT("$%d"), O.Cost);
+		float CW = 0.0f, CH = 0.0f;
+		GetTextSize(CostText, CW, CH, Font, 1.0f);
+		DrawText(CostText, O.bAffordable ? FLinearColor(1.0f, 0.86f, 0.35f) : FLinearColor(1.0f, 0.4f, 0.3f),
+			R.Max.X - 6.0f - CW, R.Min.Y + 3.0f, Font, 1.0f);
+		FString Sub;
+		FLinearColor SubCol(0.7f, 0.7f, 0.7f);
+		if (!O.bPrereqOk)
+		{
+			Sub = O.PrereqName.IsEmpty() ? TEXT("needs a prerequisite") : FString::Printf(TEXT("needs %s"), *O.PrereqName);
+			SubCol = FLinearColor(0.8f, 0.55f, 0.35f);
+		}
+		else if (!O.bAffordable)
+		{
+			Sub = TEXT("not enough credits");
+			SubCol = FLinearColor(1.0f, 0.45f, 0.35f);
+		}
+		else if (O.bPowerWarn)
+		{
+			Sub = TEXT("will cause low power");
+			SubCol = FLinearColor(1.0f, 0.7f, 0.2f);
+		}
+		if (!Sub.IsEmpty())
+			DrawText(Sub, SubCol, R.Min.X + 6.0f, R.Min.Y + 22.0f, Small, 1.0f);
+	}
+}
+
+void ARtsMinimapHud::DrawPlacementGhost()
+{
+	ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	const ARtsRtsPlayerController* RPC = Cast<ARtsRtsPlayerController>(PlayerOwner);
+	FString Building;
+	FIntPoint Cell;
+	if (!GM || !RPC || !Canvas || !RPC->GetPlacement(Building, Cell) || Cell == FIntPoint(INT32_MIN, INT32_MIN))
+		return;
+	ARtsBridgeGameMode::FPlaceAnswer A;
+	if (!GM->QueryPlace(Building, Cell.X, Cell.Y, A))
+		return;
+	const float C = ARtsBridgeGameMode::CellUU;
+	const FLinearColor Fill = A.bAllowed ? FLinearColor(0.2f, 1.0f, 0.3f, 0.28f) : FLinearColor(1.0f, 0.2f, 0.15f, 0.30f);
+	const FLinearColor Edge = A.bAllowed ? FLinearColor(0.3f, 1.0f, 0.4f, 1.0f) : FLinearColor(1.0f, 0.3f, 0.25f, 1.0f);
+	// One projected quad per cell (the camera is tilted, so cells are trapezoids): drawn as
+	// the screen bounding box of each projected cell, which reads as a tinted footprint.
+	for (int32 Y = A.Rect.Min.Y; Y < A.Rect.Max.Y; ++Y)
+		for (int32 X = A.Rect.Min.X; X < A.Rect.Max.X; ++X)
+		{
+			const FVector S0 = Project(FVector(X * C + 4.0f, Y * C + 4.0f, 2.0f));
+			const FVector S1 = Project(FVector((X + 1) * C - 4.0f, (Y + 1) * C - 4.0f, 2.0f));
+			if (S0.Z <= 0.0 || S1.Z <= 0.0)
+				continue;
+			const FVector2D Mn(FMath::Min(S0.X, S1.X), FMath::Min(S0.Y, S1.Y));
+			const FVector2D Mx(FMath::Max(S0.X, S1.X), FMath::Max(S0.Y, S1.Y));
+			DrawRect(Fill, Mn.X, Mn.Y, Mx.X - Mn.X, Mx.Y - Mn.Y);
+		}
+	// Outline of the whole footprint, corner to corner on the ground.
+	const FVector P[4] = {
+		Project(FVector(A.Rect.Min.X * C, A.Rect.Min.Y * C, 2.0f)), Project(FVector(A.Rect.Max.X * C, A.Rect.Min.Y * C, 2.0f)),
+		Project(FVector(A.Rect.Max.X * C, A.Rect.Max.Y * C, 2.0f)), Project(FVector(A.Rect.Min.X * C, A.Rect.Max.Y * C, 2.0f)) };
+	bool bAllFront = true;
+	for (const FVector& V : P)
+		bAllFront &= V.Z > 0.0;
+	if (bAllFront)
+		for (int32 i = 0; i < 4; ++i)
+			DrawLine(P[i].X, P[i].Y, P[(i + 1) % 4].X, P[(i + 1) % 4].Y, Edge, 2.0f);
+	const FString Why = PlaceReasonText(A.Reason);
+	float MX = 0.0f, MY = 0.0f;
+	if (!Why.IsEmpty() && PlayerOwner && PlayerOwner->GetMousePosition(MX, MY))
+	{
+		UFont* Font = GEngine ? GEngine->GetMediumFont() : nullptr;
+		float W = 0.0f, H = 0.0f;
+		GetTextSize(Why, W, H, Font, 1.0f);
+		DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.7f), MX + 16.0f, MY + 14.0f, W + 8.0f, H + 4.0f);
+		DrawText(Why, FLinearColor(1.0f, 0.45f, 0.35f), MX + 20.0f, MY + 16.0f, Font, 1.0f);
+	}
+}
+
+void ARtsMinimapHud::DrawConstructionBars()
+{
+	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (!GM)
+		return;
+	static constexpr float W = 50.0f, H = 5.0f, AboveUU = 140.0f;
+	for (const ARtsSimUnitActor* U : GM->GetUnitActors())
+	{
+		if (!U || U->IsDying())
+			continue;
+		const FRtsUnitSnapshot* R = GM->GetUnitRow(U->GetSimUnitId());
+		if (!R || !R->IsBuilding() || R->ConstructionRemaining <= 0 || R->ConstructionTotal <= 0)
+			continue;
+		FVector L = U->GetActorLocation();
+		L.Z = AboveUU;
+		const FVector S = Project(L);
+		if (S.Z <= 0.0)
+			continue;
+		const float F = 1.0f - float(R->ConstructionRemaining) / float(R->ConstructionTotal);
+		const float X = S.X - W * 0.5f, Y = S.Y - H * 0.5f;
+		DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.75f), X - 1.0f, Y - 1.0f, W + 2.0f, H + 2.0f);
+		DrawRect(FLinearColor(0.35f, 0.75f, 1.0f), X, Y, W * F, H);
 	}
 }

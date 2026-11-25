@@ -121,6 +121,44 @@ public:
 	int32 Pool = 0;
 };
 
+/** T36: a building type from the init catalog (for the build menu). */
+USTRUCT(BlueprintType)
+struct FRtsBuildingType
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadOnly) FString Id;
+	UPROPERTY(BlueprintReadOnly) FString Name;
+	UPROPERTY(BlueprintReadOnly) int32 Faction = 0;
+	UPROPERTY(BlueprintReadOnly) FString Category;
+	UPROPERTY(BlueprintReadOnly) int32 Cost = 0;
+	UPROPERTY(BlueprintReadOnly) int32 BuildTicks = 0;
+	/** Building id required first; empty = none. */
+	UPROPERTY(BlueprintReadOnly) FString Prereq;
+	/** + supply / - draw. */
+	UPROPERTY(BlueprintReadOnly) int32 Power = 0;
+	UPROPERTY(BlueprintReadOnly) int32 FootprintW = 1;
+	UPROPERTY(BlueprintReadOnly) int32 FootprintH = 1;
+};
+
+/** T36: a unit type from the init catalog (production menus, T37). */
+USTRUCT(BlueprintType)
+struct FRtsUnitType
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadOnly) FString Id;
+	UPROPERTY(BlueprintReadOnly) FString Name;
+	UPROPERTY(BlueprintReadOnly) int32 Faction = 0;
+	UPROPERTY(BlueprintReadOnly) int32 Cost = 0;
+	UPROPERTY(BlueprintReadOnly) int32 BuildTicks = 0;
+	UPROPERTY(BlueprintReadOnly) FString BuiltFrom;
+	UPROPERTY(BlueprintReadOnly) FString DeploysTo;
+	UPROPERTY(BlueprintReadOnly) bool bHarvest = false;
+};
+
 /** One sim event from a step reply (T09 contract): shot (Amount = damage), death
  *  (Subject = dead unit, Target = killer, Faction = dead unit's), match_end. */
 USTRUCT(BlueprintType)
@@ -215,6 +253,26 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FRtsDebugUnit> DebugUnits;
 
+	/** T36: catalogs (init replies only). */
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FRtsBuildingType> BuildingTypes;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FRtsUnitType> UnitTypes;
+
+	/** T36: answer to a `query` (place): allowed, else reason; the footprint rect in cells. */
+	UPROPERTY(BlueprintReadOnly)
+	bool bHasQuery = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bQueryAllowed = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	FString QueryReason;
+
+	UPROPERTY(BlueprintReadOnly)
+	FIntRect QueryRect;
+
 	/** Wall time of this request/response round trip, measured by the bridge. */
 	UPROPERTY(BlueprintReadOnly)
 	double RoundTripMs = 0.0;
@@ -239,6 +297,12 @@ public:
 	 *  Any malformed line, host exit, or timeout fails with bOk=false. */
 	bool Step(const FString& StepRequestJson, double TimeoutSeconds, FRtsHostReply& OutReply);
 
+	/** T36: read-only `place` query (never advances the world). */
+	bool QueryPlace(int32 Faction, const FString& BuildingId, int32 CellX, int32 CellY, FRtsHostReply& OutReply);
+
+	/** The reply to the last successful init (carries the T36 catalogs). */
+	const FRtsHostReply& GetInitReply() const { return InitReply; }
+
 	/** Close stdin (host exits on EOF), then terminate if it lingers. Always safe to call. */
 	void Shutdown();
 
@@ -250,6 +314,7 @@ private:
 	void* ReadParent = nullptr;   // host stdout -> we read responses
 	void* ErrParent = nullptr;    // host stderr -> logged, never parsed
 	bool bPipeOpen = false;
+	FRtsHostReply InitReply;
 
 	/** Read until one complete '\n'-terminated line or deadline; false on timeout/host-exit. */
 	bool ReadResponseLine(FString& OutLine, double DeadlineSeconds);

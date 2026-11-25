@@ -22,7 +22,7 @@
 #include "HAL/PlatformTime.h"
 #include "Engine/Engine.h"
 
-// The match comes from content/ (ScenarioId / MapId): the scenario minus its scripted
+// The match comes from content/ (MatchScenarioId() / MapId): the scenario minus its scripted
 // commands becomes the host init; the typed tile map is drawn. Rules stay host-owned.
 
 // Design scale: 100 UU per map cell.
@@ -52,7 +52,7 @@ void ARtsBridgeGameMode::StartPlay()
 	// --- Match content: scenario (host init) + typed tile map (what we draw). ---
 	FRtsMatchSetup Setup;
 	FString LoadErr;
-	if (!RtsContent::LoadMatch(ScenarioId, MapId, Setup, LoadErr))
+	if (!RtsContent::LoadMatch(MatchScenarioId(), MapId, Setup, LoadErr))
 	{
 		FailHost(FString::Printf(TEXT("CONTENT LOAD FAILED: %s"), *LoadErr));
 		return;
@@ -102,6 +102,8 @@ void ARtsBridgeGameMode::StartPlay()
 		return;
 	}
 	bHostAlive = true;
+	BuildingTypes = Bridge->GetInitReply().BuildingTypes; // T36 catalogs (static content)
+	UnitTypes = Bridge->GetInitReply().UnitTypes;
 	UE_LOG(LogTemp, Display, TEXT("RTS_SESSION: host up, stepping live (select: LMB click/drag, Shift adds, Ctrl+A, groups Ctrl+1-3/1-3, move: RMB (enemy = attack), attack-move: F+LMB, stop: X, minimap: bottom-left)"));
 }
 
@@ -275,7 +277,7 @@ void ARtsBridgeGameMode::BoxSelect(const FVector2D& A, const FVector2D& B, bool 
 	for (const ARtsSimUnitActor* U : UnitActors)
 	{
 		FVector2D Proj;
-		if (U && U->GetFaction() == 0 && PC->ProjectWorldLocationToScreen(U->GetActorLocation(), Proj)
+		if (U && U->GetFaction() == 0 && !IsBuildingId(U->GetSimUnitId()) && PC->ProjectWorldLocationToScreen(U->GetActorLocation(), Proj)
 			&& Rect.IsInside(Proj))
 			Ids.Add(U->GetSimUnitId());
 	}
@@ -287,7 +289,7 @@ void ARtsBridgeGameMode::SelectAll()
 {
 	TArray<int32> Ids;
 	for (const ARtsSimUnitActor* A : UnitActors)
-		if (A && A->GetFaction() == 0)
+		if (A && A->GetFaction() == 0 && !IsBuildingId(A->GetSimUnitId()))
 			Ids.Add(A->GetSimUnitId());
 	Selection.SetAll(Ids);
 	RefreshSelectionRings();
@@ -368,6 +370,9 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 			A->SetSimPosition(S.X, S.Y);
 		}
 		A->SetHealth(S.Hp, S.MaxHp);
+		if (S.IsBuilding())
+			A->SetBuildingShape(FMath::Max(1, S.FootprintW), FMath::Max(1, S.FootprintH), S.ConstructionTotal > 0
+				? 1.0f - float(S.ConstructionRemaining) / float(S.ConstructionTotal) : 1.0f);
 		UnitActors.Add(A);
 	}
 	// T16: one tracer per shot, read while both actors are still mapped (a killing shot's
@@ -517,4 +522,156 @@ void ARtsBridgeGameMode::SetDebugMask(int32 Mask)
 	if (DebugMask == 0)
 		DebugById.Reset(); // overlays off: stop showing stale rows
 	UE_LOG(LogTemp, Display, TEXT("RTS_DEBUG_OVERLAYS: mask=%d"), DebugMask);
+}
+
+// ---- T36: scenario choice, build menu, placement --------------------------------------------
+
+FString ARtsBridgeGameMode::MatchScenarioId()
+{
+	const FString Env = FPlatformMisc::GetEnvironmentVariable(TEXT("RTS_SCENARIO"));
+	return Env.IsEmpty() ? FString(SkirmishScenarioId) : Env;
+}
+
+bool ARtsBridgeGameMode::HasOwnBuildings() const
+{
+	for (const TPair<int32, FRtsUnitSnapshot>& P : RowsById)
+		if (P.Value.Faction == 0 && P.Value.IsBuilding())
+			return true;
+	return false;
+}
+
+bool ARtsBridgeGameMode::HasOwnMcv() const
+{
+	for (const TPair<int32, FRtsUnitSnapshot>& P : RowsById)
+		if (P.Value.Faction == 0 && IsMcvRow(P.Value))
+			return true;
+	return false;
+}
+
+bool ARtsBridgeGameMode::SelectionHasMcv() const
+{
+	for (const int32 Id : Selection.GetSelected())
+		if (const FRtsUnitSnapshot* R = RowsById.Find(Id))
+			if (IsMcvRow(*R))
+				return true;
+	return false;
+}
+
+const TArray<ARtsBridgeGameMode::FBuildOption>& ARtsBridgeGameMode::GetBuildOptions()
+{
+	// Prereqs are re-asked only when your buildings (or their finished state) change; credits and
+	// power are re-read from the snapshot every call, so income ticks cost no host round trip.
+	TArray<FString> Parts;
+	for (const TPair<int32, FRtsUnitSnapshot>& P : RowsById)
+		if (P.Value.Faction == 0 && P.Value.IsBuilding())
+			Parts.Add(FString::Printf(TEXT("%d:%s:%d"), P.Key, *P.Value.BuildingId, P.Value.ConstructionRemaining == 0 ? 1 : 0));
+	Parts.Sort();
+	const FString Key = FString::Join(Parts, TEXT(","));
+	if (Key != BuildOptionsKey)
+	{
+		BuildOptionsKey = Key;
+		RebuildBuildOptions(Parts.Num() > 0);
+	}
+	int32 Supply = 0, Draw = 0, Credits = 0;
+	if (const FRtsFactionSnapshot* F = GetFactionState(0))
+	{
+		Supply = F->PowerSupply;
+		Draw = F->PowerDraw;
+		Credits = F->Credits;
+	}
+	for (FBuildOption& O : BuildOptions)
+		if (const FRtsBuildingType* B = FindBuildingType(O.BuildingId))
+		{
+			O.bAffordable = Credits >= B->Cost;
+			O.bPowerWarn = B->Power < 0 && Supply - Draw + B->Power < 0;
+		}
+	return BuildOptions;
+}
+
+void ARtsBridgeGameMode::RebuildBuildOptions(bool bHaveBase)
+{
+	BuildOptions.Reset();
+	if (!bHaveBase || !Bridge || !bHostAlive)
+		return;
+	for (const FRtsBuildingType& B : BuildingTypes)
+	{
+		// Yards come from the MCV; naval/offshore need water the sim does not have yet (T25).
+		if (B.Faction != 0 || B.Category == TEXT("construction-yard") || B.Category == TEXT("naval") || B.Category == TEXT("offshore"))
+			continue;
+		FBuildOption O;
+		O.BuildingId = B.Id;
+		O.Name = B.Name.IsEmpty() ? B.Id : B.Name;
+		O.Cost = B.Cost;
+		// Prereq comes before every map check in the sim's verdict, so any cell answers it.
+		FRtsHostReply Q;
+		O.bPrereqOk = Bridge->QueryPlace(0, B.Id, 0, 0, Q) && Q.QueryReason != TEXT("prereq");
+		if (!O.bPrereqOk)
+			if (const FRtsBuildingType* Need = FindBuildingType(B.Prereq))
+				O.PrereqName = Need->Name.IsEmpty() ? Need->Id : Need->Name;
+		BuildOptions.Add(MoveTemp(O));
+	}
+	// Buildable first, then by cost (cheap basics on top), then name: stable order.
+	BuildOptions.StableSort([](const FBuildOption& A, const FBuildOption& B)
+	{
+		if (A.bPrereqOk != B.bPrereqOk)
+			return A.bPrereqOk;
+		if (A.Cost != B.Cost)
+			return A.Cost < B.Cost;
+		return A.Name < B.Name;
+	});
+}
+
+bool ARtsBridgeGameMode::QueryPlace(const FString& BuildingId, int32 CellX, int32 CellY, FPlaceAnswer& Out)
+{
+	if (!Bridge || !bHostAlive)
+		return false;
+	const FString Key = FString::Printf(TEXT("%s@%d,%d#%d"), *BuildingId, CellX, CellY, NextTickToSend);
+	if (Key == PlaceCacheKey)
+	{
+		Out = PlaceCache;
+		return true;
+	}
+	FRtsHostReply Q;
+	if (!Bridge->QueryPlace(0, BuildingId, CellX, CellY, Q))
+		return false;
+	PlaceCache.bAllowed = Q.bQueryAllowed;
+	PlaceCache.Reason = Q.QueryReason;
+	PlaceCache.Rect = Q.QueryRect;
+	PlaceCacheKey = Key;
+	Out = PlaceCache;
+	return true;
+}
+
+bool ARtsBridgeGameMode::RequestPlace(const FString& BuildingId, int32 CellX, int32 CellY)
+{
+	if (!bHostAlive || IsMatchScreenUp())
+		return false;
+	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"place\",\"building\":\"%s\",\"at\":[%d,%d]"),
+		*BuildingId, CellX, CellY));
+	return true;
+}
+
+bool ARtsBridgeGameMode::RequestDeploySelected()
+{
+	if (!bHostAlive || IsMatchScreenUp())
+		return false;
+	bool bAny = false;
+	for (const int32 Id : Selection.GetSelected())
+		if (const FRtsUnitSnapshot* R = RowsById.Find(Id))
+			if (R->Faction == 0 && IsMcvRow(*R))
+			{
+				PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"deploy\",\"unit\":%d"), Id));
+				bAny = true;
+			}
+	return bAny;
+}
+
+void ARtsBridgeGameMode::SelectOwnMcvs()
+{
+	TArray<int32> Ids;
+	for (const TPair<int32, FRtsUnitSnapshot>& P : RowsById)
+		if (P.Value.Faction == 0 && IsMcvRow(P.Value))
+			Ids.Add(P.Key);
+	Selection.SetAll(Ids);
+	RefreshSelectionRings();
 }

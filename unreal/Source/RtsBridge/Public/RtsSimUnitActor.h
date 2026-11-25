@@ -41,6 +41,10 @@ public:
 	void BeginDeath();
 	bool IsDying() const { return DeathElapsed >= 0.0f; }
 
+	/** T36: draw as a W x H footprint, height and shade from construction progress (0..1). */
+	void SetBuildingShape(int32 W, int32 H, float Progress);
+	bool IsBuilding() const { return bIsBuilding; }
+
 private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> Mesh;
@@ -52,6 +56,9 @@ private:
 	TObjectPtr<UMaterialInstanceDynamic> Mid;
 
 	int32 SimUnitId = INDEX_NONE;
+	float GroundZ = 50.0f; // actor Z on the ground plane (buildings: half their height)
+	int32 ShapeKey = -1;
+	bool bIsBuilding = false;
 	int32 Faction = 0;
 	double Hp = 0.0;
 	double MaxHp = 0.0;

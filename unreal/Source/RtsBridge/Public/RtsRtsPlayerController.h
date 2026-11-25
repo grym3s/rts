@@ -8,6 +8,9 @@
 //   Ctrl+1..3: assign control group   1..3: recall (double-tap: centre camera on it)
 //   Match over (T19): result screen; only its Play again / Quit buttons take clicks
 //   F4: debug overlays on/off (stats, paths, targets, unit ids + state; T20, read-only)
+//   T36 build sidebar (right): LMB an entry = placement mode (ghost follows the cursor, green/red
+//        with the reason); LMB ground places (Shift keeps placing); RMB cancels.
+//   E: deploy the selected MCV (the sidebar Deploy button does the same)
 // Keys are read directly (no config axis mappings), so editor rewrites of
 // Config/DefaultInput.ini cannot silently unbind the camera.
 // Everything funnels through the game mode; the controller never touches sim state.
@@ -38,6 +41,9 @@ public:
 	/** Screen-space drag box (viewport px) while a box select is in progress, for the HUD. */
 	bool GetSelectionBox(FVector2D& OutA, FVector2D& OutB) const;
 
+	/** T36: true while placing; OutCell = cell under the cursor (INT32_MIN,INT32_MIN when off-map). */
+	bool GetPlacement(FString& OutBuildingId, FIntPoint& OutCell) const;
+
 private:
 	UPROPERTY()
 	TObjectPtr<ARtsRtsCameraActor> RtsCamera;
@@ -55,6 +61,14 @@ private:
 	void OnAttackMoveKey();
 	void OnStopKey();
 	void OnDebugKey();
+	void OnDeployKey();
+	/** T36: LMB on the build sidebar (pick an entry, Deploy); true = the click was the sidebar's. */
+	bool HandleBuildMenuClick();
+	/** T36: LMB on the ground while placing: queue it if the sim says yes. */
+	void TryPlaceAtCursor();
+	void SetPlacing(const FString& BuildingId);
+	bool CursorCell(FIntPoint& OutCell) const;
+	FString PlacingBuildingId;
 	/** Dev builds bind F4 to an engine view mode (BaseInput DebugExecBindings); drop it
 	 *  so the T20 overlay key is ours alone. No-op in shipping (no debug bindings). */
 	void ReleaseEngineDebugFKeys();

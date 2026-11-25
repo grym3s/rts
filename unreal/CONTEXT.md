@@ -17,6 +17,10 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   remaining/total, production queue + head ticks, footprint w/h, `deploysTo`, harvest/load/carrying.
   The game mode keeps them as `GetFactionState` / `GetVeins` / `GetUnitRow` (latest snapshot).
   Test: `RtsBridge.Host.Economy` (MCV deploy, refinery, shipped harvester filling).
+  T36: the init reply's `catalog` (`FRtsBuildingType` / `FRtsUnitType`, kept as `GetInitReply()`)
+  and the read-only `query` kind (`QueryPlace(faction, building, cell)` -> allowed, reason, footprint
+  `QueryRect`). Test: `RtsBridge.Host.BuildMenu` (catalog, prereq/blocked/radius verdicts, query
+  never advances the tick, sidebar layout/hit).
 - `Source/RtsBridge/Private/RtsBridgeRoundTripTest.cpp` — editor automation test
   `RtsBridge.Host.RoundTrip` (real host launch, init, tick-0 move, 120 steps).
 - `Config/DefaultEngine.ini` — GlobalDefaultGameMode = RtsBridgeGameMode;
@@ -28,7 +32,8 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
 
 ## Slice 4 — live gameplay loop (presentation only)
 - `RtsBridgeGameMode` — StartPlay loads the match from content via `RtsContentLoader`
-  (`ScenarioId` = `tri-point-30`, `MapId` = `tri-point`; root = `$RTS_CONTENT_ROOT`,
+  (`MatchScenarioId()`: env `RTS_SCENARIO`, default `tri-point-skirmish` (one MCV each);
+  `BattleScenarioId` = `tri-point-30` is the old armies-only battle; `MapId` = `tri-point`; root = `$RTS_CONTENT_ROOT`,
   else `<project>/..`): the scenario minus `commands`/`ticks`/`assert` is the host
   init, its size sets `MapCellsW/H` (runtime statics) and the camera clamp
   (`RefreshMapBounds`), and the typed tiles go to `RtsTerrainActor`. No typed map →
@@ -48,7 +53,9 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   centres the camera on it; RMB = enemy under cursor ? `attack` (target = sim id) :
   `move` to the minimap point or ground trace. F arms attack-move (crosshair): next LMB
   issues `attack-move` (or `attack` on an enemy); RMB cancels. X = `stop`. Restart (T07, `RestartMatch`, no hotkey — only the T19 result screen's Play again calls it): host `reset` + `init` on the live process, relaunch if it died; clears actors, selection, groups and the result banner. A/S are
-  WASD, hence F/X; Esc is left to the editor (stops PIE). All orders go through
+  WASD, hence F/X; Esc is left to the editor (stops PIE). T36: LMB a sidebar entry = placement mode (hand
+  cursor); LMB ground queues `place` only when the query allows it (Shift keeps placing); RMB
+  cancels; the minimap still moves the camera while placing. E = `deploy` the selected MCVs. All orders go through
   `QueueOrderForSelection` (game mode); never sim state.
   Test: `RtsBridge.Host.Orders` (real host accepts the exact attack/stop/attack-move bodies). `RtsBridge.Host.Restart`: reset + init replays the same hash; init without reset is refused.
 - `RtsSelection.h` (`FRtsSelection`) — pure selection + control groups 1–3 over sim
@@ -66,6 +73,14 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   while up, the controller routes left clicks to it and the game mode refuses orders);
   economy bar (T35, top centre: your credits with a +/- flash on change, power as used / produced,
   red with LOW POWER when draw > supply; text from static `EconomyBarText`);
+  build sidebar (T36, right edge: with no base and an MCV, a hint + Deploy button (E key does the
+  same); with a base, faction-0 buildings except yards/naval/offshore from `GetBuildOptions` --
+  prereq from the sim's own query (re-asked only when your buildings or their finished state
+  change), affordability and a low-power warning from the snapshot; static `BuildMenuLayout`/
+  `BuildMenuHit`); placement ghost (footprint cells under the cursor, green/red from
+  `QueryPlace`, cached per cell and tick, with the reason text); construction bars (blue, over
+  buildings still building). Buildings are drawn by `ARtsSimUnitActor::SetBuildingShape` (footprint
+  box rising from a slab, darker until finished); box select and Ctrl+A skip buildings;
   debug overlays (T20, F4 toggles all of them via `SetDebugMask`; in PIE the editor swallows
   F1-F3 and F8/F11 are taken, and the engine's own F4 view-mode binding is removed per
   player): stats panel (tick, smoothed host step ms and bridge round trip ms, units per

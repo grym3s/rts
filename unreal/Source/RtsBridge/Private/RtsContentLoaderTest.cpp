@@ -16,7 +16,7 @@ bool FRtsContentLoaderTest::RunTest(const FString& Parameters)
 	FRtsMatchSetup Setup;
 	FString Err;
 	if (!TestTrue(TEXT("scenario + map load"), RtsContent::LoadMatch(
-			ARtsBridgeGameMode::ScenarioId, ARtsBridgeGameMode::MapId, Setup, Err)))
+			ARtsBridgeGameMode::BattleScenarioId, ARtsBridgeGameMode::MapId, Setup, Err)))
 	{
 		AddError(Err);
 		return false;
@@ -64,7 +64,7 @@ bool FRtsTriPointStepSpeedTest::RunTest(const FString& Parameters)
 {
 	FRtsMatchSetup Setup;
 	FString Err;
-	if (!RtsContent::LoadMatch(ARtsBridgeGameMode::ScenarioId, ARtsBridgeGameMode::MapId, Setup, Err))
+	if (!RtsContent::LoadMatch(ARtsBridgeGameMode::BattleScenarioId, ARtsBridgeGameMode::MapId, Setup, Err))
 	{
 		AddError(Err);
 		return false;

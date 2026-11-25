@@ -107,6 +107,7 @@ bool URtsSimHostBridge::StartAndInit(const FString& InitRequestJson, FString& Ou
 		OutError = FString::Printf(TEXT("host rejected init: %s"), *Reply.Error);
 		return false;
 	}
+	InitReply = Reply;
 	return true;
 }
 
@@ -308,7 +309,72 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 			OutReply.Events.Add(MoveTemp(E));
 		}
 	}
+
+	// T36: catalogs (init) and a place-query answer (query).
+	const TSharedPtr<FJsonObject>* CatalogObj = nullptr;
+	if (Root->TryGetObjectField(TEXT("catalog"), CatalogObj))
+	{
+		const TArray<TSharedPtr<FJsonValue>>* Bs = nullptr;
+		if ((*CatalogObj)->TryGetArrayField(TEXT("buildings"), Bs))
+			for (const TSharedPtr<FJsonValue>& BV : *Bs)
+			{
+				const TSharedPtr<FJsonObject> BO = BV->AsObject();
+				if (!BO.IsValid())
+					continue;
+				FRtsBuildingType B;
+				BO->TryGetStringField(TEXT("id"), B.Id);
+				BO->TryGetStringField(TEXT("name"), B.Name);
+				BO->TryGetNumberField(TEXT("faction"), B.Faction);
+				BO->TryGetStringField(TEXT("category"), B.Category);
+				BO->TryGetNumberField(TEXT("cost"), B.Cost);
+				BO->TryGetNumberField(TEXT("buildTicks"), B.BuildTicks);
+				BO->TryGetStringField(TEXT("prereq"), B.Prereq);
+				BO->TryGetNumberField(TEXT("power"), B.Power);
+				BO->TryGetNumberField(TEXT("footprintW"), B.FootprintW);
+				BO->TryGetNumberField(TEXT("footprintH"), B.FootprintH);
+				OutReply.BuildingTypes.Add(MoveTemp(B));
+			}
+		const TArray<TSharedPtr<FJsonValue>>* Us = nullptr;
+		if ((*CatalogObj)->TryGetArrayField(TEXT("units"), Us))
+			for (const TSharedPtr<FJsonValue>& UV : *Us)
+			{
+				const TSharedPtr<FJsonObject> UO = UV->AsObject();
+				if (!UO.IsValid())
+					continue;
+				FRtsUnitType U;
+				UO->TryGetStringField(TEXT("id"), U.Id);
+				UO->TryGetStringField(TEXT("name"), U.Name);
+				UO->TryGetNumberField(TEXT("faction"), U.Faction);
+				UO->TryGetNumberField(TEXT("cost"), U.Cost);
+				UO->TryGetNumberField(TEXT("buildTicks"), U.BuildTicks);
+				UO->TryGetStringField(TEXT("builtFrom"), U.BuiltFrom);
+				UO->TryGetStringField(TEXT("deploysTo"), U.DeploysTo);
+				UO->TryGetBoolField(TEXT("harvest"), U.bHarvest);
+				OutReply.UnitTypes.Add(MoveTemp(U));
+			}
+	}
+	const TSharedPtr<FJsonObject>* QueryObj = nullptr;
+	if (Root->TryGetObjectField(TEXT("query"), QueryObj))
+	{
+		OutReply.bHasQuery = true;
+		(*QueryObj)->TryGetBoolField(TEXT("allowed"), OutReply.bQueryAllowed);
+		(*QueryObj)->TryGetStringField(TEXT("reason"), OutReply.QueryReason);
+		int32 QX = 0, QY = 0, QW = 0, QH = 0;
+		(*QueryObj)->TryGetNumberField(TEXT("x"), QX);
+		(*QueryObj)->TryGetNumberField(TEXT("y"), QY);
+		(*QueryObj)->TryGetNumberField(TEXT("w"), QW);
+		(*QueryObj)->TryGetNumberField(TEXT("h"), QH);
+		OutReply.QueryRect = FIntRect(QX, QY, QX + QW, QY + QH);
+	}
 	return true;
+}
+
+bool URtsSimHostBridge::QueryPlace(int32 Faction, const FString& BuildingId, int32 CellX, int32 CellY, FRtsHostReply& OutReply)
+{
+	const FString Req = FString::Printf(
+		TEXT("{\"protocolVersion\":1,\"kind\":\"query\",\"query\":{\"type\":\"place\",\"faction\":%d,\"building\":\"%s\",\"at\":[%d,%d]}}"),
+		Faction, *BuildingId, CellX, CellY);
+	return Step(Req, 5.0, OutReply) && OutReply.bOk && OutReply.bHasQuery;
 }
 
 bool URtsSimHostBridge::TakeLine(FString& OutLine)

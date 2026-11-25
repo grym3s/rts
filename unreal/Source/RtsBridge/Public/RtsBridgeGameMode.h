@@ -89,6 +89,47 @@ public:
 	const FRtsUnitSnapshot* GetUnitRow(int32 SimUnitId) const { return RowsById.Find(SimUnitId); }
 	const TMap<int32, FRtsUnitSnapshot>& GetUnitRows() const { return RowsById; }
 
+	/** T36 build menu. Catalog from the host's init reply (static content). */
+	const TArray<FRtsBuildingType>& GetBuildingTypes() const { return BuildingTypes; }
+	const TArray<FRtsUnitType>& GetUnitTypes() const { return UnitTypes; }
+	const FRtsBuildingType* FindBuildingType(const FString& Id) const
+	{
+		return BuildingTypes.FindByPredicate([&Id](const FRtsBuildingType& B) { return B.Id == Id; });
+	}
+	/** One sidebar entry: what you could place now (prereq from the sim's own check, credits
+	 *  from the snapshot) and whether it would tip your power negative. */
+	struct FBuildOption
+	{
+		FString BuildingId;
+		FString Name;
+		int32 Cost = 0;
+		bool bPrereqOk = false;
+		bool bAffordable = false;
+		bool bPowerWarn = false;
+		FString PrereqName; // what is missing, when !bPrereqOk
+		bool IsEnabled() const { return bPrereqOk && bAffordable; }
+	};
+	/** Faction-0 build options (refreshed when your buildings change); empty without a base. */
+	const TArray<FBuildOption>& GetBuildOptions();
+	void RebuildBuildOptions(bool bHaveBase);
+	/** You own at least one building (the sidebar shows), or an MCV that could deploy. */
+	bool HasOwnBuildings() const;
+	bool HasOwnMcv() const;
+	bool SelectionHasMcv() const;
+	/** Read-only sim verdict for placing BuildingId at a cell (cached per cell and tick). */
+	struct FPlaceAnswer
+	{
+		bool bAllowed = false;
+		FString Reason;
+		FIntRect Rect;
+	};
+	bool QueryPlace(const FString& BuildingId, int32 CellX, int32 CellY, FPlaceAnswer& Out);
+	/** Queue `place` (faction 0) at a cell; `deploy` for every selected MCV. */
+	bool RequestPlace(const FString& BuildingId, int32 CellX, int32 CellY);
+	bool RequestDeploySelected();
+	/** Select every MCV you own (the sidebar Deploy button with no MCV selected). */
+	void SelectOwnMcvs();
+
 	/** Fixture map size in cells (must match the init request's map) and world scale. */
 	// Set from the loaded scenario in StartPlay (before any HUD/camera use of them).
 	static int32 MapCellsW;
@@ -103,8 +144,12 @@ public:
 	/** Tile rows of the loaded map ('.' land, '~' water, '#' cliff, '=' bridge). */
 	const TArray<FString>& GetTerrainRows() const { return TerrainRows; }
 
-	/** Which content the match loads (content/scenarios/<id>.json, content/maps/<id>.json). */
-	static constexpr const TCHAR* ScenarioId = TEXT("tri-point-30");
+	/** Which content the match loads (content/scenarios/<id>.json, content/maps/<id>.json).
+	 *  T36: the match is the skirmish start (one MCV each) unless RTS_SCENARIO names another
+	 *  scenario (e.g. tri-point-30, the 30v30 battle the content tests use). */
+	static constexpr const TCHAR* BattleScenarioId = TEXT("tri-point-30");
+	static constexpr const TCHAR* SkirmishScenarioId = TEXT("tri-point-skirmish");
+	static FString MatchScenarioId();
 	static constexpr const TCHAR* MapId = TEXT("tri-point");
 	ARtsSimUnitActor* FindUnitActor(int32 SimUnitId) const
 	{
@@ -150,6 +195,15 @@ private:
 	TArray<FRtsFactionSnapshot> Factions;
 	TArray<FRtsVeinSnapshot> Veins;
 	TMap<int32, FRtsUnitSnapshot> RowsById;
+	TArray<FRtsBuildingType> BuildingTypes;
+	TArray<FRtsUnitType> UnitTypes;
+	TArray<FBuildOption> BuildOptions;
+	FString BuildOptionsKey; // own buildings + done state the options were computed for
+	FString PlaceCacheKey;
+	FPlaceAnswer PlaceCache;
+	bool IsMcvRow(const FRtsUnitSnapshot& R) const { return !R.DeploysTo.IsEmpty(); }
+	/** Box and select-all take units only; buildings are clicked one at a time. */
+	bool IsBuildingId(int32 Id) const { const FRtsUnitSnapshot* R = RowsById.Find(Id); return R && R->IsBuilding(); }
 	double StepMsAvg = 0.0;
 	double RoundTripMsAvg = 0.0;
 	bool bCameraFramedOnPlayer = false;  // start the view on your own units (once)

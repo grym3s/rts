@@ -49,15 +49,15 @@ ARtsSimUnitActor::ARtsSimUnitActor()
 	}
 }
 
-static FVector SimToWorld(double X, double Y)
+static FVector SimToWorld(double X, double Y, double Z)
 {
 	// Sim map X -> world X, map Y -> world Y, height stays on the ground plane (slice 4).
-	return FVector(X * SimCellUU, Y * SimCellUU, 50.0);
+	return FVector(X * SimCellUU, Y * SimCellUU, Z);
 }
 
 void ARtsSimUnitActor::SnapToSimPosition(double X, double Y)
 {
-	InterpFrom = InterpTo = SimToWorld(X, Y);
+	InterpFrom = InterpTo = SimToWorld(X, Y, GroundZ);
 	InterpElapsed = SimTickSeconds;
 	SetActorLocation(InterpTo);
 }
@@ -67,7 +67,7 @@ void ARtsSimUnitActor::SetSimPosition(double X, double Y)
 	// Start the glide from where the unit is drawn now (not the previous snapshot), so
 	// two snapshots in one frame (a hitch) never make it jump back.
 	InterpFrom = GetActorLocation();
-	InterpTo = SimToWorld(X, Y);
+	InterpTo = SimToWorld(X, Y, GroundZ);
 	InterpElapsed = 0.0f;
 	const FVector D = InterpTo - InterpFrom;
 	if (D.SizeSquared2D() > 1.0) // ~1 UU per tick: actually moving, face the motion
@@ -149,4 +149,31 @@ void ARtsSimUnitActor::TickDeath(float DeltaSeconds)
 	SetActorLocationAndRotation(Loc, Rot);
 	if (SinkT >= 1.0f)
 		Destroy();
+}
+
+void ARtsSimUnitActor::SetBuildingShape(int32 W, int32 H, float Progress)
+{
+	// T36: a building is its footprint (slightly inset), rising from a slab to full height as
+	// construction runs, darker until it is finished. Presentation only.
+	const float P = FMath::Clamp(Progress, 0.0f, 1.0f);
+	const int32 Key = W * 100000 + H * 1000 + FMath::RoundToInt(P * 100.0f);
+	if (Key == ShapeKey)
+		return;
+	ShapeKey = Key;
+	bIsBuilding = true;
+	const float Height = FMath::Lerp(0.12f, 1.1f, P); // cube is 100 UU: 0.12 = slab, 1.1 = 110 UU
+	Mesh->SetRelativeScale3D(FVector(W * 0.92f, H * 0.92f, Height));
+	GroundZ = Height * 50.0f; // cube pivot is its centre: sit it on the ground
+	FVector L = GetActorLocation();
+	L.Z = GroundZ;
+	InterpFrom.Z = InterpTo.Z = GroundZ;
+	SetActorLocation(L);
+	// The ring scales with the root; keep it a thin band just outside the footprint.
+	Ring->SetRelativeScale3D(FVector(1.15f, 1.15f, 0.05f / FMath::Max(Height, 0.05f) * 0.6f));
+	if (Mid)
+	{
+		const FLinearColor C = FactionColor(Faction);
+		const float Shade = P >= 1.0f ? 1.0f : FMath::Lerp(0.25f, 0.6f, P);
+		Mid->SetVectorParameterValue(TEXT("Color"), FLinearColor(C.R * Shade, C.G * Shade, C.B * Shade));
+	}
 }

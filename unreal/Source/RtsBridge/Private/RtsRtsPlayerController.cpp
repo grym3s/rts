@@ -52,6 +52,8 @@ void ARtsRtsPlayerController::SetupInputComponent()
 	// swallows F1-F3 in PIE (help/view modes) and F8/F11 are taken, so one reliable key.
 	ReleaseEngineDebugFKeys();
 	PIC->BindKey(EKeys::F4, IE_Pressed, this, &ARtsRtsPlayerController::OnDebugKey);
+	// T36: E deploys the selected MCV (free key: not WASD, F, X or the group digits).
+	PIC->BindKey(EKeys::E, IE_Pressed, this, &ARtsRtsPlayerController::OnDeployKey);
 }
 
 bool ARtsRtsPlayerController::IsShiftDown() const
@@ -253,6 +255,11 @@ void ARtsRtsPlayerController::OnRightClick()
 {
 	if (MatchScreenUp())
 		return;
+	if (!PlacingBuildingId.IsEmpty())
+	{
+		SetPlacing(FString()); // RMB cancels placement
+		return;
+	}
 	if (bAttackMoveArmed)
 	{
 		SetAttackMoveArmed(false); // RMB cancels a pending attack-move
@@ -265,6 +272,20 @@ void ARtsRtsPlayerController::OnLeftClick()
 {
 	if (HandleMatchScreenClick())
 		return;
+	if (HandleBuildMenuClick())
+		return;
+	if (!PlacingBuildingId.IsEmpty())
+	{
+		FVector2D MW;
+		if (MouseOnMinimap(MW))
+		{
+			if (RtsCamera)
+				RtsCamera->JumpTo(MW); // look elsewhere, stay in placement
+			return;
+		}
+		TryPlaceAtCursor();
+		return;
+	}
 	if (bAttackMoveArmed)
 	{
 		IssueOrderAtCursor(/*bAttack=*/true);
@@ -356,4 +377,88 @@ void ARtsRtsPlayerController::ReleaseEngineDebugFKeys()
 	const int32 Removed = PlayerInput->DebugExecBindings.RemoveAll([](const FKeyBind& B) { return B.Key == EKeys::F4; });
 	if (Removed > 0)
 		UE_LOG(LogTemp, Display, TEXT("RTS_INPUT: released %d engine debug F-key bindings for the overlays"), Removed);
+}
+
+// ---- T36: build sidebar and placement ------------------------------------------------------
+
+bool ARtsRtsPlayerController::CursorCell(FIntPoint& OutCell) const
+{
+	FHitResult Hit;
+	if (!GetHitResultUnderCursor(ECC_Visibility, false, Hit))
+		return false;
+	const int32 X = FMath::FloorToInt(Hit.Location.X / ARtsBridgeGameMode::CellUU);
+	const int32 Y = FMath::FloorToInt(Hit.Location.Y / ARtsBridgeGameMode::CellUU);
+	if (X < 0 || Y < 0 || X >= ARtsBridgeGameMode::MapCellsW || Y >= ARtsBridgeGameMode::MapCellsH)
+		return false;
+	OutCell = FIntPoint(X, Y);
+	return true;
+}
+
+bool ARtsRtsPlayerController::GetPlacement(FString& OutBuildingId, FIntPoint& OutCell) const
+{
+	if (PlacingBuildingId.IsEmpty())
+		return false;
+	OutBuildingId = PlacingBuildingId;
+	FVector2D W;
+	if (MouseOnMinimap(W) || !CursorCell(OutCell))
+		OutCell = FIntPoint(INT32_MIN, INT32_MIN);
+	return true;
+}
+
+void ARtsRtsPlayerController::SetPlacing(const FString& BuildingId)
+{
+	PlacingBuildingId = BuildingId;
+	if (!BuildingId.IsEmpty())
+		SetAttackMoveArmed(false);
+	CurrentMouseCursor = BuildingId.IsEmpty() ? EMouseCursor::Default : EMouseCursor::Hand;
+}
+
+bool ARtsRtsPlayerController::HandleBuildMenuClick()
+{
+	ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
+	float MX, MY;
+	if (!GM || !GetMousePosition(MX, MY))
+		return false;
+	int32 N = 0;
+	bool bDeploy = false;
+	if (!ARtsMinimapHud::BuildMenuShape(*GM, N, bDeploy))
+		return false;
+	int32 VX = 0, VY = 0;
+	GetViewportSize(VX, VY);
+	const int32 Hit = ARtsMinimapHud::BuildMenuHit(FVector2D(VX, VY), N, bDeploy, FVector2D(MX, MY));
+	if (Hit == ARtsMinimapHud::BuildMenuNone)
+		return false;
+	bLeftDownOnView = false;
+	if (Hit == ARtsMinimapHud::BuildMenuDeploy)
+	{
+		if (!GM->SelectionHasMcv())
+			GM->SelectOwnMcvs();
+		GM->RequestDeploySelected();
+	}
+	else if (Hit >= 0)
+	{
+		const TArray<ARtsBridgeGameMode::FBuildOption>& Opts = GM->GetBuildOptions();
+		if (Opts.IsValidIndex(Hit) && Opts[Hit].IsEnabled())
+			SetPlacing(Opts[Hit].BuildingId == PlacingBuildingId ? FString() : Opts[Hit].BuildingId);
+	}
+	return true; // a click on the panel never falls through to the map
+}
+
+void ARtsRtsPlayerController::TryPlaceAtCursor()
+{
+	ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
+	FIntPoint Cell;
+	if (!GM || !CursorCell(Cell))
+		return;
+	ARtsBridgeGameMode::FPlaceAnswer A;
+	if (!GM->QueryPlace(PlacingBuildingId, Cell.X, Cell.Y, A) || !A.bAllowed)
+		return; // the ghost already shows why; stay in placement
+	if (GM->RequestPlace(PlacingBuildingId, Cell.X, Cell.Y) && !IsShiftDown())
+		SetPlacing(FString());
+}
+
+void ARtsRtsPlayerController::OnDeployKey()
+{
+	if (ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>())
+		GM->RequestDeploySelected();
 }

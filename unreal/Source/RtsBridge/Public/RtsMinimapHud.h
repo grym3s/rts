@@ -54,6 +54,25 @@ public:
 	};
 	static FEconomyBarText EconomyBarText(int32 Credits, int32 PowerSupply, int32 PowerDraw);
 
+	/** T36 build sidebar (right edge, under the top bar), viewport px. Static and pure so the
+	 *  hit test is unit-tested. Deploy = the "Deploy MCV" button (no base yet, MCV owned). */
+	struct FBuildMenuLayout
+	{
+		FBox2D Panel;
+		FBox2D Deploy; // invalid when not shown
+		TArray<FBox2D> Entries;
+	};
+	static FBuildMenuLayout BuildMenuLayout(const FVector2D& Viewport, int32 NumEntries, bool bShowDeploy);
+	static constexpr int32 BuildMenuNone = -1;   // not on the sidebar
+	static constexpr int32 BuildMenuDeploy = -2; // the Deploy button
+	static constexpr int32 BuildMenuPanel = -3;  // on the panel, between buttons (swallow)
+	/** Entry index (>= 0), or one of the BuildMenu* codes. */
+	static int32 BuildMenuHit(const FVector2D& Viewport, int32 NumEntries, bool bShowDeploy, const FVector2D& Pos);
+	/** What the sidebar shows now: false = nothing (no base and no MCV). */
+	static bool BuildMenuShape(class ARtsBridgeGameMode& GM, int32& OutEntries, bool& bOutDeploy);
+	/** Short player-facing text for a placement verdict reason from the host. */
+	static FString PlaceReasonText(const FString& Reason);
+
 private:
 	struct FOrderMarker
 	{
@@ -79,6 +98,9 @@ private:
 	void DrawDebugOverlays();
 	double FpsAvg = 0.0;
 	void DrawEconomyBar();
+	void DrawBuildMenu();
+	void DrawPlacementGhost();
+	void DrawConstructionBars();
 	int32 LastCredits = INT32_MIN; // T35: the +/- flash beside credits
 	int32 CreditsDelta = 0;
 	double CreditsDeltaUntil = 0.0;
