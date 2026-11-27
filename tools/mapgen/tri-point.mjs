@@ -105,7 +105,7 @@ for (let y = 0; y < H; y++) {
     if (dc <= G.atollIn && dc >= 1.0) {
       for (const n of nodes) {
         const a = along(p, C, n.ringLanding);
-        if (a.s > 0 && a.perp <= 0.5) t = T.BRIDGE;
+        if (a.s > 0 && a.perp <= 0.75) t = T.BRIDGE; // 0.75: wide enough that a slanted pier stays 4-connected (no corner-only steps)
       }
     }
     tiles[y][x] = t;

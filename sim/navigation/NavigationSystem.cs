@@ -238,15 +238,20 @@ public static class NavigationSystem
                 var b = list[j];
                 // T25: aircraft fly over surface units; only like layers push each other
                 if ((a.Domain == MoveDomain.Air) != (b.Domain == MoveDomain.Air)) continue;
+                // T28: structures never move. A footprint keeps units out of a building anyway; a
+                // bridge hut marks none, so a unit brushing it takes the whole push itself.
+                var aFixed = a.Building != null;
+                var bFixed = b.Building != null;
+                if (aFixed && bFixed) continue;
                 var delta = b.Position - a.Position;
                 var minDist = a.Radius + b.Radius;
                 var d2 = delta.LengthSquared;
                 if (d2.Raw == 0)
                 {
                     // perfectly coincident (rare): deterministic kick along +X to whichever side is open
-                    if (IsPointWalkable(map, a.Position + new FixVec2(Fix64.Ratio(1, 16), Fix64.Zero), a.Radius, a.Domain))
+                    if (!aFixed && IsPointWalkable(map, a.Position + new FixVec2(Fix64.Ratio(1, 16), Fix64.Zero), a.Radius, a.Domain))
                         a.Position += new FixVec2(Fix64.Ratio(1, 16), Fix64.Zero);
-                    if (IsPointWalkable(map, b.Position + new FixVec2(Fix64.Ratio(1, 16), Fix64.Zero), b.Radius, b.Domain))
+                    if (!bFixed && IsPointWalkable(map, b.Position + new FixVec2(Fix64.Ratio(1, 16), Fix64.Zero), b.Radius, b.Domain))
                         b.Position += new FixVec2(Fix64.Ratio(1, 16), Fix64.Zero);
                     continue;
                 }
@@ -255,6 +260,14 @@ public static class NavigationSystem
                 var d = Fix64.Sqrt(d2);
                 var push = (minDist - d) * Fix64.Half;
                 var dir = delta.Normalized();
+                if (aFixed || bFixed)
+                {
+                    var mover = aFixed ? b : a;
+                    var away = aFixed ? dir : FixVec2.Zero - dir;
+                    var moved = mover.Position + away * (minDist - d);
+                    if (IsPointWalkable(map, moved, mover.Radius, mover.Domain)) mover.Position = moved;
+                    continue;
+                }
                 var aNext = a.Position - dir * push;
                 var bNext = b.Position + dir * push;
                 var aOk = IsPointWalkable(map, aNext, a.Radius, a.Domain);
