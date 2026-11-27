@@ -18,7 +18,7 @@
   "verbs": {
     "launches": "nest-drone",
     "wing": 5,
-    "rebuildSeconds": 6,
+    "rebuildSeconds": 3,
     "launchRange": 12
   }
 }

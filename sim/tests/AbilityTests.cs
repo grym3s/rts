@@ -16,9 +16,10 @@ public sealed class Arena
     public SimWorld W => M.World;
     public List<SimEvent> Seen { get; } = new();
 
-    public Arena(int width = 48, int height = 48, string extra = "")
+    public Arena(int width = 48, int height = 48, string extra = "", string? map = null)
     {
-        var json = $$"""{"schemaVersion":2,"seed":1,"map":{"width":{{width}},"height":{{height}},"blocked":[]}{{extra}}}""";
+        map ??= $$"""{"width":{{width}},"height":{{height}},"blocked":[]}""";
+        var json = $$"""{"schemaVersion":2,"seed":1,"map":{{map}}{{extra}}}""";
         M = MatchWorld.FromScenario(JsonDocument.Parse(json).RootElement, RepoRoot());
         W.Systems.Insert(W.Systems.Count - 2, (w, _) => Seen.AddRange(w.Events)); // before despawn and match
     }
@@ -180,5 +181,41 @@ public class AbilityTests
         Assert.Equal(EntityId.None, hj2.CaptureTarget); // infantry can't be hijacked
         a.RunUntil(() => tank.Faction == 1, 400);
         Assert.Equal(1, tank.Faction);
+    }
+
+    // ---- carriers
+
+    private static Arena Sea() =>
+        new(map: """{"width":40,"height":40,"terrain":[""" + string.Join(",", Enumerable.Repeat("\"" + new string('~', 40) + "\"", 40)) + "]}");
+
+    [Fact]
+    public void A_carrier_launches_its_wing_one_at_a_time_and_keeps_it_full()
+    {
+        var a = Sea();
+        var nest = a.Unit("nest", 2, 20.5, 20.5);
+        int Wing() => a.M.Units.Units.Count(u => u.CarrierId == nest.Id && u.Hp.Raw > 0);
+        a.Run(nest.Ability.RebuildTicks * 2 + 2);
+        Assert.Equal(2, Wing());
+        a.Run(nest.Ability.RebuildTicks * 6);
+        Assert.Equal(nest.Ability.Wing, Wing());
+        var drone = a.M.Units.Units.First(u => u.CarrierId == nest.Id);
+        Assert.Equal("nest-drone", drone.TypeId);
+        Assert.Equal(MoveDomain.Air, drone.Domain);
+    }
+
+    [Fact]
+    public void Carrier_aircraft_fight_within_its_reach_and_are_lost_with_it()
+    {
+        var a = Sea();
+        var vg = a.Unit("vanguard", 0, 10.5, 20.5);
+        var near = a.Unit("gunboat", 1, 20.5, 20.5);   // within launch range 16
+        var far = a.Unit("gunboat", 1, 36.5, 36.5);
+        near.Hp = Fix64.FromInt(5000);
+        a.RunUntil(() => a.Seen.Any(e => e.Kind == SimEventKind.Shot && e.Target == near.Id), 600);
+        Assert.Contains(a.Seen, e => e.Kind == SimEventKind.Shot && e.Target == near.Id);
+        Assert.Equal(far.MaxHp, far.Hp);
+        vg.Hp = Fix64.Zero;
+        a.Run(2);
+        Assert.DoesNotContain(a.M.Units.Units, u => u.CarrierId == vg.Id && u.Hp.Raw > 0);
     }
 }
