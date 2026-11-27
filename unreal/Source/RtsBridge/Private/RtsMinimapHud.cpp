@@ -1379,6 +1379,7 @@ TArray<ARtsMinimapHud::FAbilityButton> ARtsMinimapHud::AbilityButtons(ARtsBridge
 	TArray<FAbilityButton> B;
 	const ARtsBridgeGameMode::FSelectionAbilities A = GM.GetSelectionAbilities();
 	int32 PhaseWait = 0, ChargeLeft = TNumericLimits<int32>::Max(), Used = 0, Cap = 0;
+	bool bSwBuilding = false;
 	for (const int32 Id : GM.GetSelectedIds())
 		if (const FRtsUnitSnapshot* R = GM.GetUnitRow(Id))
 		{
@@ -1386,7 +1387,9 @@ TArray<ARtsMinimapHud::FAbilityButton> ARtsMinimapHud::AbilityButtons(ARtsBridge
 				continue;
 			if (R->PhaseTicks >= 0 && R->PhaseCooldown > 0)
 				PhaseWait = FMath::Max(PhaseWait, R->PhaseCooldown);
-			if (R->IsSuperweapon() && !R->bStrike)
+			if (R->IsSuperweapon() && R->ConstructionRemaining > 0)
+				bSwBuilding = true;
+			else if (R->IsSuperweapon() && !R->bStrike)
 				ChargeLeft = FMath::Min(ChargeLeft, R->Charge);
 			if (!R->Holds.IsEmpty())
 			{
@@ -1403,9 +1406,14 @@ TArray<ARtsMinimapHud::FAbilityButton> ARtsMinimapHud::AbilityButtons(ARtsBridge
 	if (A.Teleport > 0)
 		B.Add({ EAbility::Teleport, TEXT("Teleport  (T)"), true });
 	if (A.Fire > 0)
+	{
+		const FRtsFactionSnapshot* F = GM.GetFactionState(ARtsBridgeGameMode::PlayerFaction);
+		const bool bLowPower = F && F->PowerDraw > F->PowerSupply;
 		B.Add({ EAbility::Fire, A.FireReady > 0 ? FString(TEXT("FIRE  (G)"))
-			: ChargeLeft == TNumericLimits<int32>::Max() ? FString(TEXT("Striking...")) : FString::Printf(TEXT("Charging %d:%02d"), ChargeLeft / 20 / 60, (ChargeLeft / 20) % 60),
+			: ChargeLeft != TNumericLimits<int32>::Max() ? FString::Printf(TEXT("Charging %d:%02d%s"), ChargeLeft / 20 / 60, (ChargeLeft / 20) % 60, bLowPower ? TEXT(" (no power)") : TEXT(""))
+			: bSwBuilding ? FString(TEXT("Building...")) : FString(TEXT("Striking...")),
 			A.FireReady > 0 });
+	}
 	if (A.Deploy > 0)
 		B.Add({ EAbility::Deploy, TEXT("Deploy  (E)"), true });
 	return B;

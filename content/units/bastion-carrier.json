@@ -19,6 +19,6 @@
     "launches": "bastion-gunship",
     "wing": 3,
     "rebuildSeconds": 8,
-    "launchRange": 12
+    "launchRange": 22
   }
 }

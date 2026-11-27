@@ -46,4 +46,27 @@ public class SuperweaponTests
         a.Run(cannon.Ability.StrikeDelayTicks + cannon.Ability.PulseGapTicks * cannon.Ability.StrikePulses + 2);
         Assert.Equal(cannon.Ability.StrikePulses, a.Seen.Count(e => e.Kind == SimEventKind.Shot && e.Subject == cannon.Id && e.Target == tank.Id));
     }
+
+    [Fact]
+    public void A_placed_rift_is_built_on_site_then_charges_and_cannot_fire_before_that()
+    {
+        // the player's path: a place order at a base with the whole prereq chain, not a spawned building
+        var a = new Arena();
+        foreach (var (id, x, y) in new[] { ("ascendant-construction-yard", 10, 10), ("ascendant-forge", 16, 10), ("ascendant-nexus", 22, 10),
+            ("ascendant-ascendancy", 16, 4), ("ascendant-conduit", 7, 16), ("ascendant-conduit", 10, 16), ("ascendant-conduit", 13, 16) })
+            a.Building(id, 2, x, y);
+        a.M.Econ.Deposit(2, 10_000);
+        a.Step(new Rts.Sim.Core.PlaceBuildingCommand(a.W.Tick, 2, "ascendant-rift", new FixVec2(Fix64.FromInt(16), Fix64.FromInt(16))));
+        var rift = Assert.Single(a.M.Units.Units, u => u.Building?.Id == "ascendant-rift");
+        Assert.True(rift.Building!.ConstructionRemaining > 0);
+        a.Step(Fire(a, rift, 30.5, 30.5));
+        Assert.Equal(0, rift.StrikeTick); // a construction site never fires
+        a.RunUntil(() => rift.Building.ConstructionRemaining == 0, 5000);
+        Assert.Equal(rift.Ability.ChargeTicks, rift.ChargeLeft + 1); // starts charging once built
+        a.Step(Fire(a, rift, 30.5, 30.5));
+        Assert.Equal(0, rift.StrikeTick);
+        a.Run(rift.Ability.ChargeTicks);
+        a.Step(Fire(a, rift, 30.5, 30.5));
+        Assert.Contains(a.Seen, e => e.Kind == SimEventKind.SuperweaponFired && e.Subject == rift.Id);
+    }
 }

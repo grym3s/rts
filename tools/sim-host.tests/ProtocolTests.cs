@@ -620,6 +620,26 @@ public class ProtocolTests
     }
 
     [Fact]
+    public void A_superweapon_under_construction_reports_its_whole_charge_still_to_go()
+    {
+        // the HUD reads charge 0 as ready to fire; a construction site has not started charging
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":32,"height":32,"blocked":[]},"units":[{"unit":"foundry-crawler","at":[6.5,6.5]}]}}"""));
+        Assert.True(init.Ok, init.Error);
+        var r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":0,"commands":[{"tick":0,"faction":1,"type":"deploy","unit":{{init.State!.Units[0].Id}}}]}"""));
+        Assert.True(r.Ok, r.Error);
+        // the whole Hegemony chain is not on this map, so ask the row of a fresh site directly
+        var world = (HostedWorld)typeof(SimHostSession).GetField("_world", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(s)!;
+        var site = Rts.Sim.Production.ProductionSystem.SpawnStructure(world.Setup.BuildingsCatalog, world.Units, world.Setup.Map, world.World.Ids, "hegemony-siege-cannon", 20, 20);
+        site.Faction = 1;
+        site.Building!.ConstructionRemaining = 100;
+        r = Resp(s.Handle("""{"protocolVersion":1,"kind":"step","tick":1,"commands":[]}"""));
+        var row = r.State!.Units.Single(u => u.BuildingId == "hegemony-siege-cannon");
+        Assert.True(row.ConstructionRemaining > 0);
+        Assert.Equal(row.ChargeNeed, row.Charge);
+    }
+
+    [Fact]
     public void An_init_with_ai_factions_plays_them()
     {
         var s = new SimHostSession(RepoRoot());

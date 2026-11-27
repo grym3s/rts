@@ -448,10 +448,16 @@ TArray<FString> ARtsBridgeGameMode::TooltipLines(int32 SimUnitId) const
 		L.Add(TEXT("Teleport (T): units near another node appear here"));
 	if (R->IsSuperweapon())
 	{
-		if (R->bStrike)
+		const FRtsFactionSnapshot* F = GetFactionState(R->Faction);
+		const bool bLowPower = F && F->PowerDraw > F->PowerSupply;
+		if (R->ConstructionRemaining > 0)
+			L.Add(FString::Printf(TEXT("Under construction: then it charges for %d:%02d, and Fire (G) strikes where you click"),
+				R->ChargeNeed / 20 / 60, (R->ChargeNeed / 20) % 60));
+		else if (R->bStrike)
 			L.Add(FString::Printf(TEXT("Strike landing in %.1f s"), R->StrikeIn / 20.0f));
 		else if (R->Charge > 0)
-			L.Add(FString::Printf(TEXT("Charging: %d:%02d left (paused at low power)"), R->Charge / 20 / 60, (R->Charge / 20) % 60));
+			L.Add(FString::Printf(TEXT("Charging: %d:%02d left%s"), R->Charge / 20 / 60, (R->Charge / 20) % 60,
+				bLowPower ? TEXT(" - PAUSED: low power, build more power") : TEXT("")));
 		else if (bOwn)
 			L.Add(TEXT("Ready: Fire (G), then click the target"));
 	}
@@ -1250,7 +1256,7 @@ ARtsBridgeGameMode::FSelectionAbilities ARtsBridgeGameMode::GetSelectionAbilitie
 		if (R->IsSuperweapon())
 		{
 			++A.Fire;
-			if (R->Charge == 0 && !R->bStrike && R->Sabotaged == 0)
+			if (R->Charge == 0 && !R->bStrike && R->Sabotaged == 0 && R->ConstructionRemaining == 0)
 				++A.FireReady;
 		}
 		if (IsMcvRow(*R))
@@ -1344,7 +1350,7 @@ bool ARtsBridgeGameMode::RequestFireAt(const FVector& WorldPoint)
 	for (const int32 Id : Selection.GetSelected())
 		if (const FRtsUnitSnapshot* R = RowsById.Find(Id))
 			if (R->Faction == PlayerFaction && R->IsSuperweapon() && R->Charge == 0 && !R->bStrike && R->Sabotaged == 0
-				&& (Best == INDEX_NONE || Id < Best))
+				&& R->ConstructionRemaining == 0 && (Best == INDEX_NONE || Id < Best))
 				Best = Id;
 	if (Best == INDEX_NONE)
 		return false;

@@ -240,7 +240,8 @@ public sealed class HostedWorld
                 a.Holds ? a.Capacity : null,
                 a.Holds ? Rts.Sim.Transport.TransportSystem.Used(u, Units) : null,
                 a.Teleport ? true : null,
-                a.IsSuperweapon ? u.ChargeLeft : null,
+                // a superweapon starts charging when it is finished: until then it has the whole charge to go
+                a.IsSuperweapon ? (u.Building is { ConstructionRemaining: > 0 } ? a.ChargeTicks : u.ChargeLeft) : null,
                 a.IsSuperweapon ? a.ChargeTicks : null,
                 a.IsSuperweapon ? a.StrikeRadius.Raw : null,
                 u.StrikeTick > 0 ? new[] { u.StrikeAt.X.Raw, u.StrikeAt.Y.Raw } : null,

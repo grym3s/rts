@@ -19,6 +19,6 @@
     "launches": "nest-drone",
     "wing": 5,
     "rebuildSeconds": 3,
-    "launchRange": 12
+    "launchRange": 22
   }
 }

@@ -19,6 +19,6 @@
     "launches": "vanguard-jet",
     "wing": 4,
     "rebuildSeconds": 6,
-    "launchRange": 16
+    "launchRange": 22
   }
 }
