@@ -63,6 +63,8 @@ if (doc.TryGetProperty("structures", out var structEls))
     foreach (var s in structEls.EnumerateArray())
         Rts.Sim.Production.ProductionSystem.SpawnStructure(buildingsCat, units, map, world.Ids,
             s.GetProperty("building").GetString()!, s.GetProperty("at")[0].GetInt32(), s.GetProperty("at")[1].GetInt32());
+// T28: a neutral hut at each end of every bridge (engineers sent there repair it)
+Rts.Sim.Production.ProductionSystem.SpawnBridgeHuts(buildingsCat, units, map, world.Ids, bridges);
 if (doc.TryGetProperty("refineries", out var refsEl))
     foreach (var r in refsEl.EnumerateArray())
         econ.Refineries.Add(new Rts.Sim.Economy.EconomyStore.Refinery(
@@ -87,7 +89,7 @@ world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
 world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick, map, catalog.IsRefinery));
 world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick, w));
 world.Systems.Add((w, due) => BridgeSystem.Step(bridges, map, units, orders, w.Tick, w)); // T26: still step 7
-world.Systems.Add((w, due) => CaptureSystem.Step(map, units, orders, w.Tick, w, (f, id) => econ.Deposit(f, catalog.Get(id).Cost))); // T28: still step 7
+world.Systems.Add((w, due) => CaptureSystem.Step(map, units, orders, w.Tick, w, (f, id) => econ.Deposit(f, catalog.Get(id).Cost), bridges)); // T28: still step 7
 world.Systems.Add((w, due) => units.DespawnDead());
 var match = new Rts.Sim.Match.MatchState();
 world.Systems.Add((w, due) => Rts.Sim.Match.MatchSystem.Step(w, units, match));

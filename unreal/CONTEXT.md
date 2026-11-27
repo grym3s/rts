@@ -44,6 +44,10 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   A captured actor re-tints to its new owner; neutral is grey. Trainable lists ignore the unit's
   faction (a captured barracks offers its own units); the build menu lists every tree in `Trees`.
   A destroyed derrick (`bWrecked`) draws as a dark slab until an engineer restores it (same RMB).
+  Bridge huts (rows with `Bridge` >= 0) are grey 1x1 markers; RMB on one with engineers repairs
+  its bridge. Buildings are picked anywhere on their footprint (`PickUnitImpl`), not only near
+  their centre. F4 labels carry the display name; hovering anything (unit, building, bridge) shows
+  a tooltip: name, owner and hp, and what you can do with it (`TooltipLines`, `BridgeTooltipLines`).
   Test: `RtsBridge.Host.Capture`.
 - `Source/RtsBridge/Private/RtsBridgeRoundTripTest.cpp` — editor automation test
   `RtsBridge.Host.RoundTrip` (real host launch, init, tick-0 move, 120 steps).

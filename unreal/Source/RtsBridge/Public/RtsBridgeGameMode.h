@@ -109,6 +109,21 @@ public:
 	{
 		return BuildingTypes.FindByPredicate([&Id](const FRtsBuildingType& B) { return B.Id == Id; });
 	}
+	const FRtsUnitType* FindUnitType(const FString& Id) const
+	{
+		return UnitTypes.FindByPredicate([&Id](const FRtsUnitType& U) { return U.Id == Id; });
+	}
+	/** Display name of a unit or building row ("Engineer", "Oil Derrick"), else its id. */
+	FString DisplayName(int32 SimUnitId) const;
+	/** Hover tooltip text for a unit/building: name, owner + hp, then what you can do with it. */
+	TArray<FString> TooltipLines(int32 SimUnitId) const;
+	/** Hover tooltip for a bridge or causeway (by bridge id). */
+	TArray<FString> BridgeTooltipLines(int32 BridgeId) const;
+	/** Any unit or building under the cursor (own or not); buildings by their whole footprint. */
+	int32 PickAnyUnitAt(const FVector2D& ScreenPos) const;
+	/** Cursor to the ground plane (z = 0). */
+	bool ScreenToGround(const FVector2D& ScreenPos, FVector& Out) const;
+	static FString OwnerName(int32 Faction);
 	/** One sidebar entry: what you could place now (prereq from the sim's own check, credits
 	 *  from the snapshot) and whether it would tip your power negative. */
 	struct FBuildOption
@@ -251,6 +266,9 @@ private:
 	/** Sim id of the own (faction 0) unit within click tolerance of ScreenPos, or INDEX_NONE. */
 	int32 PickOwnUnitAt(const FVector2D& ScreenPos) const;
 	int32 PickUnitAt(const FVector2D& ScreenPos, bool bOwn) const;
+	/** Mode 0 own, 1 not own, 2 any. A unit within 40 px of the cursor wins; else a building
+	 *  whose footprint the cursor is over (big buildings are clickable anywhere on them). */
+	int32 PickUnitImpl(const FVector2D& ScreenPos, int32 Mode) const;
 	/** Queue one order for the selected units; TargetJson is the raw `target` value or empty. */
 	bool QueueOrderForSelection(const TCHAR* Type, const FString& TargetJson, bool bSkipHarvesters = false);
 	void RefreshSelectionRings();

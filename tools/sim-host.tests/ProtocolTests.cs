@@ -332,8 +332,8 @@ public class ProtocolTests
     [InlineData("chokepoint-30.json", "1727e6d2adb5efb8")]
     // T29 re-pin (Rifleman marks on hit): skirmish-10v10, tri-point-30, counters-6v4, guard-hold, match-end
     [InlineData("skirmish-10v10.json", "b379d768bf134db0")] // re-pinned for T05 guard (idle units hold, chase, return): 0fbba65f760574ce -> e97bc24d4f7fd6c3
-    [InlineData("tri-point-30.json", "0d3b47e3fa717ca1")] // re-pinned for T34 fields (ore pools hashed); T29 Rifleman marking; T28 neutral oil derrick on the rig
-    [InlineData("tri-point-skirmish.json", "023dd8ce8ce6ba44")] // T36 skirmish start (MCV deploy + reactor); T27 re-pin: Ascendant seated, 1v1v1; T28: oil derrick
+    [InlineData("tri-point-30.json", "7c7b18117108b369")] // re-pinned for T34 fields (ore pools hashed); T29 Rifleman marking; T28 neutral oil derrick on the rig, then bridge huts
+    [InlineData("tri-point-skirmish.json", "a1393a9220900add")] // T36 skirmish start (MCV deploy + reactor); T27 re-pin: Ascendant seated, 1v1v1; T28: oil derrick, bridge huts
     [InlineData("counters-6v4.json", "d2343b13b00b679f")] // re-pinned for T05 guard (idle units hold, chase, return): a418be859c7550c7 -> 39ac951e73e99076
     [InlineData("guard-hold.json", "26db13b0d757bcea")]
     [InlineData("match-end.json", "3c7502ae4d9d4698")]
@@ -520,7 +520,9 @@ public class ProtocolTests
         Assert.False(bridge.Broken);
         Assert.Equal(bridge.MaxHp, bridge.Hp);
         Assert.Equal(new[] { 5, 1 }, bridge.Cells[0]);
-        Assert.Equal(new bool?[] { null, true }, init.State.Units.Select(u => u.Engineer).ToArray());
+        Assert.Equal(new bool?[] { null, true }, init.State.Units.Take(2).Select(u => u.Engineer).ToArray());
+        // T28: a neutral hut at each end of the bridge (after the scenario's units)
+        Assert.Equal(new[] { (-1, (int?)0), (-1, (int?)0) }, init.State.Units.Skip(2).Select(u => (u.Faction, u.Bridge)).ToArray());
 
         var tank = init.State.Units[0].Id;
         var r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":0,"commands":[{"tick":0,"faction":0,"type":"bridge","units":[{{tank}}],"bridge":0}]}"""));
@@ -583,6 +585,26 @@ public class ProtocolTests
         Assert.DoesNotContain(r.State.Units, u => u.Id == e1.Id || u.Id == e2.Id);
         Assert.Equal(2, r.Events!.Count(e => e.Kind == "captured" && e.Faction == 0));
         Assert.Equal(new[] { 0, 1 }, r.State.Factions![0].Trees);
+    }
+
+    [Fact]
+    public void On_Tri_Point_an_engineer_on_the_pier_reaches_and_captures_the_derrick()
+    {
+        // Regression: the open cell nearest the derrick's centre is a one-cell bridge stub no path
+        // reaches, so an engineer walking "at the derrick" stalled on the pier.
+        var scen = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(RepoRoot(), "content", "scenarios", "tri-point-skirmish.json")))!.AsObject();
+        scen.Remove("commands");
+        scen.Remove("assert");
+        scen["units"]!.AsArray().Add(new System.Text.Json.Nodes.JsonObject { ["unit"] = "engineer", ["at"] = new System.Text.Json.Nodes.JsonArray(64.5, 67.5) });
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle("{\"protocolVersion\":1,\"kind\":\"init\",\"scenario\":" + scen.ToJsonString() + "}"));
+        Assert.True(init.Ok, init.Error);
+        var eng = init.State!.Units.Single(u => u.Engineer == true);
+        var derrick = init.State.Units.Single(u => u.BuildingId == "neutral-oil-derrick");
+        var r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":0,"commands":[{"tick":0,"faction":0,"type":"capture","units":[{{eng.Id}}],"target":{{derrick.Id}}}]}"""));
+        for (var t = 1; t < 400 && r.State!.Units.Single(u => u.Id == derrick.Id).Faction != 0; t++)
+            r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":{{t}},"commands":[]}"""));
+        Assert.Equal(0, r.State!.Units.Single(u => u.Id == derrick.Id).Faction);
     }
 
     [Fact]

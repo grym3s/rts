@@ -34,8 +34,12 @@ bool FRtsDomainTest::RunTest(const FString& Parameters)
 		return false;
 	}
 	const FRtsHostReply& Init = Bridge->GetInitReply();
-	if (TestEqual(TEXT("four units"), Init.Units.Num(), 4))
+	// four units, then T28's neutral hut at the bridge's land end
+	if (TestEqual(TEXT("four units and a bridge hut"), Init.Units.Num(), 5))
 	{
+		TestEqual(TEXT("hut names its bridge"), Init.Units[4].Bridge, 0);
+		TestEqual(TEXT("hut is neutral"), Init.Units[4].Faction, -1);
+		TestEqual(TEXT("units are not huts"), Init.Units[0].Bridge, -1);
 		TestFalse(TEXT("rifleman is no engineer"), Init.Units[0].bEngineer);
 		TestTrue(TEXT("engineer flagged"), Init.Units[3].bEngineer);
 		TestEqual(TEXT("rifleman walks"), Init.Units[0].Domain, FString(TEXT("land")));

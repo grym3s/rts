@@ -55,6 +55,13 @@ faction = new owner). Neutrals (`Factions.Neutral` = -1, the oil derrick) are ne
 A destroyed restorable building (the derrick, `BuildingState.Restorable`) is not removed: at the
 start of the capture step it becomes a wreck (`Wrecked`, 1 hp, neutral, queue cleared), so it is
 untargetable and pays nobody; capturing the wreck restores it to full hp for the engineer's side.
+Bridge huts: `ProductionSystem.SpawnBridgeHuts` puts a neutral `neutral-bridge-hut` on each
+landing of every bridge and causeway (`Bridge.Landings`: open land touching it, one per 8-connected
+end, its first cell row-major). A hut marks no footprint (units walk past) and is never a target; an
+engineer sent to it (same `capture` command) repairs its bridge on touch (`BridgeSystem.Repair`,
+event `BridgeRepaired`, engineer consumed) and the hut stays neutral; with the bridge whole the job
+drops. Engineers walk to a cell touching a building's footprint that a path reaches (not the
+open cell nearest its centre, which can be an island: the Tri-Point derrick's bridge stubs).
 What ownership then allows lives in production (captured trees) and economy (the drip). Tests:
 `../tests/CaptureTests.cs`.
 Not modelled yet: projectiles, targeting priorities, multi-shot, domain (ground/air) targeting flags.

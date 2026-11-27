@@ -26,7 +26,7 @@ public static class CaptureSystem
     /// <summary>`refundQueued(oldOwner, unitId)` returns a captured building's queued units'
     /// cost to the side that paid for them; the queue itself is cleared.</summary>
     public static void Step(GameMap map, UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick,
-        SimWorld? events = null, Action<int, string>? refundQueued = null)
+        SimWorld? events = null, Action<int, string>? refundQueued = null, BridgeStore? bridges = null)
     {
         // A restorable building (the oil derrick) killed this tick stays as a neutral wreck:
         // 1 hp so cleanup keeps it (and its footprint), untargetable, paying nobody.
@@ -46,6 +46,23 @@ public static class CaptureSystem
             if (u.CaptureTarget == EntityId.None || u.Hp.Raw <= 0) continue;
             var t = units.Find(u.CaptureTarget);
             if (t is null || !Capturable(t) || t.Faction == u.Faction) { Drop(u, orders); continue; }
+            // T28: a bridge hut is never taken: an engineer entering it repairs its bridge, and
+            // one sent while the bridge is whole has nothing to do
+            Bridge? hutBridge = null;
+            if (t.Building is { BridgeId: >= 0 } hut)
+            {
+                hutBridge = bridges?.Get(hut.BridgeId);
+                if (hutBridge is not { Damaged: true }) { Drop(u, orders); continue; }
+            }
+            if (hutBridge != null && Touching(u, t, map))
+            {
+                BridgeSystem.Repair(hutBridge, map);
+                u.Hp = Fix64.Zero; // consumed: leaves the roster at cleanup
+                u.CaptureTarget = EntityId.None;
+                orders.Remove(u.Id);
+                events?.Emit(SimEventKind.BridgeRepaired, new EntityId(hutBridge.Id), u.Id);
+                continue;
+            }
             if (Touching(u, t, map))
             {
                 Take(t, u.Faction, units, orders, refundQueued);
@@ -55,11 +72,43 @@ public static class CaptureSystem
                 events?.Emit(SimEventKind.Captured, t.Id, u.Id, faction: u.Faction);
                 continue;
             }
-            // walk there (a building's centre is blocked: navigation ends next to the footprint);
-            // re-issue when an MCV has moved
-            if (!orders.TryGetValue(u.Id, out var o) || o.Target != t.Position)
-                orders[u.Id] = new MoveOrder(t.Position, new List<FixVec2>(), tick);
+            // An MCV: walk at it, re-issued whenever it has moved.
+            if (t.Building == null || !map.TryGetFootprint(t.Id.Value, out var fp))
+            {
+                if (!orders.TryGetValue(u.Id, out var o) || o.Target != t.Position)
+                    orders[u.Id] = new MoveOrder(t.Position, new List<FixVec2>(), tick);
+                continue;
+            }
+            // A building: walk to a cell touching its footprint that a path actually reaches
+            // (the centre is blocked, and the open cell nearest it can be an island: the derrick's
+            // one-cell bridge stubs on Tri-Point). Planned once; kept while it still touches.
+            if (orders.TryGetValue(u.Id, out var cur) && Touches(GameMap.CellOf(cur.Target.X), GameMap.CellOf(cur.Target.Y), fp))
+                continue;
+            if (Approach(u, fp, map) is { } cell)
+                orders[u.Id] = new MoveOrder(GameMap.CellCenter(cell.X, cell.Y), new List<FixVec2>(), tick);
+            else
+                Drop(u, orders); // nowhere beside it can be reached
         }
+    }
+
+    private static bool Touches(int cx, int cy, (int X, int Y, int W, int H) r) =>
+        cx >= r.X - 1 && cx <= r.X + r.W && cy >= r.Y - 1 && cy <= r.Y + r.H
+        && !(cx >= r.X && cx < r.X + r.W && cy >= r.Y && cy < r.Y + r.H);
+
+    /// <summary>The reachable cell around the footprint nearest the engineer (ties: row, then
+    /// column), or null when none can be reached.</summary>
+    private static (int X, int Y)? Approach(Unit u, (int X, int Y, int W, int H) r, GameMap map)
+    {
+        var from = (GameMap.CellOf(u.Position.X), GameMap.CellOf(u.Position.Y));
+        var ring = new List<(int D, int X, int Y)>();
+        for (var y = r.Y - 1; y <= r.Y + r.H; y++)
+            for (var x = r.X - 1; x <= r.X + r.W; x++)
+                if (Touches(x, y, r) && map.IsWalkable(x, y, u.Domain))
+                    ring.Add(((x - from.Item1) * (x - from.Item1) + (y - from.Item2) * (y - from.Item2), x, y));
+        foreach (var (_, x, y) in ring.OrderBy(c => c.D).ThenBy(c => c.Y).ThenBy(c => c.X))
+            if ((x, y) == from || Rts.Sim.Navigation.Pathfinding.FindPath(map, from, (x, y), u.Domain) != null)
+                return (x, y);
+        return null;
     }
 
     private static void Drop(Unit u, Dictionary<EntityId, MoveOrder> orders)

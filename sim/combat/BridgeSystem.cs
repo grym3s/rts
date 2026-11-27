@@ -94,7 +94,9 @@ public static class BridgeSystem
         }
     }
 
-    private static void Repair(Bridge b, GameMap map)
+    /// <summary>Mend to full (a fallen one's cells become bridge or land again). T28: also used by
+    /// CaptureSystem when an engineer enters a bridge hut.</summary>
+    internal static void Repair(Bridge b, GameMap map)
     {
         if (b.Broken) map.SetBridgeIntact(b.Cells, true, b.IntactTerrain);
         b.Broken = false;

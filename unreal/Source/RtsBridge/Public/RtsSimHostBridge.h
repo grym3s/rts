@@ -103,6 +103,10 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	bool bWrecked = false;
 
+	/** T28: a bridge hut: the bridge an engineer sent here repairs; -1 = not a hut. */
+	UPROPERTY(BlueprintReadOnly)
+	int32 Bridge = -1;
+
 	/** T29 owned verbs: catalog id; marked by an enemy's Marking; can be conscripted; phase
 	 *  state (PhaseTicks -1 = can't phase, else ticks left phased; PhaseCooldown = until ready). */
 	UPROPERTY(BlueprintReadOnly)

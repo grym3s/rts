@@ -173,6 +173,22 @@ public static class ProductionSystem
         return u;
     }
 
+    /// <summary>T28: a neutral bridge hut (`hutId`) on each landing of every bridge and causeway,
+    /// bridges in id order. A marker, not an obstacle: it marks no footprint (units walk past it)
+    /// and nobody can shoot it; an engineer sent to it repairs its bridge (sim/combat CaptureSystem).</summary>
+    public static void SpawnBridgeHuts(BuildingCatalog buildings, UnitStore units, Rts.Sim.World.GameMap map,
+        EntityIdAllocator ids, Rts.Sim.World.BridgeStore bridges, string hutId = "neutral-bridge-hut")
+    {
+        var bp = buildings.Get(hutId);
+        foreach (var br in bridges.Bridges)
+            foreach (var (x, y) in br.Landings(map))
+            {
+                var h = units.Spawn(ids.Next(), Rts.Sim.World.GameMap.CellCenter(x, y), Fix64.Zero, UnitCatalog.DefaultRadius,
+                    new UnitProfile(bp.Faction, bp.Hp, Fix64.Zero, Fix64.Zero, Fix64.Zero, 0, ArmorClass.Structure, DamageType.SmallArms, TypeId: bp.Id));
+                h.Building = new BuildingState { Id = bp.Id, BridgeId = br.Id };
+            }
+    }
+
     private static void Place(BuildingCatalog buildings, UnitStore units, Rts.Sim.World.GameMap map,
         EntityIdAllocator ids, PlaceBuildingCommand p, TryOp spend)
     {

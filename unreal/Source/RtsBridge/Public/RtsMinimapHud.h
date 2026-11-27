@@ -116,6 +116,8 @@ private:
 	void DrawConstructionBars();
 	void DrawProductionPanel();
 	void DrawRallyPoints();
+	/** T28: name / owner / hp / what you can do, for whatever is under the cursor. */
+	void DrawHoverTooltip();
 	int32 LastCredits = INT32_MIN; // T35: the +/- flash beside credits
 	int32 CreditsDelta = 0;
 	double CreditsDeltaUntil = 0.0;

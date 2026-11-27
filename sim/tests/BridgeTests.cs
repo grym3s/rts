@@ -128,6 +128,26 @@ public class BridgeTests
         Assert.NotNull(x.Units.Find(ship.Id));
     }
 
+    [Theory]
+    [InlineData("hawk")]
+    [InlineData("hind")]
+    [InlineData("vulture")]
+    [InlineData("lancer-mbt")]
+    [InlineData("rifleman")]
+    [InlineData("grenadier")]
+    [InlineData("heavy-bomber")]
+    [InlineData("wraith")]
+    [InlineData("bulwark")]
+    [InlineData("at-squad")]
+    public void Any_ground_hitting_weapon_keeps_shooting_until_the_bridge_falls(string unit)
+    {
+        var x = World();
+        var u = Spawn(x, unit, 0, 2, 1);
+        x.Step(Order(x, 0, u));
+        x.RunUntil(() => x.Bridges.Get(0)!.Broken, 20000);
+        Assert.True(x.Bridges.Get(0)!.Broken, $"{unit}: bridge at {x.Bridges.Get(0)!.Hp} hp, job {u.BridgeTarget}");
+    }
+
     [Fact]
     public void An_engineer_mends_a_fallen_bridge_and_is_used_up()
     {
@@ -146,6 +166,35 @@ public class BridgeTests
         x.Step();
         Assert.Null(x.Units.Find(eng.Id));
         Assert.NotNull(Pathfinding.FindPath(x.Map, (5, 3), (14, 3)));
+    }
+
+    [Fact]
+    public void Each_bridge_gets_a_neutral_hut_at_both_ends_and_an_engineer_sent_there_mends_it()
+    {
+        var x = World();
+        var cat = BuildingCatalog.LoadFromDirectory(Path.Combine(RepoRoot(), "content", "buildings"));
+        x.Sim.Systems.Insert(x.Sim.Systems.Count - 1, (sw, due) => CaptureSystem.Step(x.Map, x.Units, x.Orders, sw.Tick, sw, null, x.Bridges));
+        Rts.Sim.Production.ProductionSystem.SpawnBridgeHuts(cat, x.Units, x.Map, x.Sim.Ids, x.Bridges);
+        var huts = x.Units.Units.Where(u => u.Building?.BridgeId >= 0).ToList();
+        Assert.Equal(new[] { (0, 8, 3), (0, 11, 3), (1, 8, 7), (1, 11, 7) },
+            huts.Select(h => (h.Building!.BridgeId, GameMap.CellOf(h.Position.X), GameMap.CellOf(h.Position.Y))).ToArray());
+        Assert.All(huts, h => Assert.Equal(Factions.Neutral, h.Faction));
+        Assert.True(x.Map.IsWalkable(8, 3)); // a marker, not an obstacle
+
+        var eng = Spawn(x, "engineer", 0, 2, 2);
+        x.Step(new CaptureCommand(x.Sim.Tick, 0, new[] { eng.Id }, huts[0].Id));
+        Assert.Equal(EntityId.None, eng.CaptureTarget); // the bridge is whole: nothing to do
+
+        var tank = Spawn(x, "lancer-mbt", 0, 2, 1);
+        x.Step(Order(x, 0, tank));
+        x.RunUntil(() => x.Bridges.Get(0)!.Broken);
+        x.Step(new CaptureCommand(x.Sim.Tick, 0, new[] { eng.Id }, huts[0].Id));
+        x.RunUntil(() => !x.Bridges.Get(0)!.Damaged, 600);
+        Assert.False(x.Bridges.Get(0)!.Broken);
+        Assert.Equal(Terrain.Bridge, x.Map.TerrainAt(9, 4));
+        x.Step();
+        Assert.Null(x.Units.Find(eng.Id));                       // used up
+        Assert.Equal(Factions.Neutral, huts[0].Faction);          // the hut stays nobody's
     }
 
     [Fact]

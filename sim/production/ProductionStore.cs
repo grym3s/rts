@@ -24,6 +24,8 @@ public sealed class BuildingState
     /// <summary>T28: a wreck: neutral, 1 hp, untargetable, pays nothing, until an engineer restores
     /// it (sim/combat CaptureSystem): full hp, and the restorer's side owns it.</summary>
     public bool Wrecked { get; set; }
+    /// <summary>T28: a bridge hut: the BridgeStore id an engineer sent here repairs; -1 = none.</summary>
+    public int BridgeId { get; init; } = -1;
 }
 
 /// <summary>Production state that isn't per-building: nothing today (queue lives on the

@@ -20,6 +20,52 @@ FVector2D ARtsMinimapHud::ViewportSize() const
 	return FVector2D(W, H);
 }
 
+void ARtsMinimapHud::DrawHoverTooltip()
+{
+	// T28: what's under the cursor: name, owner + hp, and what you can do with it.
+	const ARtsBridgeGameMode* GM = GetWorld() ? Cast<ARtsBridgeGameMode>(GetWorld()->GetAuthGameMode()) : nullptr;
+	float MX, MY;
+	if (!GM || !PlayerOwner || !Canvas || !PlayerOwner->GetMousePosition(MX, MY))
+		return;
+	const FVector2D Vp(Canvas->SizeX, Canvas->SizeY);
+	const FVector2D M(MX, MY);
+	if (MinimapRect(Vp).ExpandBy(4.0f).IsInside(M))
+		return;
+	TArray<FString> Lines;
+	const int32 Id = GM->PickAnyUnitAt(M);
+	if (Id != INDEX_NONE)
+		Lines = GM->TooltipLines(Id);
+	else
+	{
+		FVector G;
+		if (GM->ScreenToGround(M, G))
+		{
+			const int32 B = GM->BridgeAt(G);
+			if (B != INDEX_NONE)
+				Lines = GM->BridgeTooltipLines(B);
+		}
+	}
+	if (Lines.Num() == 0)
+		return;
+	UFont* Small = GEngine ? GEngine->GetSmallFont() : nullptr;
+	float W = 0.0f, LineH = 0.0f;
+	for (const FString& S : Lines)
+	{
+		float Tw = 0.0f, Th = 0.0f;
+		GetTextSize(S, Tw, Th, Small, 1.0f);
+		W = FMath::Max(W, Tw);
+		LineH = FMath::Max(LineH, Th);
+	}
+	const float Pad = 6.0f;
+	const float BoxW = W + Pad * 2.0f, BoxH = LineH * Lines.Num() + Pad * 2.0f;
+	const float X = FMath::Min(MX + 18.0f, Vp.X - BoxW - 4.0f);
+	const float Y = FMath::Min(MY + 18.0f, Vp.Y - BoxH - 4.0f);
+	DrawRect(FLinearColor(0.02f, 0.02f, 0.03f, 0.85f), X, Y, BoxW, BoxH);
+	for (int32 i = 0; i < Lines.Num(); ++i)
+		DrawText(Lines[i], i == 0 ? FLinearColor(1.0f, 0.9f, 0.55f) : (i == 1 ? FLinearColor(0.8f, 0.8f, 0.8f) : FLinearColor::White),
+			X + Pad, Y + Pad + LineH * i, Small, 1.0f);
+}
+
 FBox2D ARtsMinimapHud::MinimapRect(const FVector2D& Vp)
 {
 	const float Margin = 14.0f;
@@ -186,6 +232,7 @@ void ARtsMinimapHud::DrawHUD()
 	DrawEconomyBar();
 	DrawBuildMenu();
 	DrawProductionPanel();
+	DrawHoverTooltip();
 
 	// Box-select drag rectangle (screen space, under the minimap).
 	if (const ARtsRtsPlayerController* RPC = Cast<ARtsRtsPlayerController>(PlayerOwner))
@@ -601,7 +648,7 @@ void ARtsMinimapHud::DrawDebugOverlays()
 			FVector2D S;
 			if (Proj(At - FVector(0.0, 0.0, 45.0), S))
 			{
-				const FString Label = FString::Printf(TEXT("#%d %s"), D->Id, *D->State);
+				const FString Label = FString::Printf(TEXT("%s #%d %s"), *GM->DisplayName(D->Id), D->Id, *D->State);
 				float W = 0.0f, H = 0.0f;
 				GetTextSize(Label, W, H, Small, 1.0f);
 				DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.55f), S.X - W * 0.5f - 2.0f, S.Y, W + 4.0f, H);

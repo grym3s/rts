@@ -245,15 +245,44 @@ int32 ARtsBridgeGameMode::PickEnemyUnitAt(const FVector2D& ScreenPos) const
 
 int32 ARtsBridgeGameMode::PickUnitAt(const FVector2D& ScreenPos, bool bOwn) const
 {
+	return PickUnitImpl(ScreenPos, bOwn ? 0 : 1);
+}
+
+int32 ARtsBridgeGameMode::PickAnyUnitAt(const FVector2D& ScreenPos) const
+{
+	return PickUnitImpl(ScreenPos, 2);
+}
+
+bool ARtsBridgeGameMode::ScreenToGround(const FVector2D& ScreenPos, FVector& Out) const
+{
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+	FVector Origin, Dir;
+	if (!PC || !PC->DeprojectScreenPositionToWorld(ScreenPos.X, ScreenPos.Y, Origin, Dir) || FMath::Abs(Dir.Z) < 1e-4)
+		return false;
+	const double T = -Origin.Z / Dir.Z;
+	if (T < 0.0)
+		return false;
+	Out = Origin + Dir * T;
+	return true;
+}
+
+int32 ARtsBridgeGameMode::PickUnitImpl(const FVector2D& ScreenPos, int32 Mode) const
+{
 	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
 	if (!PC)
 		return INDEX_NONE;
 	// Project each candidate unit to screen; take the closest within a click radius.
 	int32 BestId = INDEX_NONE;
 	float BestDist = 40.0f; // px click tolerance
+	FVector Ground;
+	const bool bGround = ScreenToGround(ScreenPos, Ground);
+	int32 UnderId = INDEX_NONE; // T28: a building whose footprint is under the cursor
 	for (const ARtsSimUnitActor* A : UnitActors)
 	{
-		if (!A || (A->GetFaction() == 0) != bOwn)
+		if (!A || A->IsDying())
+			continue;
+		const bool bOwnUnit = A->GetFaction() == 0;
+		if ((Mode == 0 && !bOwnUnit) || (Mode == 1 && bOwnUnit))
 			continue; // own = faction 0 (you); enemy = any other faction
 		FVector2D Proj;
 		if (PC->ProjectWorldLocationToScreen(A->GetActorLocation(), Proj))
@@ -261,8 +290,111 @@ int32 ARtsBridgeGameMode::PickUnitAt(const FVector2D& ScreenPos, bool bOwn) cons
 			const float D = FVector2D::Distance(Proj, ScreenPos);
 			if (D < BestDist) { BestDist = D; BestId = A->GetSimUnitId(); }
 		}
+		if (bGround && UnderId == INDEX_NONE)
+			if (const FRtsUnitSnapshot* R = RowsById.Find(A->GetSimUnitId()))
+				if (R->IsBuilding())
+				{
+					const FVector L = A->GetActorLocation();
+					const double HalfW = FMath::Max(1, R->FootprintW) * SimCellUU * 0.5;
+					const double HalfH = FMath::Max(1, R->FootprintH) * SimCellUU * 0.5;
+					if (FMath::Abs(Ground.X - L.X) <= HalfW && FMath::Abs(Ground.Y - L.Y) <= HalfH)
+						UnderId = A->GetSimUnitId();
+				}
 	}
-	return BestId;
+	if (BestId != INDEX_NONE && !IsBuildingId(BestId))
+		return BestId; // a unit at the cursor beats the building it stands beside
+	return UnderId != INDEX_NONE ? UnderId : BestId;
+}
+
+FString ARtsBridgeGameMode::OwnerName(int32 Faction)
+{
+	switch (Faction)
+	{
+	case 0: return TEXT("Yours");
+	case 1: return TEXT("Hegemony");
+	case 2: return TEXT("Ascendant");
+	default: return TEXT("Neutral");
+	}
+}
+
+FString ARtsBridgeGameMode::DisplayName(int32 SimUnitId) const
+{
+	const FRtsUnitSnapshot* R = RowsById.Find(SimUnitId);
+	if (!R)
+		return FString::Printf(TEXT("#%d"), SimUnitId);
+	if (R->IsBuilding())
+	{
+		const FRtsBuildingType* B = FindBuildingType(R->BuildingId);
+		return B && !B->Name.IsEmpty() ? B->Name : R->BuildingId;
+	}
+	const FRtsUnitType* U = FindUnitType(R->Type);
+	return U && !U->Name.IsEmpty() ? U->Name : (R->Type.IsEmpty() ? FString::Printf(TEXT("#%d"), SimUnitId) : R->Type);
+}
+
+TArray<FString> ARtsBridgeGameMode::TooltipLines(int32 SimUnitId) const
+{
+	TArray<FString> L;
+	const FRtsUnitSnapshot* R = RowsById.Find(SimUnitId);
+	if (!R)
+		return L;
+	L.Add(DisplayName(SimUnitId));
+	L.Add(FString::Printf(TEXT("%s    HP %.0f / %.0f"), *OwnerName(R->Faction), R->Hp, R->MaxHp));
+	const bool bOwn = R->Faction == 0;
+	if (R->Bridge >= 0)
+	{
+		const FRtsBridgeSnapshot* B = Bridges.FindByPredicate([R](const FRtsBridgeSnapshot& X) { return X.Id == R->Bridge; });
+		const bool bDamaged = B && B->IsDamaged();
+		L.Add(bDamaged ? TEXT("Its bridge is damaged: right-click here with an engineer to repair it")
+			: TEXT("Its bridge is intact. If it falls, right-click here with an engineer to rebuild it"));
+		return L;
+	}
+	if (R->bWrecked)
+	{
+		L.Add(TEXT("Wrecked: right-click with an engineer to restore it (it becomes yours)"));
+		return L;
+	}
+	if (R->BuildingId == TEXT("neutral-oil-derrick"))
+		L.Add(TEXT("Oil: pays its owner credits every second"));
+	if (!bOwn && (R->IsBuilding() || IsMcvRow(*R)))
+		L.Add(TEXT("Right-click with an engineer to capture it"));
+	if (bOwn && R->IsBuilding())
+	{
+		const TArray<FRtsUnitType> Trains = TrainableAt(R->BuildingId);
+		if (Trains.Num() > 0)
+		{
+			TArray<FString> Names;
+			for (int32 i = 0; i < Trains.Num() && i < 5; ++i)
+				Names.Add(Trains[i].Name.IsEmpty() ? Trains[i].Id : Trains[i].Name);
+			L.Add(FString::Printf(TEXT("Trains: %s%s"), *FString::Join(Names, TEXT(", ")),
+				Trains.Num() > 5 ? *FString::Printf(TEXT(" +%d more"), Trains.Num() - 5) : TEXT("")));
+		}
+	}
+	if (bOwn && IsMcvRow(*R))
+		if (const FRtsBuildingType* Y = FindBuildingType(R->DeploysTo))
+			L.Add(FString::Printf(TEXT("Deploys into a %s"), *(Y->Name.IsEmpty() ? Y->Id : Y->Name)));
+	if (bOwn && R->bCanCapture)
+		L.Add(TEXT("Right-click: captures enemy buildings, MCVs and the oil derrick; repairs bridges at their huts"));
+	else if (bOwn && R->bEngineer)
+		L.Add(TEXT("Right-click a damaged bridge or its hut to repair it"));
+	if (R->bMarked)
+		L.Add(TEXT("Marked: takes extra damage from the marking side"));
+	if (R->IsPhased())
+		L.Add(TEXT("Phased: can't be hit or fire"));
+	return L;
+}
+
+TArray<FString> ARtsBridgeGameMode::BridgeTooltipLines(int32 BridgeId) const
+{
+	TArray<FString> L;
+	const FRtsBridgeSnapshot* B = Bridges.FindByPredicate([BridgeId](const FRtsBridgeSnapshot& X) { return X.Id == BridgeId; });
+	if (!B)
+		return L;
+	L.Add(B->bCauseway ? TEXT("Causeway") : TEXT("Bridge"));
+	L.Add(B->bBroken ? FString(TEXT("Destroyed")) : FString::Printf(TEXT("HP %.0f / %.0f"), B->Hp, B->MaxHp));
+	L.Add(TEXT("Ctrl+right-click with armed units to attack it"));
+	if (B->IsDamaged())
+		L.Add(TEXT("Engineers repair it: right-click it, or a bridge hut at either end"));
+	return L;
 }
 
 void ARtsBridgeGameMode::RefreshSelectionRings()

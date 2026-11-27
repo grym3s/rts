@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "neutral-bridge-hut",
+  "name": "Bridge Hut",
+  "faction": "neutral",
+  "category": "logistics",
+  "tier": 0,
+  "prereq": null,
+  "cost": 0,
+  "buildTimeSeconds": 0,
+  "power": 0,
+  "footprint": [
+    1,
+    1
+  ],
+  "produces": [
+    "bridge-repair"
+  ],
+  "stats": {
+    "hp": 500
+  }
+}

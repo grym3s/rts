@@ -35,6 +35,40 @@ public sealed class Bridge
         return false;
     }
 
+    /// <summary>T28 bridge huts: one land cell at each end of the bridge. The open land cells
+    /// touching it (8-neighbours, not its own cells) are grouped into 8-connected clusters, one per
+    /// end; each cluster gives its first cell in row-major order. Clusters ordered by that cell.</summary>
+    public List<(int X, int Y)> Landings(GameMap map)
+    {
+        var touch = new SortedSet<(int Y, int X)>();
+        foreach (var c in Cells)
+            for (var dy = -1; dy <= 1; dy++)
+                for (var dx = -1; dx <= 1; dx++)
+                {
+                    var (x, y) = (c.X + dx, c.Y + dy);
+                    if (!map.InBounds(x, y) || Covers(x, y) || map.TerrainAt(x, y) != Terrain.Land || !map.IsWalkable(x, y)) continue;
+                    touch.Add((y, x));
+                }
+        var ends = new List<(int X, int Y)>();
+        var left = new SortedSet<(int Y, int X)>(touch);
+        while (left.Count > 0)
+        {
+            var first = left.Min;
+            ends.Add((first.X, first.Y));
+            var stack = new Stack<(int Y, int X)>();
+            stack.Push(first);
+            left.Remove(first);
+            while (stack.Count > 0)
+            {
+                var c = stack.Pop();
+                for (var dy = -1; dy <= 1; dy++)
+                    for (var dx = -1; dx <= 1; dx++)
+                        if (left.Remove((c.Y + dy, c.X + dx))) stack.Push((c.Y + dy, c.X + dx));
+            }
+        }
+        return ends;
+    }
+
     /// <summary>Centre of the cell nearest to p (ties: first in row-major order).</summary>
     public FixVec2 NearestCell(FixVec2 p)
     {
