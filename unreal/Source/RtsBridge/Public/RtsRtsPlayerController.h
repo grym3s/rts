@@ -20,6 +20,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "RtsMinimapHud.h"
 #include "RtsRtsPlayerController.generated.h"
 
 class ARtsRtsCameraActor;
@@ -64,6 +65,27 @@ private:
 	void OnStopKey();
 	void OnDebugKey();
 	void OnDeployKey();
+	// ability keys: Q phase, C conscript, U unload, T teleport (then click a node), G fire (then click the ground), F6 fog
+	void OnPhaseKey();
+	void OnConscriptKey();
+	void OnUnloadKey();
+	void OnTeleportKey();
+	void OnFireKey();
+	void OnFogKey();
+	void RunAbility(ARtsMinimapHud::EAbility Ability);
+	/** LMB on the ability bar; true = the click was the bar's. */
+	bool HandleAbilityClick();
+	/** Waiting for a click: a Teleport Node to send the selection to, or a superweapon target. */
+public:
+	enum class ETargeting : uint8 { None, Teleport, Fire };
+private:
+	ETargeting Targeting = ETargeting::None;
+	void SetTargeting(ETargeting T);
+	/** LMB while targeting: true = handled (sent, or kept waiting on a bad click). */
+	bool HandleTargetingClick();
+public:
+	ETargeting GetTargeting() const { return Targeting; }
+private:
 	/** T36: LMB on the build sidebar (pick an entry, Deploy); true = the click was the sidebar's. */
 	bool HandleBuildMenuClick();
 	/** T37: LMB a unit = train (Shift x5); RMB a unit = cancel its last, RMB a queue slot = cancel it. */

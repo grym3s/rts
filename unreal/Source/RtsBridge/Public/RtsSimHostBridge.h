@@ -152,6 +152,39 @@ public:
 	bool bCarrying = false;
 
 	bool IsBuilding() const { return !BuildingId.IsEmpty(); }
+
+	// --- ability state (plain members; all optional on the wire, defaults = absent) ---
+	double Sight = 0.0;          // cells
+	double Radar = 0.0;          // Seam Radar: its owner sees this far (cells)
+	int32 Inside = -1;           // riding in this holder (hidden)
+	bool bStealth = false;
+	bool bCloaked = false;       // cloaked this tick
+	int32 Detected = 0;          // bit f = faction f detects it
+	int32 Shield = 0;            // damage cut by a shield, percent
+	int32 Sabotaged = 0;         // ticks left shut down
+	bool bSabotages = false;     // Operative
+	bool bHijacks = false;       // Hijacker
+	int32 Carrier = -1;          // carrier aircraft: its carrier
+	FString Holds;               // "transport" / "garrison" / "tunnel"
+	FString Carries;             // "infantry" / "ground"
+	int32 Capacity = 0;
+	int32 Used = 0;
+	bool bTeleport = false;      // Teleport Node
+	int32 Charge = -1;           // superweapon: ticks left to charge (-1 = not a superweapon)
+	int32 ChargeNeed = 0;
+	double StrikeRadius = 0.0;   // cells
+	bool bStrike = false;        // a strike on its way
+	double StrikeX = 0.0, StrikeY = 0.0;
+	int32 StrikeIn = 0;
+	FString Control;             // hold-to-capture rig state
+	int32 HoldFaction = -1;
+	int32 Hold = 0;
+	int32 HoldNeed = 0;
+
+	bool IsSuperweapon() const { return Charge >= 0; }
+	bool IsInside() const { return Inside >= 0; }
+	/** Whether `Viewer` can see it at all (cloaked enemies need a detector). */
+	bool VisibleTo(int32 Viewer) const { return Faction == Viewer || !bCloaked || (Detected & (1 << Viewer)) != 0; }
 };
 
 /** T30: one faction's credits and power ledger (net = supply - draw; low power when < 0). */

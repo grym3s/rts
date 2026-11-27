@@ -95,6 +95,19 @@ public:
 		TArray<FBox2D> Queue;
 	};
 	static constexpr int32 ProductionQueueSlots = 5; // ProductionStore.MaxQueue
+
+	/** Ability bar (bottom centre, above the production panel): what the selection can do. */
+	enum class EAbility : uint8 { Phase, Conscript, Unload, Teleport, Fire, Deploy };
+	struct FAbilityButton
+	{
+		EAbility Ability = EAbility::Phase;
+		FString Label;
+		bool bEnabled = true;
+	};
+	static TArray<FAbilityButton> AbilityButtons(class ARtsBridgeGameMode& GM);
+	static TArray<FBox2D> AbilityLayout(class ARtsBridgeGameMode& GM, const FVector2D& Viewport, int32 NumButtons);
+	/** Index of the ability button under Pos, else INDEX_NONE. */
+	static int32 AbilityHit(class ARtsBridgeGameMode& GM, const FVector2D& Viewport, const FVector2D& Pos);
 	static FProductionLayout ProductionLayout(const FVector2D& Viewport, int32 NumUnits);
 	enum class EProductionHit : uint8 { None, Panel, Unit, Queue };
 	static EProductionHit ProductionHit(const FVector2D& Viewport, int32 NumUnits, const FVector2D& Pos, int32& OutIndex);
@@ -131,6 +144,11 @@ private:
 	void DrawConstructionBars();
 	/** Mindbender channel progress (bar + seconds left) and lines to what it holds. */
 	void DrawChannelBars();
+	void DrawFog();
+	void DrawMinimapFog(const FBox2D& MinimapR);
+	void DrawAbilityBar();
+	void DrawStrikes();
+	void DrawRigBars();
 	void DrawProductionPanel();
 	void DrawRallyPoints();
 	/** T28: name / owner / hp / what you can do, for whatever is under the cursor. */

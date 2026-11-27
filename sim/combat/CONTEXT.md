@@ -77,4 +77,13 @@ drops. Engineers walk to a cell touching a building's footprint that a path reac
 open cell nearest its centre, which can be an island: the Tri-Point derrick's bridge stubs).
 What ownership then allows lives in production (captured trees) and economy (the drip). Tests:
 `../tests/CaptureTests.cs`.
+Abilities (content `verbs`, `world/Abilities`; numbers are our tuning, canon names the verbs only):
+- Low power: a defense building holds fire while its side is at low power or it is sabotaged (`Step(..., lowPower)`).
+- `Support.Refresh` (start of combat, every tick, derived and unhashed): shields (Anchor, Warden on ships only: allies in `ShieldRadius` take `ShieldPercent` less, no stacking), Field Repair heals other allied units in `HealRadius`, cloaking (`Stealth` units; the Mindbender cloaks friends in `CloakRadius`), detection (`DetectRadius` units and buildings set `DetectedMask`). A building source must be finished, powered and not sabotaged. A cloaked unit that fires is revealed for `RevealTicks`. Acquiring skips what `Support.CanSee` says the side can't see, and passengers.
+- Phase Turret (`phasesBetweenShots`): phased for half its cooldown after each shot. Line damage (Rift Node / Lance / Hull): each shot also hits every enemy on the line to full range (`LineHalfWidth`).
+- Garrisons: infantry inside a bunker fire out with `GarrisonRangeBonus`, measured from the bunker, and can't be shot.
+- `Carriers`: a carrier keeps `Wing` aircraft of type `Launches` alive (one rebuilt every `RebuildTicks`); they take its target or the nearest enemy within `LaunchRange` of it, fly home when idle and die with it.
+- `Control` (Tri-Point rigs, `holdCapture`): a strict majority of ground units within `HoldRadius` that isn't the owner takes it after `HoldTicks` (15 s); a contested rig freezes, otherwise progress decays. States: neutral / occupied / contested / held / fortified.
+- `CaptureSystem` also runs the Operative (`sabotages`: a capture shuts the building down for 30 s, consumed) and the Hijacker (`hijacks`: steals a ground vehicle, consumed).
+Tests: `../tests/AbilityTests.cs` (the `Arena` helper builds a real MatchWorld).
 Not modelled yet: projectiles, targeting priorities, multi-shot, domain (ground/air) targeting flags.

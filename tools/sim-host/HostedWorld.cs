@@ -191,6 +191,7 @@ public sealed class HostedWorld
         var units = new List<HostUnit>(Units.Units.Count);
         foreach (var u in Units.Units)
         {
+            var a = u.Ability;
             units.Add(new HostUnit(
                 u.Id.Value, u.Faction,
                 u.Position.X.Raw, u.Position.Y.Raw,
@@ -222,7 +223,32 @@ public sealed class HostedWorld
                 u.ChannelTicks > 0 ? u.CaptureTarget.Value : null,
                 u.ChannelTicks > 0 ? u.ChannelTicks : null,
                 u.ChannelTicks > 0 ? u.ChannelNeed : null,
-                u.ControlledBy != EntityId.None ? u.ControlledBy.Value : null));
+                u.ControlledBy != EntityId.None ? u.ControlledBy.Value : null,
+                u.Sight.Raw,
+                a.RadarRadius.Raw > 0 ? a.RadarRadius.Raw : null,
+                u.Inside != EntityId.None ? u.Inside.Value : null,
+                a.Stealth ? true : null,
+                u.Cloaked ? true : null,
+                u.DetectedMask != 0 ? (int)u.DetectedMask : null,
+                u.ShieldPercentNow > 0 ? u.ShieldPercentNow : null,
+                u.IsSabotaged(World.Tick) ? u.SabotagedUntilTick - World.Tick : null,
+                a.Sabotages ? true : null,
+                a.Hijacks ? true : null,
+                u.CarrierId != EntityId.None ? u.CarrierId.Value : null,
+                a.Holds ? (a.Tunnel ? "tunnel" : a.Garrison ? "garrison" : "transport") : null,
+                a.Holds ? a.Carries : null,
+                a.Holds ? a.Capacity : null,
+                a.Holds ? Rts.Sim.Transport.TransportSystem.Used(u, Units) : null,
+                a.Teleport ? true : null,
+                a.IsSuperweapon ? u.ChargeLeft : null,
+                a.IsSuperweapon ? a.ChargeTicks : null,
+                a.IsSuperweapon ? a.StrikeRadius.Raw : null,
+                u.StrikeTick > 0 ? new[] { u.StrikeAt.X.Raw, u.StrikeAt.Y.Raw } : null,
+                u.StrikeTick > 0 ? Math.Max(0, u.StrikeTick - World.Tick) : null,
+                a.HoldCapture ? Rts.Sim.Combat.Control.StateOf(u, Units).ToString().ToLowerInvariant() : null,
+                a.HoldCapture && u.HoldProgress > 0 ? u.HoldFaction : null,
+                a.HoldCapture ? u.HoldProgress : null,
+                a.HoldCapture ? Rts.Sim.Combat.Control.HoldTicks : null));
         }
 
         var factions = new List<HostFaction>(2);

@@ -32,6 +32,23 @@ static TSharedPtr<FJsonObject> ReadJson(const FString& Path, FString& OutError)
 	return Obj;
 }
 
+FString RtsContent::WithComputerPlayers(const FString& InitRequest, int32 Human)
+{
+	TSharedPtr<FJsonObject> Init;
+	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(InitRequest);
+	const TSharedPtr<FJsonObject>* Scenario = nullptr;
+	if (!FJsonSerializer::Deserialize(Reader, Init) || !Init || !Init->TryGetObjectField(TEXT("scenario"), Scenario))
+		return InitRequest;
+	TArray<TSharedPtr<FJsonValue>> Ai;
+	for (int32 F = 0; F < 3; ++F)
+		if (F != Human)
+			Ai.Add(MakeShared<FJsonValueNumber>(F));
+	(*Scenario)->SetArrayField(TEXT("ai"), Ai);
+	FString Out;
+	auto Writer = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Out);
+	return FJsonSerializer::Serialize(Init.ToSharedRef(), Writer) ? Out : InitRequest;
+}
+
 bool RtsContent::LoadMatch(const FString& ScenarioId, const FString& MapId, FRtsMatchSetup& Out, FString& OutError)
 {
 	const FString Root = ContentRoot();

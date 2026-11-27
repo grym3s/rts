@@ -114,7 +114,32 @@ public sealed record HostUnit(
     int? ChannelTarget = null, // Mindbender: entity it is channelling on (absent = none)
     int? Channel = null, // ticks channelled so far
     int? ChannelNeed = null, // ticks the channel takes in all
-    int? ControlledBy = null); // mind-controlled by this Mindbender id
+    int? ControlledBy = null, // mind-controlled by this Mindbender id
+    long Sight = 0, // sight radius, Q32.32 raw (fog is presentation: the client draws it)
+    long? Radar = null, // Seam Radar: its owner also sees this far around it (raw)
+    int? Inside = null, // riding in this transport / bunker / tunnel id (hide it)
+    bool? Stealth = null, // stealthy (cloaks on its own)
+    bool? Cloaked = null, // cloaked this tick: enemies see it only when Detected has their bit
+    int? Detected = null, // bit f set = faction f has a detector on it this tick
+    int? Shield = null, // damage cut this tick by an Anchor / Warden, percent
+    int? Sabotaged = null, // ticks it stays shut down by an Operative
+    bool? Sabotages = null, // Operative: capture an enemy building = shut it down
+    bool? Hijacks = null, // Hijacker: capture an enemy vehicle = steal it
+    int? Carrier = null, // carrier aircraft: the carrier it belongs to
+    string? Holds = null, // "transport" / "garrison" / "tunnel": you can `load` units into it
+    string? Carries = null, // "infantry" / "ground"
+    int? Capacity = null, // passenger slots in all (infantry 1, others 4)
+    int? Used = null, // slots taken (a tunnel: across its side's tunnels)
+    bool? Teleport = null, // Teleport Node
+    int? Charge = null, // superweapon: ticks left to charge (0 = ready)
+    int? ChargeNeed = null, // superweapon: full charge time, ticks
+    long? StrikeRadius = null, // superweapon: strike radius (raw)
+    long[]? Strike = null, // superweapon: [x, y] raw of a strike on its way
+    int? StrikeIn = null, // ticks until it lands
+    string? Control = null, // a hold-to-capture rig: neutral / occupied / contested / held / fortified
+    int? HoldFaction = null, // the side taking it
+    int? Hold = null, // ticks it has held
+    int? HoldNeed = null); // ticks it needs
 
 /// <summary>T30: credits and the power ledger (net = supply − draw; low power when net &lt; 0).</summary>
 public sealed record HostFaction(int Faction, int Credits, int PowerSupply = 0, int PowerDraw = 0,

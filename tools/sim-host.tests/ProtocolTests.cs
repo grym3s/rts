@@ -593,6 +593,43 @@ public class ProtocolTests
         Assert.Null(st.Units.Single(u => u.Id == mb.Id).ChannelTarget);
     }
 
+    // ---------- abilities and computer players ----------
+
+    [Fact]
+    public void Rows_carry_transport_superweapon_and_sight_state_and_load_rides_inside()
+    {
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":32,"height":32,"blocked":[]},"structures":[{"building":"coalition-orbital-lance","at":[24,24]}],"units":[{"unit":"troop-carrier","at":[10.5,10.5]},{"unit":"conscript","at":[11.5,10.5]}]}}"""));
+        Assert.True(init.Ok, init.Error);
+        var (apc, man) = (init.State!.Units[0], init.State.Units[1]);
+        var lance = init.State.Units.Single(u => u.BuildingId == "coalition-orbital-lance");
+        Assert.Equal(("transport", "infantry", (int?)12, (int?)0), (apc.Holds, apc.Carries, apc.Capacity, apc.Used));
+        Assert.True(man.Sight > 0);
+        Assert.NotNull(lance.ChargeNeed);
+        Assert.NotNull(lance.StrikeRadius);
+        HostState? st = null;
+        for (var t = 0; t < 40; t++)
+        {
+            var cmds = t == 0 ? $$"""[{"tick":0,"faction":1,"type":"load","units":[{{man.Id}}],"holder":{{apc.Id}}}]""" : "[]";
+            var r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":{{t}},"commands":{{cmds}}}"""));
+            Assert.True(r.Ok, r.Error);
+            st = r.State;
+        }
+        Assert.Equal(apc.Id, st!.Units.Single(u => u.Id == man.Id).Inside);
+        Assert.Equal(1, st.Units.Single(u => u.Id == apc.Id).Used);
+    }
+
+    [Fact]
+    public void An_init_with_ai_factions_plays_them()
+    {
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":48,"height":48,"blocked":[]},"units":[{"unit":"foundry-crawler","at":[20.5,20.5]}],"ai":[1]}}"""));
+        Assert.True(init.Ok, init.Error);
+        HostState? st = null;
+        for (var t = 0; t < 60; t++) st = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":{{t}},"commands":[]}""")).State;
+        Assert.Contains(st!.Units, u => u.BuildingId == "hegemony-construction-yard"); // it deployed on its own
+    }
+
     // ---------- captures (T28) ----------
 
     [Fact]

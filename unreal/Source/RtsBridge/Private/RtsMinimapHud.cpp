@@ -9,6 +9,8 @@
 #include "GameFramework/PlayerController.h"
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
 
 // Minimap orientation matches the camera (yaw -90): left->right = world +X, top->bottom = world +Y.
 
@@ -224,16 +226,20 @@ void ARtsMinimapHud::DrawHUD()
 		return;
 	const FVector2D Vp(Canvas->SizeX, Canvas->SizeY);
 	LastCanvasSize = Vp; // the controller hit-tests clicks against this, not the window size
+	DrawFog(); // under everything else drawn on the view
+	DrawStrikes();
 	DrawTracers();
 	DrawHealthBars();
 	DrawDebugOverlays();
 	DrawConstructionBars();
 	DrawChannelBars();
+	DrawRigBars();
 	DrawRallyPoints();
 	DrawPlacementGhost();
 	DrawEconomyBar();
 	DrawBuildMenu();
 	DrawProductionPanel();
+	DrawAbilityBar();
 	DrawHoverTooltip();
 
 	// Box-select drag rectangle (screen space, under the minimap).
@@ -262,6 +268,7 @@ void ARtsMinimapHud::DrawHUD()
 		DrawTexture(Tex, R.Min.X, R.Min.Y, Sz.X, Sz.Y, 0.0f, 0.0f, 1.0f, 1.0f);
 	else
 		DrawRect(FLinearColor(0.10f, 0.16f, 0.11f, 1.0f), R.Min.X, R.Min.Y, Sz.X, Sz.Y);
+	DrawMinimapFog(R);
 
 	// Units.
 	if (const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr)
@@ -1257,5 +1264,276 @@ void ARtsMinimapHud::DrawRallyPoints()
 		DrawLine(From.X, From.Y, To.X, To.Y, FLinearColor(Col.R, Col.G, Col.B, 0.5f), 1.5f);
 		DrawLine(To.X, To.Y, Top.X, Top.Y, Col, 2.0f);
 		DrawRect(Col, Top.X, Top.Y, 14.0f, 9.0f);
+	}
+}
+
+// ---- fog of war, ability bar, superweapon telegraphs, rig control -----------------------------
+
+namespace
+{
+	constexpr float FogUnexploredA = 0.86f, FogExploredA = 0.5f;
+	constexpr float AbilityBtnW = 118.0f, AbilityBtnH = 34.0f, AbilityGap = 4.0f, AbilityBottom = 10.0f;
+
+	float FogAlpha(uint8 F) { return F == 2 ? 0.0f : F == 1 ? FogExploredA : FogUnexploredA; }
+}
+
+void ARtsMinimapHud::DrawFog()
+{
+	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (!GM || !PlayerOwner || !GM->IsFogEnabled() || GM->GetFogW() == 0)
+		return;
+	// the part of the map the camera sees: the viewport corners on the ground
+	const FVector2D Vp(Canvas->SizeX, Canvas->SizeY);
+	const FVector2D Corners[4] = { {0, 0}, {Vp.X, 0}, {Vp.X, Vp.Y}, {0, Vp.Y} };
+	FBox2D View(ForceInit);
+	for (const FVector2D& C : Corners)
+	{
+		FVector O, D;
+		if (!PlayerOwner->DeprojectScreenPositionToWorld(C.X, C.Y, O, D))
+			return;
+		const double T = (D.Z < -1e-3) ? FMath::Min(-O.Z / D.Z, 50000.0) : 50000.0;
+		View += FVector2D(O + D * T);
+	}
+	const float CellW = ARtsBridgeGameMode::FogCell * ARtsBridgeGameMode::CellUU;
+	const int32 FW = GM->GetFogW(), FH = GM->GetFogH();
+	const int32 X0 = FMath::Clamp(FMath::FloorToInt(View.Min.X / CellW) - 1, 0, FW - 1);
+	const int32 X1 = FMath::Clamp(FMath::FloorToInt(View.Max.X / CellW) + 1, 0, FW - 1);
+	const int32 Y0 = FMath::Clamp(FMath::FloorToInt(View.Min.Y / CellW) - 1, 0, FH - 1);
+	const int32 Y1 = FMath::Clamp(FMath::FloorToInt(View.Max.Y / CellW) + 1, 0, FH - 1);
+	// vertices on the cell corners; each takes the mean darkness of the four cells around it,
+	// so the edge of sight is a soft gradient rather than stair steps
+	const int32 VW = X1 - X0 + 2, VH = Y1 - Y0 + 2;
+	TArray<FVector2D> Pos;
+	TArray<float> Alpha;
+	TArray<bool> Ok;
+	Pos.SetNumUninitialized(VW * VH);
+	Alpha.SetNumUninitialized(VW * VH);
+	Ok.SetNumUninitialized(VW * VH);
+	for (int32 Vy = 0; Vy < VH; ++Vy)
+		for (int32 Vx = 0; Vx < VW; ++Vx)
+		{
+			const int32 Gx = X0 + Vx, Gy = Y0 + Vy; // vertex at the top-left corner of cell (Gx, Gy)
+			const float A = (FogAlpha(GM->FogAt(Gx - 1, Gy - 1)) + FogAlpha(GM->FogAt(Gx, Gy - 1))
+				+ FogAlpha(GM->FogAt(Gx - 1, Gy)) + FogAlpha(GM->FogAt(Gx, Gy))) * 0.25f;
+			const int32 I = Vy * VW + Vx;
+			Alpha[I] = A;
+			const FVector S = Project(FVector(Gx * CellW, Gy * CellW, 30.0));
+			Ok[I] = S.Z > 0.0;
+			Pos[I] = FVector2D(S.X, S.Y);
+		}
+	TArray<FCanvasUVTri> Tris;
+	Tris.Reserve((VW - 1) * (VH - 1) * 2);
+	auto Tri = [&](int32 A, int32 B, int32 C)
+	{
+		FCanvasUVTri T;
+		T.V0_Pos = Pos[A]; T.V1_Pos = Pos[B]; T.V2_Pos = Pos[C];
+		T.V0_Color = FLinearColor(0.0f, 0.0f, 0.02f, Alpha[A]);
+		T.V1_Color = FLinearColor(0.0f, 0.0f, 0.02f, Alpha[B]);
+		T.V2_Color = FLinearColor(0.0f, 0.0f, 0.02f, Alpha[C]);
+		Tris.Add(T);
+	};
+	for (int32 Vy = 0; Vy + 1 < VH; ++Vy)
+		for (int32 Vx = 0; Vx + 1 < VW; ++Vx)
+		{
+			const int32 A = Vy * VW + Vx, B = A + 1, C = A + VW, D = C + 1;
+			if (!Ok[A] || !Ok[B] || !Ok[C] || !Ok[D])
+				continue;
+			if (Alpha[A] <= 0.0f && Alpha[B] <= 0.0f && Alpha[C] <= 0.0f && Alpha[D] <= 0.0f)
+				continue;
+			Tri(A, B, D);
+			Tri(A, D, C);
+		}
+	if (Tris.Num() == 0)
+		return;
+	FCanvasTriangleItem Item(Tris, GWhiteTexture);
+	Item.BlendMode = SE_BLEND_Translucent;
+	Canvas->DrawItem(Item);
+}
+
+void ARtsMinimapHud::DrawMinimapFog(const FBox2D& R)
+{
+	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (!GM || !GM->IsFogEnabled() || GM->GetFogW() == 0)
+		return;
+	const int32 FW = GM->GetFogW(), FH = GM->GetFogH();
+	const FVector2D Sz = R.GetSize();
+	const float Cw = Sz.X / FW, Ch = Sz.Y / FH;
+	for (int32 Y = 0; Y < FH; ++Y)
+	{
+		int32 X = 0;
+		while (X < FW)
+		{
+			const uint8 F = GM->FogAt(X, Y);
+			int32 End = X + 1;
+			while (End < FW && GM->FogAt(End, Y) == F)
+				++End;
+			if (F != 2)
+				DrawRect(FLinearColor(0.0f, 0.0f, 0.02f, FogAlpha(F)), R.Min.X + X * Cw, R.Min.Y + Y * Ch, (End - X) * Cw, Ch + 0.5f);
+			X = End;
+		}
+	}
+}
+
+TArray<ARtsMinimapHud::FAbilityButton> ARtsMinimapHud::AbilityButtons(ARtsBridgeGameMode& GM)
+{
+	TArray<FAbilityButton> B;
+	const ARtsBridgeGameMode::FSelectionAbilities A = GM.GetSelectionAbilities();
+	int32 PhaseWait = 0, ChargeLeft = TNumericLimits<int32>::Max(), Used = 0, Cap = 0;
+	for (const int32 Id : GM.GetSelectedIds())
+		if (const FRtsUnitSnapshot* R = GM.GetUnitRow(Id))
+		{
+			if (R->Faction != ARtsBridgeGameMode::PlayerFaction)
+				continue;
+			if (R->PhaseTicks >= 0 && R->PhaseCooldown > 0)
+				PhaseWait = FMath::Max(PhaseWait, R->PhaseCooldown);
+			if (R->IsSuperweapon() && !R->bStrike)
+				ChargeLeft = FMath::Min(ChargeLeft, R->Charge);
+			if (!R->Holds.IsEmpty())
+			{
+				Used += R->Used;
+				Cap += R->Capacity;
+			}
+		}
+	if (A.Phase > 0)
+		B.Add({ EAbility::Phase, A.PhaseReady > 0 ? FString(TEXT("Phase  (Q)")) : FString::Printf(TEXT("Phase  %.0fs"), PhaseWait / 20.0f), A.PhaseReady > 0 });
+	if (A.Conscript > 0)
+		B.Add({ EAbility::Conscript, TEXT("Conscript  (C)"), true });
+	if (Cap > 0)
+		B.Add({ EAbility::Unload, FString::Printf(TEXT("Unload %d/%d (U)"), Used, Cap), A.Unload > 0 });
+	if (A.Teleport > 0)
+		B.Add({ EAbility::Teleport, TEXT("Teleport  (T)"), true });
+	if (A.Fire > 0)
+		B.Add({ EAbility::Fire, A.FireReady > 0 ? FString(TEXT("FIRE  (G)"))
+			: ChargeLeft == TNumericLimits<int32>::Max() ? FString(TEXT("Striking...")) : FString::Printf(TEXT("Charging %d:%02d"), ChargeLeft / 20 / 60, (ChargeLeft / 20) % 60),
+			A.FireReady > 0 });
+	if (A.Deploy > 0)
+		B.Add({ EAbility::Deploy, TEXT("Deploy  (E)"), true });
+	return B;
+}
+
+TArray<FBox2D> ARtsMinimapHud::AbilityLayout(ARtsBridgeGameMode& GM, const FVector2D& Vp, int32 N)
+{
+	TArray<FBox2D> Out;
+	if (N <= 0)
+		return Out;
+	float Bottom = Vp.Y - AbilityBottom;
+	const int32 Producer = GM.GetSelectedProducer();
+	if (const FRtsUnitSnapshot* B = Producer != INDEX_NONE ? GM.GetUnitRow(Producer) : nullptr)
+		Bottom = ProductionLayout(Vp, GM.TrainableAt(B->BuildingId).Num()).Panel.Min.Y - 8.0f;
+	const float W = N * AbilityBtnW + (N - 1) * AbilityGap;
+	float X = (Vp.X - W) * 0.5f;
+	for (int32 i = 0; i < N; ++i, X += AbilityBtnW + AbilityGap)
+		Out.Add(FBox2D(FVector2D(X, Bottom - AbilityBtnH), FVector2D(X + AbilityBtnW, Bottom)));
+	return Out;
+}
+
+int32 ARtsMinimapHud::AbilityHit(ARtsBridgeGameMode& GM, const FVector2D& Vp, const FVector2D& Pos)
+{
+	const TArray<FBox2D> L = AbilityLayout(GM, Vp, AbilityButtons(GM).Num());
+	for (int32 i = 0; i < L.Num(); ++i)
+		if (L[i].IsInside(Pos))
+			return i;
+	return INDEX_NONE;
+}
+
+void ARtsMinimapHud::DrawAbilityBar()
+{
+	ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (!GM || GM->IsMatchScreenUp())
+		return;
+	const FVector2D Vp(Canvas->SizeX, Canvas->SizeY);
+	const TArray<FAbilityButton> Buttons = AbilityButtons(*GM);
+	const TArray<FBox2D> L = AbilityLayout(*GM, Vp, Buttons.Num());
+	float MX = -1.0f, MY = -1.0f;
+	if (PlayerOwner)
+		PlayerOwner->GetMousePosition(MX, MY);
+	for (int32 i = 0; i < Buttons.Num(); ++i)
+		DrawButton(L[i], Buttons[i].Label, Buttons[i].bEnabled && L[i].IsInside(FVector2D(MX, MY)), Buttons[i].bEnabled ? 1.0f : 0.45f);
+	// what a pending click will do
+	if (const ARtsRtsPlayerController* RPC = Cast<ARtsRtsPlayerController>(PlayerOwner))
+		if (RPC->GetTargeting() != ARtsRtsPlayerController::ETargeting::None)
+		{
+			const bool bFire = RPC->GetTargeting() == ARtsRtsPlayerController::ETargeting::Fire;
+			const float Y = L.Num() > 0 ? L[0].Min.Y - 24.0f : Vp.Y - 60.0f;
+			DrawCentredText(bFire ? TEXT("Click the strike target  (right-click cancels)") : TEXT("Click a Teleport Node to send them there  (right-click cancels)"),
+				GEngine->GetMediumFont(), Vp.X * 0.5f, Y, 1.0f, bFire ? FLinearColor(1.0f, 0.35f, 0.25f) : FLinearColor(0.5f, 0.8f, 1.0f));
+			if (bFire && MX >= 0.0f)
+			{
+				// the blast radius under the cursor
+				float Radius = 0.0f;
+				for (const int32 Id : GM->GetSelectedIds())
+					if (const FRtsUnitSnapshot* R = GM->GetUnitRow(Id))
+						if (R->IsSuperweapon())
+							Radius = FMath::Max(Radius, float(R->StrikeRadius));
+				FVector O, D;
+				if (Radius > 0.0f && PlayerOwner->DeprojectScreenPositionToWorld(MX, MY, O, D) && D.Z < -1e-3)
+				{
+					const FVector P = O + D * (-O.Z / D.Z);
+					DrawGroundCircle(FVector2D(P.X, P.Y), Radius * ARtsBridgeGameMode::CellUU, FLinearColor(1.0f, 0.35f, 0.25f, 0.8f), 2.0f);
+				}
+			}
+		}
+}
+
+void ARtsMinimapHud::DrawStrikes()
+{
+	// a superweapon strike on its way: a pulsing red ring on the target and the seconds left,
+	// for everyone (the warning is the point)
+	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (!GM)
+		return;
+	const double Now = GetWorld()->GetRealTimeSeconds();
+	const float Pulse = 0.55f + 0.45f * FMath::Sin(float(Now) * 10.0f);
+	for (const TPair<int32, FRtsUnitSnapshot>& P : GM->GetUnitRows())
+	{
+		const FRtsUnitSnapshot& R = P.Value;
+		if (!R.bStrike)
+			continue;
+		const FVector2D C(R.StrikeX * ARtsBridgeGameMode::CellUU, R.StrikeY * ARtsBridgeGameMode::CellUU);
+		const float Rad = float(FMath::Max(1.0, R.StrikeRadius)) * ARtsBridgeGameMode::CellUU;
+		const FLinearColor Red(1.0f, 0.15f, 0.1f, Pulse);
+		DrawGroundCircle(C, Rad, Red, 3.0f);
+		DrawGroundCircle(C, Rad * 0.6f, FLinearColor(1.0f, 0.15f, 0.1f, Pulse * 0.6f), 2.0f);
+		DrawGroundCircle(C, Rad * 0.15f, Red, 2.0f);
+		const FVector S = Project(FVector(C.X, C.Y, 60.0));
+		if (S.Z > 0.0)
+			DrawCentredText(FString::Printf(TEXT("STRIKE %.1fs"), R.StrikeIn / 20.0f), GEngine->GetMediumFont(), S.X, S.Y - 10.0f, 1.0f,
+				FLinearColor(1.0f, 0.3f, 0.2f));
+	}
+}
+
+void ARtsMinimapHud::DrawRigBars()
+{
+	// hold-to-capture rigs: their state, and a bar in the taking side's colour while it is held;
+	// own cloaked units get a faint blue ring (enemies without a detector can't see them)
+	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (!GM)
+		return;
+	static constexpr float W = 70.0f, H = 6.0f, AboveUU = 220.0f;
+	for (const ARtsSimUnitActor* A : GM->GetUnitActors())
+	{
+		if (!A || A->IsDying())
+			continue;
+		const FRtsUnitSnapshot* R = GM->GetUnitRow(A->GetSimUnitId());
+		if (!R)
+			continue;
+		if (R->bCloaked && R->Faction == ARtsBridgeGameMode::PlayerFaction)
+			DrawGroundCircle(FVector2D(A->GetActorLocation()), 45.0f, FLinearColor(0.5f, 0.75f, 1.0f, 0.55f), 1.5f);
+		if (R->Control.IsEmpty())
+			continue;
+		FVector L = A->GetActorLocation();
+		L.Z += AboveUU;
+		const FVector S = Project(L);
+		if (S.Z <= 0.0)
+			continue;
+		const float X = S.X - W * 0.5f, Y = S.Y - H * 0.5f;
+		const bool bTaking = R->Hold > 0 && R->HoldNeed > 0;
+		const FLinearColor Col = bTaking ? ARtsSimUnitActor::FactionColor(R->HoldFaction) : FLinearColor(0.8f, 0.8f, 0.8f);
+		if (bTaking)
+		{
+			DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.75f), X - 1.0f, Y - 1.0f, W + 2.0f, H + 2.0f);
+			DrawRect(Col, X, Y, W * FMath::Clamp(float(R->Hold) / float(R->HoldNeed), 0.0f, 1.0f), H);
+		}
+		DrawCentredText(R->Control.ToUpper(), GEngine->GetSmallFont(), S.X, Y - 14.0f, 1.0f, Col);
 	}
 }

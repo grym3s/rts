@@ -192,6 +192,44 @@ public:
 	/** T38: RMB on a vein: selected harvesters get `harvest` (that vein), the rest a plain move. */
 	bool RequestHarvestAt(const FVector& WorldPoint);
 
+	// ---- abilities (sim/transport, sim/superweapons, T29 verbs) ----
+	/** What the selection can do right now (the ability bar and its keys). */
+	struct FSelectionAbilities
+	{
+		int32 Phase = 0;        // own phase-capable units selected
+		int32 PhaseReady = 0;   // of those, ready to phase
+		int32 Conscript = 0;    // conscriptable units selected
+		int32 Unload = 0;       // selected holders with someone inside
+		int32 Teleport = 0;     // units near one of your Teleport Nodes (two or more nodes)
+		int32 Fire = 0;         // selected superweapons
+		int32 FireReady = 0;    // of those, charged
+		int32 Deploy = 0;       // MCVs selected
+	};
+	FSelectionAbilities GetSelectionAbilities() const;
+	bool RequestPhaseSelected();
+	bool RequestConscriptSelected();
+	bool RequestUnloadSelected();
+	/** RMB on an own transport / bunker / tunnel: the selected units that fit get `load`. */
+	bool RequestLoad(int32 HolderSimId);
+	/** Selected units near another own node appear at Teleport Node `NodeSimId`. */
+	bool RequestTeleportTo(int32 NodeSimId);
+	/** The selected charged superweapon strikes a world ground point. */
+	bool RequestFireAt(const FVector& WorldPoint);
+	const FRtsUnitSnapshot* GetUnitRowConst(int32 SimUnitId) const { return RowsById.Find(SimUnitId); }
+	const TMap<int32, FRtsUnitSnapshot>& GetRows() const { return RowsById; }
+
+	// ---- fog of war (presentation: the sim has none; the host sends sight and radar) ----
+	/** Fog grid of FogCell x FogCell sim cells: 0 never seen, 1 seen before, 2 in sight now. */
+	static constexpr int32 FogCell = 2;
+	int32 GetFogW() const { return FogW; }
+	int32 GetFogH() const { return FogH; }
+	uint8 FogAt(int32 X, int32 Y) const { return (X >= 0 && Y >= 0 && X < FogW && Y < FogH) ? Fog[Y * FogW + X] : 0; }
+	bool IsFogEnabled() const { return bFogEnabled && !IsMatchScreenUp(); }
+	void ToggleFog() { bFogEnabled = !bFogEnabled; }
+	/** Whether you can see this row now (own: unless riding inside; enemy: in sight and not
+	 *  cloaked from you; enemy buildings: once seen, remembered). */
+	bool IsRowVisible(const FRtsUnitSnapshot& R) const;
+
 	/** Fixture map size in cells (must match the init request's map) and world scale. */
 	// Set from the loaded scenario in StartPlay (before any HUD/camera use of them).
 	static int32 MapCellsW;
@@ -281,6 +319,13 @@ private:
 	double StepAccum = 0.0; // per match (a function static leaked across PIE sessions)
 
 	void SyncActorsFromReply(FRtsHostReply& Reply);
+	void UpdateFog();
+	void ResetFog();
+	TArray<uint8> Fog;
+	int32 FogW = 0, FogH = 0;
+	TSet<int32> SeenBuildings;
+	bool bFogEnabled = true;
+	FString SelectedIdsJson(TFunctionRef<bool(const FRtsUnitSnapshot&)> Pred) const;
 	int32 PickUnitAt(const FVector2D& ScreenPos, bool bOwn) const;
 	/** Mode 0 own, 1 not own, 2 any. A unit within 40 px of the cursor wins; else a building
 	 *  whose footprint the cursor is over (big buildings are clickable anywhere on them). */

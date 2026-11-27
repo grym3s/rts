@@ -330,6 +330,20 @@ void ARtsBridgeGameMode::ChooseFaction(int32 Faction)
 		return;
 	PlayerFaction = Faction;
 	bChoosingFaction = false;
+	// The sides you didn't pick are the host's computer players (sim/ai). The world is still at
+	// tick 0, so re-initialising it with `ai` set rebuilds the same entities with the same ids.
+	if (Bridge && bHostAlive)
+	{
+		FRtsHostReply Reply;
+		const bool bOk = Bridge->Step(TEXT("{\"protocolVersion\":1,\"kind\":\"reset\"}"), 5.0, Reply) && Reply.bOk
+			&& Bridge->Step(RtsContent::WithComputerPlayers(InitRequest, Faction), 10.0, Reply) && Reply.bOk;
+		if (!bOk)
+		{
+			FailHost(FString::Printf(TEXT("COMPUTER PLAYERS INIT FAILED: %s"), *Reply.Error));
+			return;
+		}
+		NextTickToSend = 0;
+	}
 	bCameraFramedOnPlayer = false; // frame your own start on the first snapshot
 	StepAccum = 0.0;
 	UE_LOG(LogTemp, Display, TEXT("RTS_FACTION: playing %s (faction %d)"), *FactionName(Faction), Faction);
@@ -415,6 +429,51 @@ TArray<FString> ARtsBridgeGameMode::TooltipLines(int32 SimUnitId) const
 		L.Add(TEXT("Marked: takes extra damage from the marking side"));
 	if (R->IsPhased())
 		L.Add(TEXT("Phased: can't be hit or fire"));
+	if (bOwn && R->PhaseTicks >= 0 && !R->IsPhased())
+		L.Add(R->PhaseCooldown > 0 ? FString::Printf(TEXT("Phase (Q): ready in %.0f s"), R->PhaseCooldown / 20.0f) : FString(TEXT("Phase (Q): ready")));
+	if (bOwn && R->bConscriptable)
+		L.Add(TEXT("Conscript (C): cash it in"));
+	if (!R->Holds.IsEmpty())
+	{
+		const TCHAR* What = R->Holds == TEXT("garrison") ? TEXT("Garrison") : R->Holds == TEXT("tunnel") ? TEXT("Tunnel network") : TEXT("Transport");
+		L.Add(FString::Printf(TEXT("%s: %d / %d slots (%s)%s"), What, R->Used, R->Capacity,
+			R->Carries == TEXT("ground") ? TEXT("infantry 1, vehicles 4") : TEXT("infantry"),
+			R->Holds == TEXT("garrison") ? TEXT(", they fire out") : TEXT("")));
+		if (bOwn)
+			L.Add(TEXT("Right-click it with units selected to load; Unload (U)"));
+	}
+	if (R->bTeleport && bOwn)
+		L.Add(TEXT("Teleport (T): units near another node appear here"));
+	if (R->IsSuperweapon())
+	{
+		if (R->bStrike)
+			L.Add(FString::Printf(TEXT("Strike landing in %.1f s"), R->StrikeIn / 20.0f));
+		else if (R->Charge > 0)
+			L.Add(FString::Printf(TEXT("Charging: %d:%02d left (paused at low power)"), R->Charge / 20 / 60, (R->Charge / 20) % 60));
+		else if (bOwn)
+			L.Add(TEXT("Ready: Fire (G), then click the target"));
+	}
+	if (R->Sabotaged > 0)
+		L.Add(FString::Printf(TEXT("Sabotaged: shut down for %.0f s"), R->Sabotaged / 20.0f));
+	if (bOwn && R->bSabotages)
+		L.Add(TEXT("Right-click an enemy building: shuts it down for 30 s (used up)"));
+	if (bOwn && R->bHijacks)
+		L.Add(TEXT("Right-click an enemy vehicle: steals it (used up)"));
+	if (R->Shield > 0)
+		L.Add(FString::Printf(TEXT("Shielded: takes %d%% less damage"), R->Shield));
+	if (R->bCloaked)
+		L.Add(TEXT("Cloaked: hidden from enemies without a detector"));
+	else if (R->bStealth && bOwn)
+		L.Add(TEXT("Stealthy: cloaked unless a detector is near or it just fired"));
+	if (R->Carrier >= 0)
+		L.Add(TEXT("Carrier aircraft: fights near its carrier, lost with it"));
+	if (!R->Control.IsEmpty())
+	{
+		L.Add(FString::Printf(TEXT("Rig: %s"), *R->Control));
+		if (R->Hold > 0 && R->HoldNeed > 0)
+			L.Add(FString::Printf(TEXT("%s taking it: %.0f s left"), *FactionName(R->HoldFaction), (R->HoldNeed - R->Hold) / 20.0f));
+		L.Add(TEXT("Hold it with the most units nearby to take it"));
+	}
 	return L;
 }
 
@@ -547,6 +606,7 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 	RowsById.Reset();
 	for (const FRtsUnitSnapshot& S : Reply.Units)
 		RowsById.Add(S.Id, S);
+	UpdateFog();
 
 	TSet<int32> Alive;
 	UnitActors.Reset(Reply.Units.Num());
@@ -577,6 +637,12 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 				A->InvalidateShape();
 			}
 		}
+		// fog, cloak and passengers: hidden actors are left out of UnitActors, so they are
+		// never picked, selected, hovered or drawn on the minimap either
+		const bool bVisible = IsRowVisible(S);
+		A->SetActorHiddenInGame(!bVisible);
+		if (!bVisible)
+			continue;
 		A->SetHealth(S.Hp, S.MaxHp);
 		if (S.IsBuilding())
 			A->SetBuildingShape(FMath::Max(1, S.FootprintW), FMath::Max(1, S.FootprintH), S.bWrecked ? 0.0f // T28: a wreck is a dark slab
@@ -716,6 +782,7 @@ bool ARtsBridgeGameMode::RestartMatch()
 	bFinished = false;
 	bHostAlive = true;
 	bChoosingFaction = CanRestart(); // pick again: Play again is how you switch sides
+	ResetFog();
 	if (GEngine)
 		GEngine->ClearOnScreenDebugMessages();
 	UE_LOG(LogTemp, Display, TEXT("RTS_MATCH_RESTART: new match from tick 0"));
@@ -1076,7 +1143,10 @@ bool ARtsBridgeGameMode::RequestCaptureOrAttack(int32 TargetSimId)
 				continue;
 			// a bridge hut is a repair job: any engineer, the Weaver too (it can't capture)
 			const bool bTakes = R->bCanCapture || (T && T->Bridge >= 0 && R->bEngineer);
-			FString& Into = (bCapturable && bTakes) || (R->bMindControl && bChannelable) ? Capturers : Attackers;
+			// Operative: sabotage an enemy building; Hijacker: steal an enemy vehicle (the sim checks the kind)
+			const bool bInfiltrates = T && T->Faction >= 0 && T->Faction != PlayerFaction && T->Bridge < 0
+				&& ((R->bSabotages && T->IsBuilding()) || (R->bHijacks && !T->IsBuilding()));
+			FString& Into = (bCapturable && bTakes) || (R->bMindControl && bChannelable) || bInfiltrates ? Capturers : Attackers;
 			Into += (Into.IsEmpty() ? TEXT("") : TEXT(",")) + FString::FromInt(Sel);
 		}
 	bool bQueued = false;
@@ -1110,4 +1180,206 @@ bool ARtsBridgeGameMode::RequestHarvestAt(const FVector& WorldPoint)
 	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"harvest\",\"units\":[%s],\"vein\":%d"), PlayerFaction, *Ids, Vein));
 	QueueOrderForSelection(TEXT("move"), MapPointJson(WorldPoint), /*bSkipHarvesters=*/true); // the rest, if any
 	return true;
+}
+
+// ---- abilities: phase, conscript, transports, teleports, superweapons ------------------------
+
+FString ARtsBridgeGameMode::SelectedIdsJson(TFunctionRef<bool(const FRtsUnitSnapshot&)> Pred) const
+{
+	FString Ids;
+	for (const int32 Id : Selection.GetSelected())
+		if (const FRtsUnitSnapshot* R = RowsById.Find(Id))
+			if (R->Faction == PlayerFaction && Pred(*R))
+				Ids += (Ids.IsEmpty() ? TEXT("") : TEXT(",")) + FString::FromInt(Id);
+	return Ids;
+}
+
+/** Within this many cells of an own Teleport Node a unit can be sent to another (TransportSystem.TeleportReach). */
+static constexpr double TeleportReachCells = 5.0;
+
+ARtsBridgeGameMode::FSelectionAbilities ARtsBridgeGameMode::GetSelectionAbilities() const
+{
+	FSelectionAbilities A;
+	TArray<const FRtsUnitSnapshot*> Nodes;
+	for (const TPair<int32, FRtsUnitSnapshot>& P : RowsById)
+		if (P.Value.Faction == PlayerFaction && P.Value.bTeleport && P.Value.ConstructionRemaining == 0 && P.Value.Sabotaged == 0)
+			Nodes.Add(&P.Value);
+	for (const int32 Id : Selection.GetSelected())
+	{
+		const FRtsUnitSnapshot* R = RowsById.Find(Id);
+		if (!R || R->Faction != PlayerFaction)
+			continue;
+		if (R->PhaseTicks >= 0)
+		{
+			++A.Phase;
+			if (R->PhaseTicks == 0 && R->PhaseCooldown == 0)
+				++A.PhaseReady;
+		}
+		if (R->bConscriptable)
+			++A.Conscript;
+		if (!R->Holds.IsEmpty() && R->Used > 0)
+			++A.Unload;
+		if (R->IsSuperweapon())
+		{
+			++A.Fire;
+			if (R->Charge == 0 && !R->bStrike && R->Sabotaged == 0)
+				++A.FireReady;
+		}
+		if (IsMcvRow(*R))
+			++A.Deploy;
+		if (!R->IsBuilding() && Nodes.Num() >= 2)
+			for (const FRtsUnitSnapshot* N : Nodes)
+				if (FVector2D::Distance(FVector2D(R->X, R->Y), FVector2D(N->X, N->Y)) <= TeleportReachCells)
+				{
+					++A.Teleport;
+					break;
+				}
+	}
+	return A;
+}
+
+bool ARtsBridgeGameMode::RequestPhaseSelected()
+{
+	if (!bHostAlive || IsMatchScreenUp())
+		return false;
+	const FString Ids = SelectedIdsJson([](const FRtsUnitSnapshot& R) { return R.PhaseTicks == 0 && R.PhaseCooldown == 0; });
+	if (Ids.IsEmpty())
+		return false;
+	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"phase\",\"units\":[%s]"), PlayerFaction, *Ids));
+	return true;
+}
+
+bool ARtsBridgeGameMode::RequestConscriptSelected()
+{
+	if (!bHostAlive || IsMatchScreenUp())
+		return false;
+	const FString Ids = SelectedIdsJson([](const FRtsUnitSnapshot& R) { return R.bConscriptable; });
+	if (Ids.IsEmpty())
+		return false;
+	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"conscript\",\"units\":[%s]"), PlayerFaction, *Ids));
+	return true;
+}
+
+bool ARtsBridgeGameMode::RequestUnloadSelected()
+{
+	if (!bHostAlive || IsMatchScreenUp())
+		return false;
+	bool bAny = false;
+	for (const int32 Id : Selection.GetSelected())
+		if (const FRtsUnitSnapshot* R = RowsById.Find(Id))
+			if (R->Faction == PlayerFaction && !R->Holds.IsEmpty() && R->Used > 0)
+			{
+				PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"unload\",\"holder\":%d"), PlayerFaction, Id));
+				bAny = true;
+			}
+	return bAny;
+}
+
+bool ARtsBridgeGameMode::RequestLoad(int32 HolderSimId)
+{
+	if (!bHostAlive || IsMatchScreenUp())
+		return false;
+	const FRtsUnitSnapshot* H = RowsById.Find(HolderSimId);
+	if (!H || H->Faction != PlayerFaction || H->Holds.IsEmpty() || H->ConstructionRemaining > 0)
+		return false;
+	// the sim decides who fits (infantry-only holds, room); air and naval never board
+	const FString Ids = SelectedIdsJson([HolderSimId](const FRtsUnitSnapshot& R)
+	{
+		return R.Id != HolderSimId && !R.IsBuilding() && R.Holds.IsEmpty() && R.Domain != TEXT("air") && R.Domain != TEXT("naval");
+	});
+	if (Ids.IsEmpty())
+		return false;
+	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"load\",\"units\":[%s],\"holder\":%d"), PlayerFaction, *Ids, HolderSimId));
+	return true;
+}
+
+bool ARtsBridgeGameMode::RequestTeleportTo(int32 NodeSimId)
+{
+	if (!bHostAlive || IsMatchScreenUp())
+		return false;
+	const FRtsUnitSnapshot* N = RowsById.Find(NodeSimId);
+	if (!N || N->Faction != PlayerFaction || !N->bTeleport)
+		return false;
+	const FString Ids = SelectedIdsJson([](const FRtsUnitSnapshot& R) { return !R.IsBuilding(); });
+	if (Ids.IsEmpty())
+		return false;
+	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"teleport\",\"units\":[%s],\"node\":%d"), PlayerFaction, *Ids, NodeSimId));
+	return true;
+}
+
+bool ARtsBridgeGameMode::RequestFireAt(const FVector& WorldPoint)
+{
+	if (!bHostAlive || IsMatchScreenUp())
+		return false;
+	// one strike per order: the lowest-id charged superweapon in the selection
+	int32 Best = INDEX_NONE;
+	for (const int32 Id : Selection.GetSelected())
+		if (const FRtsUnitSnapshot* R = RowsById.Find(Id))
+			if (R->Faction == PlayerFaction && R->IsSuperweapon() && R->Charge == 0 && !R->bStrike && R->Sabotaged == 0
+				&& (Best == INDEX_NONE || Id < Best))
+				Best = Id;
+	if (Best == INDEX_NONE)
+		return false;
+	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"fire\",\"building\":%d,\"target\":%s"), PlayerFaction, Best,
+		*MapPointJson(WorldPoint)));
+	return true;
+}
+
+// ---- fog of war ------------------------------------------------------------------------------
+
+void ARtsBridgeGameMode::ResetFog()
+{
+	FogW = FMath::Max(1, (MapCellsW + FogCell - 1) / FogCell);
+	FogH = FMath::Max(1, (MapCellsH + FogCell - 1) / FogCell);
+	Fog.Init(0, FogW * FogH);
+	SeenBuildings.Reset();
+}
+
+void ARtsBridgeGameMode::UpdateFog()
+{
+	if (FogW != FMath::Max(1, (MapCellsW + FogCell - 1) / FogCell) || Fog.Num() != FogW * FogH)
+		ResetFog();
+	for (uint8& F : Fog)
+		if (F == 2)
+			F = 1;
+	auto Reveal = [this](double X, double Y, double R)
+	{
+		const int32 X0 = FMath::Max(0, FMath::FloorToInt((X - R) / FogCell)), X1 = FMath::Min(FogW - 1, FMath::FloorToInt((X + R) / FogCell));
+		const int32 Y0 = FMath::Max(0, FMath::FloorToInt((Y - R) / FogCell)), Y1 = FMath::Min(FogH - 1, FMath::FloorToInt((Y + R) / FogCell));
+		const double R2 = R * R;
+		for (int32 Cy = Y0; Cy <= Y1; ++Cy)
+			for (int32 Cx = X0; Cx <= X1; ++Cx)
+			{
+				const double Dx = (Cx + 0.5) * FogCell - X, Dy = (Cy + 0.5) * FogCell - Y;
+				if (Dx * Dx + Dy * Dy <= R2)
+					Fog[Cy * FogW + Cx] = 2;
+			}
+	};
+	for (const TPair<int32, FRtsUnitSnapshot>& P : RowsById)
+	{
+		const FRtsUnitSnapshot& R = P.Value;
+		if (R.Faction != PlayerFaction || R.IsInside())
+			continue;
+		const double Sight = R.Sight > 0.0 ? R.Sight : (R.IsBuilding() ? 6.0 : 5.0);
+		Reveal(R.X, R.Y, FMath::Max(Sight, R.Radar));
+	}
+	for (const TPair<int32, FRtsUnitSnapshot>& P : RowsById)
+		if (P.Value.IsBuilding() && P.Value.Faction != PlayerFaction
+			&& FogAt(FMath::FloorToInt(P.Value.X / FogCell), FMath::FloorToInt(P.Value.Y / FogCell)) == 2)
+			SeenBuildings.Add(P.Key);
+}
+
+bool ARtsBridgeGameMode::IsRowVisible(const FRtsUnitSnapshot& R) const
+{
+	if (R.IsInside())
+		return false; // passengers ride hidden (their holder shows how full it is)
+	if (R.Faction == PlayerFaction || bChoosingFaction)
+		return true;
+	if (!R.VisibleTo(PlayerFaction))
+		return false; // cloaked, and no detector of yours on it
+	if (!bFogEnabled)
+		return true;
+	if (R.IsBuilding() && SeenBuildings.Contains(R.Id))
+		return true;
+	return FogAt(FMath::FloorToInt(R.X / FogCell), FMath::FloorToInt(R.Y / FogCell)) == 2;
 }

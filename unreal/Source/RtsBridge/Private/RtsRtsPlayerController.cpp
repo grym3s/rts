@@ -54,6 +54,12 @@ void ARtsRtsPlayerController::SetupInputComponent()
 	PIC->BindKey(EKeys::F4, IE_Pressed, this, &ARtsRtsPlayerController::OnDebugKey);
 	// T36: E deploys the selected MCV (free key: not WASD, F, X or the group digits).
 	PIC->BindKey(EKeys::E, IE_Pressed, this, &ARtsRtsPlayerController::OnDeployKey);
+	PIC->BindKey(EKeys::Q, IE_Pressed, this, &ARtsRtsPlayerController::OnPhaseKey);
+	PIC->BindKey(EKeys::C, IE_Pressed, this, &ARtsRtsPlayerController::OnConscriptKey);
+	PIC->BindKey(EKeys::U, IE_Pressed, this, &ARtsRtsPlayerController::OnUnloadKey);
+	PIC->BindKey(EKeys::T, IE_Pressed, this, &ARtsRtsPlayerController::OnTeleportKey);
+	PIC->BindKey(EKeys::G, IE_Pressed, this, &ARtsRtsPlayerController::OnFireKey);
+	PIC->BindKey(EKeys::F6, IE_Pressed, this, &ARtsRtsPlayerController::OnFogKey);
 }
 
 bool ARtsRtsPlayerController::IsShiftDown() const
@@ -249,9 +255,10 @@ bool ARtsRtsPlayerController::IssueOrderAtCursor(bool bAttack)
 				return true;
 			// nothing here can act on it (a neutral derrick with no engineer): an ordinary move
 		}
-		// a Weaver right-clicking your own damaged building repairs it
+		// a Weaver right-clicking your own damaged building repairs it; any unit right-clicking
+		// your own transport, bunker or tunnel climbs in
 		const int32 Own = GM->PickOwnUnitAt(FVector2D(MX, MY));
-		if (Own != INDEX_NONE && GM->RequestRepair(Own))
+		if (Own != INDEX_NONE && (GM->RequestRepair(Own) || (!bAttack && GM->RequestLoad(Own))))
 		{
 			if (Hud)
 				Hud->AddUnitMarker(Own, EMarker::Move);
@@ -294,6 +301,11 @@ void ARtsRtsPlayerController::OnRightClick()
 		SetAttackMoveArmed(false); // RMB cancels a pending attack-move
 		return;
 	}
+	if (Targeting != ETargeting::None)
+	{
+		SetTargeting(ETargeting::None); // RMB cancels a pending teleport / strike
+		return;
+	}
 	IssueOrderAtCursor(/*bAttack=*/false);
 }
 
@@ -304,6 +316,10 @@ void ARtsRtsPlayerController::OnLeftClick()
 	if (HandleBuildMenuClick())
 		return;
 	if (HandleProductionClick(/*bRight=*/false))
+		return;
+	if (HandleAbilityClick())
+		return;
+	if (HandleTargetingClick())
 		return;
 	if (!PlacingBuildingId.IsEmpty())
 	{
@@ -541,4 +557,108 @@ bool ARtsRtsPlayerController::HandleProductionClick(bool bRight)
 	else if (Hit == ARtsMinimapHud::EProductionHit::Queue && bRight && B->ProductionQueue.IsValidIndex(Index))
 		GM->RequestCancel(ProducerId, Index);
 	return true; // the panel swallows the click
+}
+
+// ---- abilities: keys, the ability bar, click targeting -------------------------------------
+
+void ARtsRtsPlayerController::SetTargeting(ETargeting T)
+{
+	Targeting = T;
+	if (T != ETargeting::None)
+	{
+		SetAttackMoveArmed(false);
+		SetPlacing(FString());
+	}
+	CurrentMouseCursor = T == ETargeting::None ? EMouseCursor::Default : EMouseCursor::Crosshairs;
+}
+
+void ARtsRtsPlayerController::RunAbility(ARtsMinimapHud::EAbility Ability)
+{
+	ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
+	if (!GM || MatchScreenUp())
+		return;
+	const ARtsBridgeGameMode::FSelectionAbilities A = GM->GetSelectionAbilities();
+	switch (Ability)
+	{
+	case ARtsMinimapHud::EAbility::Phase: GM->RequestPhaseSelected(); break;
+	case ARtsMinimapHud::EAbility::Conscript: GM->RequestConscriptSelected(); break;
+	case ARtsMinimapHud::EAbility::Unload: GM->RequestUnloadSelected(); break;
+	case ARtsMinimapHud::EAbility::Deploy: GM->RequestDeploySelected(); break;
+	case ARtsMinimapHud::EAbility::Teleport:
+		if (A.Teleport > 0)
+			SetTargeting(ETargeting::Teleport);
+		break;
+	case ARtsMinimapHud::EAbility::Fire:
+		if (A.FireReady > 0)
+			SetTargeting(ETargeting::Fire);
+		break;
+	}
+}
+
+void ARtsRtsPlayerController::OnPhaseKey() { RunAbility(ARtsMinimapHud::EAbility::Phase); }
+void ARtsRtsPlayerController::OnConscriptKey() { RunAbility(ARtsMinimapHud::EAbility::Conscript); }
+void ARtsRtsPlayerController::OnUnloadKey() { RunAbility(ARtsMinimapHud::EAbility::Unload); }
+void ARtsRtsPlayerController::OnTeleportKey() { RunAbility(ARtsMinimapHud::EAbility::Teleport); }
+void ARtsRtsPlayerController::OnFireKey() { RunAbility(ARtsMinimapHud::EAbility::Fire); }
+
+void ARtsRtsPlayerController::OnFogKey()
+{
+	if (ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>())
+		GM->ToggleFog();
+}
+
+bool ARtsRtsPlayerController::HandleAbilityClick()
+{
+	ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
+	float MX, MY;
+	if (!GM || MatchScreenUp() || !GetMousePosition(MX, MY))
+		return false;
+	const int32 Hit = ARtsMinimapHud::AbilityHit(*GM, HudViewport(), FVector2D(MX, MY));
+	if (Hit == INDEX_NONE)
+		return false;
+	bLeftDownOnView = false;
+	const TArray<ARtsMinimapHud::FAbilityButton> Buttons = ARtsMinimapHud::AbilityButtons(*GM);
+	if (Buttons.IsValidIndex(Hit) && Buttons[Hit].bEnabled)
+		RunAbility(Buttons[Hit].Ability);
+	return true;
+}
+
+bool ARtsRtsPlayerController::HandleTargetingClick()
+{
+	if (Targeting == ETargeting::None)
+		return false;
+	ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
+	float MX, MY;
+	if (!GM || !GetMousePosition(MX, MY))
+	{
+		SetTargeting(ETargeting::None);
+		return true;
+	}
+	if (Targeting == ETargeting::Teleport)
+	{
+		const int32 Node = GM->PickOwnUnitAt(FVector2D(MX, MY));
+		if (Node != INDEX_NONE && GM->RequestTeleportTo(Node))
+		{
+			if (ARtsMinimapHud* Hud = MinimapHud())
+				Hud->AddUnitMarker(Node, ARtsMinimapHud::EOrderMarker::Move);
+			SetTargeting(ETargeting::None);
+		}
+		return true; // not a node: keep waiting (RMB cancels)
+	}
+	FVector2D W;
+	FVector P;
+	if (MouseOnMinimap(W))
+		P = FVector(W.X, W.Y, 0.0);
+	else
+	{
+		FHitResult Hit;
+		if (!GetHitResultUnderCursor(ECC_Visibility, false, Hit))
+			return true;
+		P = Hit.Location;
+	}
+	if (GM->RequestFireAt(P))
+		if (ARtsMinimapHud* Hud = MinimapHud())
+			Hud->AddGroundMarker(FVector2D(P.X, P.Y), ARtsMinimapHud::EOrderMarker::Attack);
+	SetTargeting(ETargeting::None);
+	return true;
 }

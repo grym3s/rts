@@ -265,6 +265,40 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				UO->TryGetNumberField(TEXT("channel"), U.Channel);
 				UO->TryGetNumberField(TEXT("channelNeed"), U.ChannelNeed);
 				UO->TryGetNumberField(TEXT("controlledBy"), U.ControlledBy);
+				{
+					double Raw = 0.0;
+					if (UO->TryGetNumberField(TEXT("sight"), Raw)) U.Sight = Raw / 4294967296.0;
+					if (UO->TryGetNumberField(TEXT("radar"), Raw)) U.Radar = Raw / 4294967296.0;
+					if (UO->TryGetNumberField(TEXT("strikeRadius"), Raw)) U.StrikeRadius = Raw / 4294967296.0;
+					const TArray<TSharedPtr<FJsonValue>>* StrikeArr = nullptr;
+					if (UO->TryGetArrayField(TEXT("strike"), StrikeArr) && StrikeArr->Num() == 2)
+					{
+						U.bStrike = true;
+						U.StrikeX = (*StrikeArr)[0]->AsNumber() / 4294967296.0;
+						U.StrikeY = (*StrikeArr)[1]->AsNumber() / 4294967296.0;
+					}
+				}
+				UO->TryGetNumberField(TEXT("inside"), U.Inside);
+				UO->TryGetBoolField(TEXT("stealth"), U.bStealth);
+				UO->TryGetBoolField(TEXT("cloaked"), U.bCloaked);
+				UO->TryGetNumberField(TEXT("detected"), U.Detected);
+				UO->TryGetNumberField(TEXT("shield"), U.Shield);
+				UO->TryGetNumberField(TEXT("sabotaged"), U.Sabotaged);
+				UO->TryGetBoolField(TEXT("sabotages"), U.bSabotages);
+				UO->TryGetBoolField(TEXT("hijacks"), U.bHijacks);
+				UO->TryGetNumberField(TEXT("carrier"), U.Carrier);
+				UO->TryGetStringField(TEXT("holds"), U.Holds);
+				UO->TryGetStringField(TEXT("carries"), U.Carries);
+				UO->TryGetNumberField(TEXT("capacity"), U.Capacity);
+				UO->TryGetNumberField(TEXT("used"), U.Used);
+				UO->TryGetBoolField(TEXT("teleport"), U.bTeleport);
+				UO->TryGetNumberField(TEXT("charge"), U.Charge);
+				UO->TryGetNumberField(TEXT("chargeNeed"), U.ChargeNeed);
+				UO->TryGetNumberField(TEXT("strikeIn"), U.StrikeIn);
+				UO->TryGetStringField(TEXT("control"), U.Control);
+				UO->TryGetNumberField(TEXT("holdFaction"), U.HoldFaction);
+				UO->TryGetNumberField(TEXT("hold"), U.Hold);
+				UO->TryGetNumberField(TEXT("holdNeed"), U.HoldNeed);
 				UO->TryGetNumberField(TEXT("bridge"), U.Bridge); // T28: bridge huts only
 				UO->TryGetStringField(TEXT("type"), U.Type); // T29 owned verbs (all optional)
 				UO->TryGetBoolField(TEXT("marked"), U.bMarked);

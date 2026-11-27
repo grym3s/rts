@@ -35,9 +35,8 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   selected armed units to shoot it (`RequestBridgeAt`). Damaged bridges get an orange HP bar,
   `bridge_hit` events draw tracers. Test: `RtsBridge.Host.Domain` also checks bridge + engineer parse.
   T29: unit rows add `Type`, `bMarked`, `bConscriptable`, `PhaseTicks` (-1 = can't phase) and
-  `PhaseCooldown`. The HUD puts a red pip over marked units and a cyan ring under phased ones. No
-  player buttons for Phase / Conscription yet (Hegemony and Ascendant are playable from the
-  faction pick, but their verbs have no buttons; Coalition's Marking is passive).
+  `PhaseCooldown`. The HUD puts a red pip over marked units and a cyan ring under phased ones. Phase (Q)
+  and Conscript (C) are on the ability bar (see Abilities below); Coalition's Marking is passive.
   Faction pick: in single player (`CanRestart`) a "Choose your faction" panel shows before the
   first tick and again after Play again; the sim does not step until a button is clicked
   (`ChooseFaction`). `ARtsBridgeGameMode::PlayerFaction` (static, sim index 0/1/2) then decides
@@ -63,6 +62,20 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   channel bar with seconds left over the Mindbender and its target, joined by a line, and a faint
   line to each unit it holds (`DrawChannelBars`).
   Test: `RtsBridge.Host.Capture`.
+  Abilities: rows add the ability state (`Sight`, `Radar`, `Inside`, `bCloaked` / `Detected`, `Shield`,
+  `Sabotaged`, `Holds` / `Capacity` / `Used`, `bTeleport`, `Charge` / strike, rig `Control` / hold).
+  Picking a faction re-inits the tick-0 world with the other two sides as host computer players
+  (`RtsContent::WithComputerPlayers`, scenario `ai`). Ability bar (bottom centre, above the production
+  panel, `AbilityButtons` / `AbilityLayout` / `AbilityHit`) and keys: Q phase, C conscript, U unload,
+  T teleport (then LMB one of your Teleport Nodes), G fire a charged superweapon (then LMB the target,
+  blast radius under the cursor), E deploy; RMB cancels a pending target. RMB your own transport, bunker
+  or tunnel loads the selection (`RequestLoad`); Operatives / Hijackers take the capture path. Fog of war
+  (presentation; F6 toggles): `FogCell` 2x2-cell grid, never seen / seen / in sight from your units' sight
+  and Seam Radar radius; the view gets a soft dark overlay (one batched triangle item), the minimap dark
+  runs. Enemy units outside sight, cloaked enemies without your detector and every passenger are hidden
+  and left out of `UnitActors` (so never picked, hovered or on the minimap); enemy buildings stay shown
+  once seen. A coming strike is a pulsing red ring with its countdown; rigs show their state and a hold
+  bar; your cloaked units get a faint blue ring; tooltips cover every ability.
 - `Source/RtsBridge/Private/RtsBridgeRoundTripTest.cpp` — editor automation test
   `RtsBridge.Host.RoundTrip` (real host launch, init, tick-0 move, 120 steps).
 - `Config/DefaultEngine.ini` — GlobalDefaultGameMode = RtsBridgeGameMode;
@@ -166,7 +179,7 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   motion. New ids snap (`SnapToSimPosition`).
 - Game mode keeps actors in `ActorsById`: snapshot rows match actors by sim id, never
   by index (an index match would hand a dead unit's actor to another and glide it).
-- `RtsBridge.Build.cs` needs `InputCore` (EKeys).
+- `RtsBridge.Build.cs` needs `InputCore` (EKeys) and `RenderCore` (`GWhiteTexture` for the fog overlay).
 
 ## Build (installed engine at ~/.local/opt/UnrealEngine-5.8.3)
 ```

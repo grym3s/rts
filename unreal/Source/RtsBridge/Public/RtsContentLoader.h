@@ -26,5 +26,9 @@ namespace RtsContent
 	 *  content/maps/<MapId>.json. Returns false with OutError on any malformed input. */
 	RTSBRIDGE_API bool LoadMatch(const FString& ScenarioId, const FString& MapId, FRtsMatchSetup& Out, FString& OutError);
 
+	/** The init request with every faction but `Human` played by the host's computer
+	 *  opponents (scenario `ai`, sim/ai). Returns the input unchanged if it can't be parsed. */
+	RTSBRIDGE_API FString WithComputerPlayers(const FString& InitRequest, int32 Human);
+
 	inline bool IsWalkableTile(TCHAR T) { return T == TEXT('.') || T == TEXT('='); }
 }
