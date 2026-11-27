@@ -72,6 +72,7 @@ public static class CaptureSystem
             if (u.CaptureTarget == EntityId.None || u.Hp.Raw <= 0) { u.ChannelTicks = 0; continue; }
             var t = units.Find(u.CaptureTarget);
             if (u.MindControl) { Channel(u, t, map, units, orders, tick, events, refundQueued); continue; }
+            if (u.Ability.Sabotages || u.Ability.Hijacks) { Infiltrate(u, t, map, units, orders, tick, events, refundQueued); continue; }
             if (u.RepairsStructures && t is { Building: { BridgeId: < 0, Wrecked: false } } && t.Faction == u.Faction)
             {
                 Mend(u, t, map, orders, tick);
@@ -127,6 +128,45 @@ public static class CaptureSystem
             orders[u.Id] = new MoveOrder(GameMap.CellCenter(cell.X, cell.Y), new List<FixVec2>(), tick);
         else
             Drop(u, orders); // nowhere beside it can be reached
+    }
+
+    /// <summary>Operative sabotage: how long a building stays offline (30 s).</summary>
+    public const int SabotageTicks = 30 * SimWorld.TicksPerSecond;
+
+    /// <summary>A hijacker's prize: an enemy ground vehicle (not infantry, aircraft, ships or buildings).</summary>
+    public static bool Hijackable(Unit t) =>
+        t.Building == null && t.Hp.Raw > 0 && t.Armor is ArmorClass.Light or ArmorClass.Heavy
+        && t.Domain is MoveDomain.Land or MoveDomain.Hover && t.Inside == EntityId.None;
+
+    /// <summary>Operative: touch an enemy building and shut it down for SabotageTicks (no power,
+    /// production or fire). Hijacker: touch an enemy ground vehicle and drive it off for good.
+    /// Both are used up doing it.</summary>
+    private static void Infiltrate(Unit u, Unit? t, GameMap map, UnitStore units, Dictionary<EntityId, MoveOrder> orders,
+        int tick, SimWorld? events, Action<int, string>? refundQueued)
+    {
+        var ok = t is { Hp.Raw: > 0 } && t.Faction != u.Faction && t.Faction != Factions.Neutral
+            && (u.Ability.Sabotages ? t.Building is { BridgeId: < 0, Wrecked: false } : Hijackable(t));
+        if (!ok) { Drop(u, orders); return; }
+        if (Touching(u, t!, map))
+        {
+            if (u.Ability.Sabotages)
+            {
+                t!.SabotagedUntilTick = tick + SabotageTicks;
+                events?.Emit(SimEventKind.Sabotaged, t.Id, u.Id, Fix64.FromInt(SabotageTicks), u.Faction);
+            }
+            else
+            {
+                t!.ControlledBy = EntityId.None; // stolen outright, whoever held it
+                Take(t, u.Faction, units, orders, refundQueued);
+                events?.Emit(SimEventKind.Captured, t.Id, u.Id, faction: u.Faction);
+            }
+            u.Hp = Fix64.Zero; // used up: leaves the roster at cleanup
+            Drop(u, orders);
+            return;
+        }
+        if (t!.Building != null && map.TryGetFootprint(t.Id.Value, out var fp)) WalkBeside(u, fp, map, orders, tick);
+        else if (!orders.TryGetValue(u.Id, out var o) || o.Target != t.Position)
+            orders[u.Id] = new MoveOrder(t.Position, new List<FixVec2>(), tick);
     }
 
     /// <summary>Weaver: walk beside its own damaged, finished building and repair it to full.</summary>

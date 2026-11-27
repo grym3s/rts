@@ -265,6 +265,9 @@ public sealed class HostedWorld
         SimEventKind.BridgeDown => "bridge_down",
         SimEventKind.BridgeRepaired => "bridge_repaired",
         SimEventKind.Captured => "captured",
+        SimEventKind.Sabotaged => "sabotaged",
+        SimEventKind.SuperweaponFired => "superweapon_fired",
+        SimEventKind.Teleported => "teleported",
         _ => throw new ArgumentOutOfRangeException(nameof(k), k, "no wire name"),
     };
 }

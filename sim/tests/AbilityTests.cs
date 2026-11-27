@@ -111,4 +111,74 @@ public class AbilityTests
         Assert.True(miner.Load > 0);
         Assert.Equal(5000 - miner.Load, a.M.Econ.Veins[0].Pool); // only the miner's share is gone
     }
+
+    // ---- shields, field repair, infiltrators
+
+    private static CaptureCommand Job(Arena a, Unit target, params Unit[] who) =>
+        new(a.W.Tick, who[0].Faction, who.Select(u => u.Id).ToArray(), target.Id);
+
+    [Fact]
+    public void An_anchor_takes_thirty_percent_off_what_its_allies_are_hit_for()
+    {
+        Fix64 Taken(bool anchor)
+        {
+            var a = new Arena();
+            var ally = a.Unit("adept", 2, 20.5, 20.5);
+            if (anchor) a.Unit("anchor", 2, 18.5, 20.5);
+            a.Unit("bulwark", 1, 24.5, 20.5);
+            a.RunUntil(() => a.Seen.Any(e => e.Kind == SimEventKind.Shot && e.Target == ally.Id), 200);
+            return a.Seen.First(e => e.Kind == SimEventKind.Shot && e.Target == ally.Id).Amount;
+        }
+        var bare = Taken(false);
+        var shielded = Taken(true);
+        Assert.Equal((bare * Fix64.Ratio(70, 100)).Raw, shielded.Raw);
+    }
+
+    [Fact]
+    public void Field_repair_heals_nearby_units_but_not_itself_or_buildings()
+    {
+        var a = new Arena();
+        var fr = a.Unit("field-repair", 1, 20.5, 20.5);
+        var tank = a.Unit("bulwark", 1, 22.5, 20.5);
+        var far = a.Unit("bulwark", 1, 35.5, 20.5);
+        tank.Hp = far.Hp = fr.Hp = Fix64.FromInt(50);
+        a.Run(20); // one second: 12 hp
+        Assert.True(Fix64.Abs(tank.Hp - Fix64.FromInt(62)) < Fix64.Ratio(1, 100), tank.Hp.ToString());
+        Assert.Equal(Fix64.FromInt(50), far.Hp);
+        Assert.Equal(Fix64.FromInt(50), fr.Hp);
+    }
+
+    [Fact]
+    public void An_operative_shuts_a_building_down_for_thirty_seconds_and_is_used_up()
+    {
+        var a = new Arena();
+        var reactor = a.Building("hegemony-furnace", 1, 20, 20);
+        a.Building("hegemony-cannon-tower", 1, 30, 30);
+        var op = a.Unit("operative", 0, 10.5, 20.5);
+        a.Step(Job(a, reactor, op));
+        a.RunUntil(() => reactor.IsSabotaged(a.W.Tick), 400);
+        Assert.True(reactor.IsSabotaged(a.W.Tick));
+        a.Step();
+        Assert.Null(a.M.Units.Find(op.Id));
+        Assert.True(a.M.Power.IsLowPower(1)); // the furnace makes nothing: the tower's draw sinks Hegemony
+        a.Run(CaptureSystemTicks());
+        Assert.False(a.M.Power.IsLowPower(1));
+    }
+
+    private static int CaptureSystemTicks() => Rts.Sim.Combat.CaptureSystem.SabotageTicks + 2;
+
+    [Fact]
+    public void A_hijacker_steals_a_vehicle_but_not_infantry()
+    {
+        var a = new Arena();
+        var tank = a.Unit("lancer-mbt", 0, 20.5, 20.5);
+        var rifle = a.Unit("rifleman", 0, 20.5, 30.5);
+        var hj = a.Unit("hijacker", 1, 10.5, 20.5);
+        var hj2 = a.Unit("hijacker", 1, 10.5, 30.5);
+        tank.Hp = rifle.Hp = Fix64.FromInt(1000); // nobody dies to the fight around them
+        a.Step(Job(a, tank, hj), Job(a, rifle, hj2));
+        Assert.Equal(EntityId.None, hj2.CaptureTarget); // infantry can't be hijacked
+        a.RunUntil(() => tank.Faction == 1, 400);
+        Assert.Equal(1, tank.Faction);
+    }
 }

@@ -18,6 +18,12 @@ public enum SimEventKind
     /// <summary>T28: unit Subject (building or MCV) was captured by engineer Target (consumed);
     /// Faction is the new owner.</summary>
     Captured,
+    /// <summary>Building Subject was sabotaged by Operative Target (consumed); Amount = ticks offline.</summary>
+    Sabotaged,
+    /// <summary>Superweapon Subject fired; it lands Amount ticks from now at its StrikeAt.</summary>
+    SuperweaponFired,
+    /// <summary>Unit Subject teleported, or left a tunnel, at holder / node Target.</summary>
+    Teleported,
 }
 
 /// <summary>Something that happened during a tick, for the presentation layer / replay consumers.

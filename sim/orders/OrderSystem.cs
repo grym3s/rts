@@ -91,7 +91,8 @@ public static class OrderSystem
                     {
                         if (unitOf == null || unitOf(unit) is not { } u || u.Faction != cc.Faction) continue;
                         var repairJob = u.RepairsStructures && capTarget?.Faction == u.Faction;
-                        var can = u.MindControl || (u.Engineer && (!u.CannotCapture || hutJob || repairJob));
+                        var can = u.MindControl || u.Ability.Sabotages || u.Ability.Hijacks
+                            || (u.Engineer && (!u.CannotCapture || hutJob || repairJob));
                         if (!can || u.Hp.Raw <= 0) continue;
                         orders.Remove(unit);
                         Disengage(u);
