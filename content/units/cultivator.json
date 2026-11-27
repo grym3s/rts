@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "cultivator",
   "name": "Cultivator",
-  "description": "Harvests ore for credits",
+  "description": "Harvests ore; never drains the field",
   "faction": "ascendant",
   "role": "harvester",
   "tier": 1,
@@ -14,5 +14,8 @@
     "hp": 110,
     "speed": 2.5,
     "sight": 6.0
+  },
+  "verbs": {
+    "neverDepletes": true
   }
 }

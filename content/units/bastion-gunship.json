@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "id": "bastion-gunship",
+  "name": "Carrier Gunship",
+  "description": "Carrier gunship; attacks ground and ships",
+  "faction": "hegemony",
+  "role": "carrier-aircraft",
+  "tier": 3,
+  "builtFrom": "bastion-carrier",
+  "cost": 0,
+  "buildTimeSeconds": 0,
+  "armor": "air",
+  "stats": {
+    "hp": 110,
+    "speed": 6.0,
+    "sight": 9.0
+  },
+  "weapon": {
+    "damageType": "autocannon",
+    "damage": 10,
+    "range": 5.0,
+    "cooldownTicks": 12,
+    "targets": [
+      "ground",
+      "sea"
+    ]
+  }
+}

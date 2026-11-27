@@ -17,6 +17,7 @@
   },
   "verbs": {
     "marksAura": true,
-    "markRadius": 7
+    "markRadius": 7,
+    "detectRadius": 9
   }
 }

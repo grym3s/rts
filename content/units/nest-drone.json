@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "id": "nest-drone",
+  "name": "Nest Drone",
+  "description": "Carrier drone; attacks ground and ships",
+  "faction": "ascendant",
+  "role": "carrier-aircraft",
+  "tier": 3,
+  "builtFrom": "nest",
+  "cost": 0,
+  "buildTimeSeconds": 0,
+  "armor": "air",
+  "stats": {
+    "hp": 40,
+    "speed": 9.0,
+    "sight": 9.0
+  },
+  "weapon": {
+    "damageType": "energy",
+    "damage": 8,
+    "range": 4.0,
+    "cooldownTicks": 15,
+    "targets": [
+      "ground",
+      "sea"
+    ]
+  }
+}

@@ -42,6 +42,10 @@ public sealed class SimWorld
     /// Each receives the commands due this tick. Order matters (see sim/CONTEXT.md); registration order is the tick order.</summary>
     public List<Action<SimWorld, IReadOnlyList<Command>>> Systems { get; } = new();
 
+    /// <summary>Command sources inside the sim (the AI): asked at the start of every step, before
+    /// due commands are picked, so what they decide is a pure function of the state.</summary>
+    public List<Func<SimWorld, IEnumerable<Command>>> InputSources { get; } = new();
+
     /// <summary>Hasher hooks (same determinism rules as Fix64): one per state owner, e.g. UnitStore.Hash.</summary>
     public List<Func<ulong, ulong>> HashMixers { get; } = new();
 
@@ -59,6 +63,7 @@ public sealed class SimWorld
     {
         _events.Clear(); // drop the previous tick's events; consumers had one full frame to read them
         foreach (var c in commands) PendingCommands.Add(c);
+        foreach (var source in InputSources) PendingCommands.AddRange(source(this));
         // 1. due commands (tick step 1: orders)
         var due = PendingCommands.FindAll(c => c.Tick <= Tick);
         PendingCommands.RemoveAll(c => c.Tick <= Tick);

@@ -25,6 +25,7 @@
     ]
   },
   "verbs": {
-    "phases": true
+    "phases": true,
+    "detectRadius": 8
   }
 }

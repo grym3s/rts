@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "silent",
   "name": "Silent-class",
-  "description": "Submarine; hits ships and shore",
+  "description": "Submarine; hidden until detected",
   "faction": "coalition",
   "role": "submarine",
   "tier": 2,
@@ -24,5 +24,8 @@
       "sea",
       "ground"
     ]
+  },
+  "verbs": {
+    "stealth": true
   }
 }

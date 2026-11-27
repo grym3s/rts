@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "nest",
   "name": "Nest",
-  "description": "Carrier (aircraft not in yet)",
+  "description": "Carrier: spawns 5 drones, no rearm",
   "faction": "ascendant",
   "role": "carrier",
   "tier": 3,
@@ -14,5 +14,11 @@
     "hp": 720,
     "speed": 2.0,
     "sight": 12.0
+  },
+  "verbs": {
+    "launches": "nest-drone",
+    "wing": 5,
+    "rebuildSeconds": 6,
+    "launchRange": 12
   }
 }

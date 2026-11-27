@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "operative",
   "name": "Operative",
-  "description": "Infiltrator (not in yet)",
+  "description": "Cloaked; sabotages a building for 30 s",
   "faction": "coalition",
   "role": "infiltrator",
   "tier": 2,
@@ -14,5 +14,9 @@
     "hp": 50,
     "speed": 2.2,
     "sight": 8.0
+  },
+  "verbs": {
+    "stealth": true,
+    "sabotages": true
   }
 }

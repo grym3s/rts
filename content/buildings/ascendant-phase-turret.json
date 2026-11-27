@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-phase-turret",
   "name": "Phase Turret",
-  "description": "Anti-ground turret",
+  "description": "Turret; phases out between shots",
   "faction": "ascendant",
   "category": "defense",
   "tier": 1,
@@ -24,5 +24,8 @@
     "targets": [
       "ground"
     ]
+  },
+  "verbs": {
+    "phasesBetweenShots": true
   }
 }

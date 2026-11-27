@@ -15,13 +15,13 @@ public sealed class UnitCatalog
         Rts.Sim.World.TargetMask Targets = Rts.Sim.World.TargetMask.None, bool Engineer = false,
         bool MarksOnHit = false, Fix64 MarkRadius = default, bool Conscriptable = false, bool Detonates = false,
         bool Phases = false, bool CannotCapture = false, string Description = "",
-        bool MindControl = false, bool RepairsStructures = false)
+        bool MindControl = false, bool RepairsStructures = false, Rts.Sim.World.Abilities? Ability = null)
     {
         /// <summary>The spawn-time stat block (every spawner builds the same one).</summary>
         public Rts.Sim.World.UnitProfile Profile() => new(Faction, Hp, Sight, Damage, Range, CooldownTicks,
             Armor, DamageType, Harvest, DeploysTo, Domain, Targets, Engineer,
             Id, MarksOnHit, MarkRadius, Conscriptable, Detonates, Phases, CannotCapture,
-            MindControl, RepairsStructures);
+            MindControl, RepairsStructures, Ability);
     }
 
     /// <summary>True when unitId names a unit this building (catalog id) fields:
@@ -93,9 +93,58 @@ public sealed class UnitCatalog
                 Verb(root, "cannotCapture"),
                 Text(root, "description"),
                 Verb(root, "mindControl"),
-                Verb(root, "repairsStructures"));
+                Verb(root, "repairsStructures"),
+                ParseAbilities(root));
         }
         return cat;
+    }
+
+    /// <summary>The `verbs` keys that make an Abilities record (content/CONTEXT.md); absent = None.
+    /// Seconds become ticks here.</summary>
+    internal static Rts.Sim.World.Abilities ParseAbilities(JsonElement root)
+    {
+        if (!root.TryGetProperty("verbs", out var v) || v.ValueKind != JsonValueKind.Object) return Rts.Sim.World.Abilities.None;
+        bool B(string n) => v.TryGetProperty(n, out var f) && f.ValueKind == JsonValueKind.True;
+        Fix64 F(string n) => v.TryGetProperty(n, out var f) && f.ValueKind == JsonValueKind.Number ? Fix64.FromDouble(f.GetDouble()) : Fix64.Zero;
+        int I(string n, int d = 0) => v.TryGetProperty(n, out var f) && f.ValueKind == JsonValueKind.Number ? f.GetInt32() : d;
+        int Ticks(string n) => v.TryGetProperty(n, out var f) && f.ValueKind == JsonValueKind.Number
+            ? (int)Math.Round(f.GetDouble() * Rts.Sim.Core.SimWorld.TicksPerSecond) : 0;
+        string? S(string n) => v.TryGetProperty(n, out var f) && f.ValueKind == JsonValueKind.String ? f.GetString() : null;
+        var a = new Rts.Sim.World.Abilities
+        {
+            PhasesBetweenShots = B("phasesBetweenShots"),
+            LineDamage = B("lineDamage"),
+            NeverDepletes = B("neverDepletes"),
+            ShieldRadius = F("shieldRadius"),
+            ShieldPercent = I("shieldPercent"),
+            ShieldNavalOnly = B("shieldNavalOnly"),
+            HealRadius = F("healRadius"),
+            HealPerTick = F("healPerSecond") / Fix64.FromInt(Rts.Sim.Core.SimWorld.TicksPerSecond),
+            Sabotages = B("sabotages"),
+            Hijacks = B("hijacks"),
+            Launches = S("launches"),
+            Wing = I("wing"),
+            RebuildTicks = Ticks("rebuildSeconds"),
+            LaunchRange = F("launchRange"),
+            Capacity = I("capacity"),
+            Carries = S("carries") ?? "infantry",
+            Garrison = B("garrison"),
+            Tunnel = B("tunnel"),
+            Teleport = B("teleport"),
+            Stealth = B("stealth"),
+            CloakRadius = F("cloakRadius"),
+            DetectRadius = F("detectRadius"),
+            RadarRadius = F("radarRadius"),
+            HoldCapture = B("holdCapture"),
+            HoldRadius = F("holdRadius"),
+            ChargeTicks = Ticks("chargeSeconds"),
+            StrikeRadius = F("strikeRadius"),
+            StrikeDamage = F("strikeDamage"),
+            StrikePulses = I("strikePulses", 1),
+            StrikeDelayTicks = Ticks("strikeDelaySeconds"),
+            PulseGapTicks = v.TryGetProperty("pulseGapSeconds", out _) ? Ticks("pulseGapSeconds") : 10,
+        };
+        return a == new Rts.Sim.World.Abilities() ? Rts.Sim.World.Abilities.None : a;
     }
 
     /// <summary>An optional top-level string (absent = "").</summary>

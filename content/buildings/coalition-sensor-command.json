@@ -18,5 +18,9 @@
   "stats": {
     "hp": 1000
   },
-  "verbs": { "marksAura": true, "markRadius": 14 }
+  "verbs": {
+    "marksAura": true,
+    "markRadius": 14,
+    "detectRadius": 12
+  }
 }

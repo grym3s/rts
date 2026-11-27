@@ -23,5 +23,8 @@
     "targets": [
       "ground"
     ]
+  },
+  "verbs": {
+    "detectRadius": 8
   }
 }

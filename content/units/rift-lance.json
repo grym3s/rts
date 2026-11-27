@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "rift-lance",
   "name": "Rift Lance",
-  "description": "Long-range artillery",
+  "description": "Artillery; its shot pierces a line",
   "faction": "ascendant",
   "role": "artillery",
   "tier": 3,
@@ -23,5 +23,8 @@
     "targets": [
       "ground"
     ]
+  },
+  "verbs": {
+    "lineDamage": true
   }
 }

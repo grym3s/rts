@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "neutral-seam-radar",
+  "name": "Seam Radar",
+  "description": "Capture with an engineer: wide vision",
+  "faction": "neutral",
+  "category": "tech",
+  "tier": 0,
+  "prereq": null,
+  "cost": 0,
+  "buildTimeSeconds": 0,
+  "power": 0,
+  "footprint": [
+    2,
+    2
+  ],
+  "produces": [
+    "radar"
+  ],
+  "verbs": {
+    "radarRadius": 22
+  },
+  "stats": {
+    "hp": 1200
+  }
+}

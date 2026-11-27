@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-teleport-node",
   "name": "Teleport Node",
-  "description": "Teleport network (not in yet)",
+  "description": "Sends nearby units to another node",
   "faction": "ascendant",
   "category": "logistics",
   "tier": 1,
@@ -15,5 +15,8 @@
   ],
   "stats": {
     "hp": 250
+  },
+  "verbs": {
+    "teleport": true
   }
 }

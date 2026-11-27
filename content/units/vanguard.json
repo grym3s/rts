@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "vanguard",
   "name": "Vanguard-class",
-  "description": "Carrier (aircraft not in yet)",
+  "description": "Carrier: launches 4 strike jets",
   "faction": "coalition",
   "role": "carrier",
   "tier": 3,
@@ -14,5 +14,11 @@
     "hp": 810,
     "speed": 2.0,
     "sight": 12.0
+  },
+  "verbs": {
+    "launches": "vanguard-jet",
+    "wing": 4,
+    "rebuildSeconds": 12,
+    "launchRange": 16
   }
 }

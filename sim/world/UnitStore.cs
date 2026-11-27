@@ -44,6 +44,21 @@ public sealed class UnitStore
                 h = (h ^ (ulong)(uint)u.OriginalFaction) * 1099511628211UL;
                 h = (h ^ (ulong)(uint)u.ControlledSinceTick) * 1099511628211UL;
             }
+            // abilities: each mixes in only while set, so worlds without them hash as before
+            if (u.Inside != EntityId.None) h = (h ^ (ulong)(uint)u.Inside.Value ^ 0x1D5EUL) * 1099511628211UL;
+            if (u.BoardTarget != EntityId.None) h = (h ^ (ulong)(uint)u.BoardTarget.Value ^ 0xB0A7UL) * 1099511628211UL;
+            if (u.SabotagedUntilTick != 0) h = (h ^ (ulong)(uint)u.SabotagedUntilTick ^ 0x5AB0UL) * 1099511628211UL;
+            if (u.RevealedUntilTick != 0) h = (h ^ (ulong)(uint)u.RevealedUntilTick ^ 0x2E7EUL) * 1099511628211UL;
+            if (u.CarrierId != EntityId.None) h = (h ^ (ulong)(uint)u.CarrierId.Value ^ 0xCA22UL) * 1099511628211UL;
+            if (u.RebuildLeft != 0) h = (h ^ (ulong)(uint)u.RebuildLeft ^ 0x2EB1UL) * 1099511628211UL;
+            if (u.ChargeLeft != 0) h = (h ^ (ulong)(uint)u.ChargeLeft ^ 0xC4A2UL) * 1099511628211UL;
+            if (u.StrikeTick != 0)
+            {
+                h = (h ^ (ulong)(uint)u.StrikeTick ^ 0x5721UL) * 1099511628211UL;
+                h = (h ^ (ulong)u.StrikeAt.X.Raw) * 1099511628211UL;
+                h = (h ^ (ulong)u.StrikeAt.Y.Raw) * 1099511628211UL;
+                h = (h ^ (ulong)(uint)u.PulsesLeft) * 1099511628211UL;
+            }
         }
         return h;
     }
@@ -58,7 +73,7 @@ public sealed record UnitProfile(int Faction, Fix64 Hp, Fix64 Sight,
     MoveDomain Domain = MoveDomain.Land, TargetMask Targets = TargetMask.All, bool Engineer = false,
     string? TypeId = null, bool MarksOnHit = false, Fix64 MarkRadius = default,
     bool Conscriptable = false, bool Detonates = false, bool Phases = false, bool CannotCapture = false,
-    bool MindControl = false, bool RepairsStructures = false);
+    bool MindControl = false, bool RepairsStructures = false, Abilities? Ability = null);
 
 /// <summary>T28: faction index of unowned map structures (the oil derrick). Nobody's enemy:
 /// never targeted, never counted by the match, captured by an engineer touch.</summary>
@@ -112,6 +127,35 @@ public sealed class Unit
     public bool MindControl { get; }
     /// <summary>Weaver: a capture job on its own damaged building repairs it over time.</summary>
     public bool RepairsStructures { get; }
+    /// <summary>Everything else it can do (content `verbs`; sim/world Abilities).</summary>
+    public Abilities Ability { get; }
+
+    // ---- ability state (each system named on Abilities owns its field) ----
+    /// <summary>sim/transport: the transport, bunker or tunnel it rides in (None = on the map).
+    /// A passenger moves with its holder, can't be targeted or collide, and doesn't act.</summary>
+    public EntityId Inside { get; set; } = EntityId.None;
+    /// <summary>sim/transport: the holder it is walking to board (None = none).</summary>
+    public EntityId BoardTarget { get; set; } = EntityId.None;
+    /// <summary>Operative sabotage: a building is offline while tick &lt; SabotagedUntilTick.</summary>
+    public int SabotagedUntilTick { get; set; }
+    public bool IsSabotaged(int tick) => tick < SabotagedUntilTick;
+    /// <summary>Stealth: a cloaked unit that fired is visible until this tick.</summary>
+    public int RevealedUntilTick { get; set; }
+    /// <summary>Carriers: a launched aircraft's carrier (None = not a carrier's), and on the
+    /// carrier the ticks until the next aircraft is rebuilt (0 = idle).</summary>
+    public EntityId CarrierId { get; set; } = EntityId.None;
+    public int RebuildLeft { get; set; }
+    /// <summary>Superweapons: ticks of charge left (0 = ready once built); a pending strike at
+    /// StrikeAt lands at StrikeTick (0 = none), PulsesLeft more times.</summary>
+    public int ChargeLeft { get; set; }
+    public FixVec2 StrikeAt { get; set; }
+    public int StrikeTick { get; set; }
+    public int PulsesLeft { get; set; }
+    /// <summary>Derived each combat step (sim/combat Support), never hashed: the shield on it,
+    /// whether it is cloaked, and the factions (bit per faction) that detect it.</summary>
+    public int ShieldPercentNow { get; set; }
+    public bool Cloaked { get; set; }
+    public uint DetectedMask { get; set; }
     /// <summary>Mindbender: ticks channelled so far on CaptureTarget (0 = not channelling), and
     /// how many it needs (set each tick it channels; not state, so not hashed).</summary>
     public int ChannelTicks { get; set; }
@@ -191,5 +235,6 @@ public sealed class Unit
         CannotCapture = profile?.CannotCapture ?? false;
         MindControl = profile?.MindControl ?? false;
         RepairsStructures = profile?.RepairsStructures ?? false;
+        Ability = profile?.Ability ?? Abilities.None;
     }
 }

@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "heavy-lifter",
   "name": "Heavy Lifter",
-  "description": "Air transport (carrying not in yet)",
+  "description": "Air transport: 8 slots",
   "faction": "hegemony",
   "role": "air-transport",
   "tier": 2,
@@ -14,5 +14,9 @@
     "hp": 180,
     "speed": 6.0,
     "sight": 8.0
+  },
+  "verbs": {
+    "capacity": 8,
+    "carries": "ground"
   }
 }

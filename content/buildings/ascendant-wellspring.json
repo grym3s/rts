@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-wellspring",
   "name": "Wellspring",
-  "description": "Earns credits; comes with a Cultivator",
+  "description": "Earns credits; its fields never run out",
   "faction": "ascendant",
   "category": "economy",
   "tier": 1,

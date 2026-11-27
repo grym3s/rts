@@ -65,9 +65,11 @@ public static class ProductionSystem
                 // T33: canon "the Refinery ships one harvester on completion" (economy.md), free.
                 if (--b.ConstructionRemaining == 0 && unitsCatalog.HarvesterFor(b.Id) is { } harvester)
                     SpawnUnit(unitsCatalog.Get(harvester), map, units, ids, u.Position, u.Faction);
+                if (b.ConstructionRemaining == 0 && u.Ability.IsSuperweapon) u.ChargeLeft = u.Ability.ChargeTicks; // sim/superweapons
                 continue;
             }
             if (b.Queue.Count == 0) continue;
+            if (u.IsSabotaged(tick)) continue; // Operative: production stands still
             // Countdown starts the tick AFTER the command: skip the decrement on the enqueue tick.
             if (b.QueueEnqueuedAtTick == tick) continue;
             if (--b.QueueHeadRemaining > 0) continue;
@@ -210,7 +212,8 @@ public static class ProductionSystem
         var b = units.Spawn(ids.Next(), centre, Fix64.Zero, UnitCatalog.DefaultRadius,
             new UnitProfile(faction, bp.Hp, g?.Range ?? Fix64.Zero, g?.Damage ?? Fix64.Zero, g?.Range ?? Fix64.Zero, g?.CooldownTicks ?? 0,
                 ArmorClass.Structure, g?.DamageType ?? DamageType.SmallArms,
-                Targets: g?.Targets ?? Rts.Sim.World.TargetMask.All, TypeId: bp.Id, MarkRadius: bp.MarkRadius, MarksOnHit: g?.MarksOnHit ?? false));
+                Targets: g?.Targets ?? Rts.Sim.World.TargetMask.All, TypeId: bp.Id, MarkRadius: bp.MarkRadius, MarksOnHit: g?.MarksOnHit ?? false,
+                Ability: bp.Ability));
         b.Building = new BuildingState { Id = bp.Id, ConstructionRemaining = bp.BuildTicks, Restorable = bp.Restorable };
         map.OccupyStructure(b.Id.Value, ox, oy, bp.FootprintW, bp.FootprintH);
         return b;

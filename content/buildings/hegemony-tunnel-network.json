@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-tunnel-network",
   "name": "Tunnel Network",
-  "description": "Underground travel (not in yet)",
+  "description": "Units enter one tunnel, leave any other",
   "faction": "hegemony",
   "category": "logistics",
   "tier": 2,
@@ -15,5 +15,10 @@
   ],
   "stats": {
     "hp": 1800
+  },
+  "verbs": {
+    "tunnel": true,
+    "capacity": 12,
+    "carries": "ground"
   }
 }

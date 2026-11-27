@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "anchor",
   "name": "Anchor",
-  "description": "Shields allies (not in yet)",
+  "description": "Shields allies nearby (-30% damage)",
   "faction": "ascendant",
   "role": "support",
   "tier": 2,
@@ -14,5 +14,9 @@
     "hp": 104,
     "speed": 2.6,
     "sight": 9.0
+  },
+  "verbs": {
+    "shieldRadius": 6,
+    "shieldPercent": 30
   }
 }

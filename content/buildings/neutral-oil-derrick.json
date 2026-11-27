@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "neutral-oil-derrick",
   "name": "Oil Derrick",
-  "description": "Capture with an engineer: 5 credits/s",
+  "description": "Hold it or send an engineer: 5 credits/s",
   "faction": "neutral",
   "category": "offshore",
   "tier": 0,
@@ -19,7 +19,9 @@
   ],
   "verbs": {
     "oilIncome": 5,
-    "restoredByEngineer": true
+    "restoredByEngineer": true,
+    "holdCapture": true,
+    "holdRadius": 6
   },
   "stats": {
     "hp": 1500

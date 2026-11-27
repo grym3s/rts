@@ -8,7 +8,7 @@ namespace Rts.Sim.Power;
 /// The parity gate is applied in ProductionSystem.Step (per-building, per-tick).</summary>
 public static class PowerSystem
 {
-    public static void Step(PowerStore power, BuildingCatalog buildings, UnitStore units)
+    public static void Step(PowerStore power, BuildingCatalog buildings, UnitStore units, int tick = 0)
     {
         // Factions 0 and 1 always get a ledger (2-faction game); others appear when they own
         // a building. Sum supply (positive power) and draw (negative) separately over alive,
@@ -21,6 +21,7 @@ public static class PowerSystem
             if (u.Hp.Raw <= 0) continue; // dead
             if (u.Faction == Rts.Sim.World.Factions.Neutral) continue; // T28: unowned structures
             if (b.ConstructionRemaining > 0) continue; // under construction
+            if (u.IsSabotaged(tick)) continue; // Operative: a sabotaged building neither makes nor draws power
             var p = buildings.Get(b.Id).Power;
             supply.TryAdd(u.Faction, 0);
             draw.TryAdd(u.Faction, 0);

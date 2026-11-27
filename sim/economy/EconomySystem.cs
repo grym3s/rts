@@ -60,7 +60,7 @@ public static class EconomySystem
             u.HomeVein = vein.Id;
             var take = Math.Min(Rate, Math.Min(Capacity - u.Load, vein.Pool));
             u.Load += take;
-            vein.Pool -= take;
+            if (!u.Ability.NeverDepletes) vein.Pool -= take; // Wellspring Cultivator: the field never runs down
             if (u.Load >= Capacity) u.Carrying = true;
         }
     }
@@ -111,7 +111,7 @@ public static class EconomySystem
             u.HomeVein = vein.Id;
             var take = Math.Min(Rate, Math.Min(Capacity - u.Load, vein.Pool));
             u.Load += take;
-            vein.Pool -= take;
+            if (!u.Ability.NeverDepletes) vein.Pool -= take; // Wellspring Cultivator: the field never runs down
             if (u.Load >= Capacity) u.Carrying = true;
         }
     }

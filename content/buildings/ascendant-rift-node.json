@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-rift-node",
   "name": "Rift Node",
-  "description": "Long-range energy turret",
+  "description": "Long-range turret; pierces a whole line",
   "faction": "ascendant",
   "category": "defense",
   "tier": 2,
@@ -25,5 +25,8 @@
     "targets": [
       "ground"
     ]
+  },
+  "verbs": {
+    "lineDamage": true
   }
 }

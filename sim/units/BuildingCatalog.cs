@@ -12,7 +12,7 @@ public sealed class BuildingCatalog
     public record PlacementParams(string Id, int Faction, string Category, int Cost, int BuildTicks, Fix64 Hp, string? Prereq, int Power,
         int FootprintW = 1, int FootprintH = 1, string Name = "", bool RequiresShore = false,
         Fix64 MarkRadius = default, bool ConscriptionHall = false, int OilIncome = 0, bool Restorable = false,
-        string Description = "", Weapon? Gun = null)
+        string Description = "", Weapon? Gun = null, Rts.Sim.World.Abilities? Ability = null)
     {
         /// <summary>T25: naval and offshore buildings stand on water (shipyards, sea platforms).</summary>
         public bool OnWater => Category is "naval" or "offshore";
@@ -77,7 +77,8 @@ public sealed class BuildingCatalog
                         wp.GetProperty("cooldownTicks").GetInt32(), DamageMatrix.ParseDamageType(wp.GetProperty("damageType").GetString()!),
                         wp.TryGetProperty("targets", out var tg) ? Rts.Sim.World.Domains.ParseTargets(tg) : Rts.Sim.World.TargetMask.Ground,
                         UnitCatalog.Verb(root, "marksOnHit"))
-                    : null);
+                    : null,
+                UnitCatalog.ParseAbilities(root));
         }
         return cat;
     }

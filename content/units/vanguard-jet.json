@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "id": "vanguard-jet",
+  "name": "Strike Jet",
+  "description": "Carrier jet; attacks ground and ships",
+  "faction": "coalition",
+  "role": "carrier-aircraft",
+  "tier": 3,
+  "builtFrom": "vanguard",
+  "cost": 0,
+  "buildTimeSeconds": 0,
+  "armor": "air",
+  "stats": {
+    "hp": 70,
+    "speed": 8.0,
+    "sight": 9.0
+  },
+  "weapon": {
+    "damageType": "missile",
+    "damage": 22,
+    "range": 6.0,
+    "cooldownTicks": 30,
+    "targets": [
+      "ground",
+      "sea"
+    ]
+  }
+}

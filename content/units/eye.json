@@ -14,5 +14,8 @@
     "hp": 60,
     "speed": 7.0,
     "sight": 13.0
+  },
+  "verbs": {
+    "detectRadius": 10
   }
 }

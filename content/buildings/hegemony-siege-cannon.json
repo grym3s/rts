@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-siege-cannon",
   "name": "Siege Cannon",
-  "description": "Superweapon (not in yet)",
+  "description": "Superweapon: 4-shell barrage every 4.5 min",
   "faction": "hegemony",
   "category": "superweapon",
   "tier": 3,
@@ -15,5 +15,13 @@
   ],
   "stats": {
     "hp": 3000
+  },
+  "verbs": {
+    "chargeSeconds": 270,
+    "strikeRadius": 4,
+    "strikeDamage": 260,
+    "strikePulses": 4,
+    "strikeDelaySeconds": 3,
+    "pulseGapSeconds": 0.75
   }
 }

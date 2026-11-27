@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-bunker",
   "name": "Bunker",
-  "description": "Bunker (garrison not in yet)",
+  "description": "Holds 5 infantry who shoot out of it",
   "faction": "hegemony",
   "category": "defense",
   "tier": 1,
@@ -25,5 +25,10 @@
     "targets": [
       "ground"
     ]
+  },
+  "verbs": {
+    "capacity": 5,
+    "carries": "infantry",
+    "garrison": true
   }
 }

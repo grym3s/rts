@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "field-repair",
   "name": "Field Repair",
-  "description": "Repairs nearby units (not in yet)",
+  "description": "Repairs nearby units (12 hp/s)",
   "faction": "hegemony",
   "role": "support",
   "tier": 2,
@@ -14,5 +14,9 @@
     "hp": 156,
     "speed": 2.6,
     "sight": 9.0
+  },
+  "verbs": {
+    "healRadius": 5,
+    "healPerSecond": 12
   }
 }

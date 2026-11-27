@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "troop-carrier",
   "name": "Troop Carrier",
-  "description": "Armoured APC (carrying not in yet)",
+  "description": "APC: carries 12 infantry",
   "faction": "hegemony",
   "role": "apc",
   "tier": 2,
@@ -23,5 +23,9 @@
     "targets": [
       "ground"
     ]
+  },
+  "verbs": {
+    "capacity": 12,
+    "carries": "infantry"
   }
 }

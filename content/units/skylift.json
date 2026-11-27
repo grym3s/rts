@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "skylift",
   "name": "Skylift",
-  "description": "Air transport (carrying not in yet)",
+  "description": "Air transport: 4 infantry or 1 vehicle",
   "faction": "coalition",
   "role": "air-transport",
   "tier": 2,
@@ -14,5 +14,9 @@
     "hp": 135,
     "speed": 6.0,
     "sight": 8.0
+  },
+  "verbs": {
+    "capacity": 4,
+    "carries": "ground"
   }
 }

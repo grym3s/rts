@@ -10,14 +10,23 @@ public static class CombatSystem
 {
     /// <summary>One tick of combat. Chase distance: a unit ordered to attack a target outside its
     /// weapons range gets a fresh MoveOrder toward that target each tick it is idle-pathed.
-    /// `events` (optional) receives a Shot per hit and a Death per kill (T09).</summary>
-    public static void Step(UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick, SimWorld? events = null)
+    /// `events` (optional) receives a Shot per hit and a Death per kill (T09). `lowPower(faction)`
+    /// (economy.md low-power rule): while true, that side's defense buildings hold fire.</summary>
+    public static void Step(UnitStore units, Dictionary<EntityId, MoveOrder> orders, int tick, SimWorld? events = null,
+        Func<int, bool>? lowPower = null)
     {
         OwnedVerbs.RefreshAuras(units, tick); // T29 Marking: post-move positions, before anyone fires
+        Support.Refresh(units, tick, lowPower); // shields (Anchor, Warden) and cloaks, before anyone fires
         foreach (var u in units.Units)
         {
             if (u.Hp.Raw <= 0) continue; // killed earlier this tick: no actions
             if (u.Building is { ConstructionRemaining: > 0 }) continue; // a turret fires once it is built
+            if (u.Building != null && u.Damage.Raw != 0 && (lowPower?.Invoke(u.Faction) == true || u.IsSabotaged(tick)))
+            {
+                u.TargetId = EntityId.None; // offline: no power (or sabotaged)
+                continue;
+            }
+            if (u.Inside != EntityId.None) continue; // a passenger: garrisons fire for it (sim/transport)
 
             // auto-acquire for attack-move: nearest living enemy in sight, first wins on ties (store order)
             if (u.AttackMoving && !HasLiveTarget(u, units))
@@ -34,7 +43,7 @@ public static class CombatSystem
             var target = units.Find(u.TargetId);
             // T25: a weapon that can't engage the target's domain (rifle vs jet, torpedo vs tank)
             // drops it like a dead one: the order was impossible, not pending.
-            if (target == null || target.Hp.Raw <= 0 || !CanHit(u, target))
+            if (target == null || target.Hp.Raw <= 0 || !CanHit(u, target) || !Support.CanSee(u.Faction, target, tick))
             {
                 u.TargetId = EntityId.None;
                 if (u.AttackMoving) continue; // resume route
@@ -53,16 +62,12 @@ public static class CombatSystem
                     // counter matrix: base damage x canon cell (tools/refmodel_counter_matrix.py).
                     // Chip floor: a live weapon always does >= 1 whole damage — soft-with-cliffs
                     // means chip, never bounce (ADR 0005); floor decided in the reference model.
-                    var applied = u.Damage * DamageMatrix.Get(u.DamageType, target.Armor);
-                    applied = OwnedVerbs.WithMark(applied, u, target, tick); // T29 Marking ×1.25
-                    if (applied.Raw < Fix64.OneRaw) applied = Fix64.One;
-                    if (u.MarksOnHit) OwnedVerbs.Mark(target, u.Faction, tick + OwnedVerbs.OnHitTicks);
-                    var wasAlive = target.Hp.Raw > 0;
-                    target.Hp -= applied;
-                    events?.Emit(SimEventKind.Shot, u.Id, target.Id, applied);
-                    if (wasAlive && target.Hp.Raw <= 0)
-                        events?.Emit(SimEventKind.Death, target.Id, u.Id, faction: target.Faction);
+                    Hit(u, target, u.Damage, tick, events);
+                    if (u.Ability.LineDamage) LineHits(u, target, fireRange, units, tick, events);
                     u.CooldownRemaining = u.CooldownTicks;
+                    if (u.Cloaked) u.RevealedUntilTick = tick + Support.RevealTicks; // firing gives a cloaked unit away
+                    // Phase Turret: blinks out between shots (half its cooldown)
+                    if (u.Ability.PhasesBetweenShots) u.PhaseUntilTick = tick + 1 + u.CooldownTicks / 2;
                 }
             }
             else if (u.Speed.Raw == 0)
@@ -77,6 +82,46 @@ public static class CombatSystem
                 if (o == null || o.Target != target.Position)
                     orders[u.Id] = new MoveOrder(target.Position, new List<FixVec2>(), tick);
             }
+        }
+    }
+
+    /// <summary>One hit of `damage` from `u`: the counter matrix, Marking ×1.25, shields, the chip
+    /// floor (a live weapon always does >= 1, ADR 0005), on-hit marks, Shot / Death events.</summary>
+    public static void Hit(Unit u, Unit target, Fix64 damage, int tick, SimWorld? events)
+    {
+        var applied = damage * DamageMatrix.Get(u.DamageType, target.Armor);
+        applied = OwnedVerbs.WithMark(applied, u, target, tick); // T29 Marking ×1.25
+        applied = Support.WithShield(applied, target);           // Anchor / Warden
+        if (applied.Raw < Fix64.OneRaw) applied = Fix64.One;
+        if (u.MarksOnHit) OwnedVerbs.Mark(target, u.Faction, tick + OwnedVerbs.OnHitTicks);
+        var wasAlive = target.Hp.Raw > 0;
+        target.Hp -= applied;
+        events?.Emit(SimEventKind.Shot, u.Id, target.Id, applied);
+        if (wasAlive && target.Hp.Raw <= 0)
+            events?.Emit(SimEventKind.Death, target.Id, u.Id, faction: target.Faction);
+    }
+
+    /// <summary>Line damage: half-width of the line (plus the victim's radius).</summary>
+    public static readonly Fix64 LineHalfWidth = Fix64.Ratio(1, 2);
+
+    /// <summary>Rift weapons pierce: every other enemy the shot's line crosses, from the shooter
+    /// out to full range through the target, takes the same hit.</summary>
+    private static void LineHits(Unit u, Unit primary, Fix64 reach, UnitStore units, int tick, SimWorld? events)
+    {
+        var d = primary.Position - u.Position;
+        var len = d.Length;
+        if (len.Raw == 0) return;
+        var dir = new FixVec2(d.X / len, d.Y / len);
+        foreach (var e in units.Units)
+        {
+            if (e == primary || e.Faction == u.Faction || e.Hp.Raw <= 0 || e.Inside != EntityId.None) continue;
+            if (!CanHit(u, e) || e.IsPhased(tick) || !Support.CanSee(u.Faction, e, tick)) continue;
+            var rel = e.Position - u.Position;
+            var along = rel.X * dir.X + rel.Y * dir.Y;
+            if (along.Raw < 0 || along > reach) continue;
+            var side = rel.X * dir.Y - rel.Y * dir.X;
+            if (Fix64.Abs(side) > LineHalfWidth + e.Radius) continue;
+            Hit(u, e, u.Damage, tick, events);
         }
     }
 
@@ -157,6 +202,7 @@ public static class CombatSystem
         foreach (var e in units.Units)
         {
             if (e.Faction == u.Faction || e.Hp.Raw <= 0 || !CanHit(u, e) || e.IsPhased(tick)) continue; // T29: phased = untargetable
+            if (e.Inside != EntityId.None || !Support.CanSee(u.Faction, e, tick)) continue; // carried, or cloaked and undetected
             var d = (e.Position - u.Position).LengthSquared;
             if (d > u.Sight * u.Sight) continue;
             if (best == EntityId.None || d < bestD)

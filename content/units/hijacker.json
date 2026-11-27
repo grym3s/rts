@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "hijacker",
   "name": "Hijacker",
-  "description": "Steals vehicles (not in yet)",
+  "description": "Steals an enemy vehicle",
   "faction": "hegemony",
   "role": "infiltrator",
   "tier": 2,
@@ -16,6 +16,7 @@
     "sight": 8.0
   },
   "verbs": {
-    "conscriptable": true
+    "conscriptable": true,
+    "hijacks": true
   }
 }

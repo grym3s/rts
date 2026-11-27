@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "ripple",
   "name": "Ripple",
-  "description": "Hover corvette; hits ships and shore",
+  "description": "Cloaked hover corvette",
   "faction": "ascendant",
   "role": "corvette",
   "tier": 1,
@@ -25,5 +25,8 @@
       "ground",
       "sea"
     ]
+  },
+  "verbs": {
+    "stealth": true
   }
 }

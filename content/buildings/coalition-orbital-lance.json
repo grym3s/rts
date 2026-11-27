@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-orbital-lance",
   "name": "Orbital Lance",
-  "description": "Superweapon (not in yet)",
+  "description": "Superweapon: orbital strike every 4 min",
   "faction": "coalition",
   "category": "superweapon",
   "tier": 3,
@@ -15,5 +15,12 @@
   ],
   "stats": {
     "hp": 1800
+  },
+  "verbs": {
+    "chargeSeconds": 240,
+    "strikeRadius": 3,
+    "strikeDamage": 900,
+    "strikePulses": 1,
+    "strikeDelaySeconds": 3
   }
 }

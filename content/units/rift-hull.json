@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "rift-hull",
   "name": "Rift Hull",
-  "description": "Long-range bombardment ship",
+  "description": "Bombardment ship; shots pierce a line",
   "faction": "ascendant",
   "role": "bombardment",
   "tier": 3,
@@ -24,5 +24,8 @@
       "ground",
       "sea"
     ]
+  },
+  "verbs": {
+    "lineDamage": true
   }
 }

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-spotlight-bunker",
   "name": "Spotlight Bunker",
-  "description": "Bunker (stealth reveal not in yet)",
+  "description": "Reveals stealth nearby; holds 3 infantry",
   "faction": "hegemony",
   "category": "defense",
   "tier": 2,
@@ -25,5 +25,11 @@
     "targets": [
       "ground"
     ]
+  },
+  "verbs": {
+    "detectRadius": 12,
+    "capacity": 3,
+    "carries": "infantry",
+    "garrison": true
   }
 }

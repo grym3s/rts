@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-rift",
   "name": "Rift",
-  "description": "Superweapon (not in yet)",
+  "description": "Superweapon: singularity every 3.5 min",
   "faction": "ascendant",
   "category": "superweapon",
   "tier": 3,
@@ -15,5 +15,13 @@
   ],
   "stats": {
     "hp": 1000
+  },
+  "verbs": {
+    "chargeSeconds": 210,
+    "strikeRadius": 5,
+    "strikeDamage": 70,
+    "strikePulses": 10,
+    "strikeDelaySeconds": 2,
+    "pulseGapSeconds": 0.5
   }
 }

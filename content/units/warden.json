@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "warden",
   "name": "Warden",
-  "description": "Shields the fleet (not in yet)",
+  "description": "Shields nearby ships (-30% damage)",
   "faction": "ascendant",
   "role": "aa-cruiser",
   "tier": 2,
@@ -14,5 +14,10 @@
     "hp": 400,
     "speed": 3.0,
     "sight": 12.0
+  },
+  "verbs": {
+    "shieldRadius": 9,
+    "shieldPercent": 30,
+    "shieldNavalOnly": true
   }
 }

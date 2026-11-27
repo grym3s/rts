@@ -10,10 +10,9 @@ using Rts.Tools.SimHost.Protocol;
 
 namespace Rts.Tools.SimHost;
 
-/// <summary>Builds a composed SimWorld from a scenario-v2 object (minus `commands`), using the
-/// exact system wiring of tools/scenario/Program.cs. Rules live in sim/; this is plumbing only.
-/// Deterministic replay parity with the scenario runner is asserted by tests — if wiring ever
-/// drifts, the parity test fails, so the duplication is safe.</summary>
+/// <summary>Builds a composed SimWorld from a scenario-v2 object (minus `commands`) through
+/// sim/setup MatchWorld, the same wiring tools/scenario uses. Rules live in sim/; this is
+/// plumbing only. Replay parity with the scenario runner is still asserted by tests.</summary>
 public sealed class HostedWorld
 {
     public required SimWorld World { get; init; }
@@ -29,6 +28,8 @@ public sealed class HostedWorld
     public required PowerStore Power { get; init; }
     /// <summary>T26: the map's bridges and their hit points. Owned by sim/combat's BridgeSystem.</summary>
     public required BridgeStore Bridges { get; init; }
+    /// <summary>The whole match world (AI sides, and every store above).</summary>
+    public required Rts.Sim.Setup.MatchWorld Setup { get; init; }
 
     /// <summary>Roster at load time. The scenario runner resolves a command with no explicit
     /// `units` against THIS list (computed once at scenario load), not the live roster —
@@ -44,90 +45,21 @@ public sealed class HostedWorld
             throw new ProtocolException("unsupported_scenario_schema",
                 $"schemaVersion {schema} not supported (expects 2)");
 
-        var seed = scenario.GetProperty("seed").GetUInt64();
-        var map = GameMap.FromJson(scenario.GetProperty("map")); // T25: terrain rows and/or blocked rects
-        var bridges = BridgeStore.FromMap(map, scenario.GetProperty("map")); // T26: `=` groups, each with its own hit points
-
-        var catalog = UnitCatalog.LoadFromDirectory(Path.Combine(repoRoot, "content", "units"));
-        var world = new SimWorld(seed);
-        var units = new UnitStore();
-        if (scenario.TryGetProperty("units", out var unitEls))
-            foreach (var u in unitEls.EnumerateArray())
-            {
-                var p = catalog.Get(u.GetProperty("unit").GetString()!);
-                units.Spawn(world.Ids.Next(),
-                    new FixVec2(Fix64.FromDouble(u.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(u.GetProperty("at")[1].GetDouble())),
-                    p.Speed, p.Radius,
-                    p.Profile());
-            }
-        var roster = new EntityId[units.Units.Count];
-        for (var i = 0; i < units.Units.Count; i++) roster[i] = units.Units[i].Id;
-
-        var orders = new Dictionary<EntityId, MoveOrder>();
-        var econ = new Rts.Sim.Economy.EconomyStore();
-        var buildingsCat = BuildingCatalog.LoadFromDirectory(Path.Combine(repoRoot, "content", "buildings"));
-        if (scenario.TryGetProperty("veins", out var veinsEl))
-            foreach (var v in veinsEl.EnumerateArray())
-            {
-                econ.AddVein(new FixVec2(Fix64.FromDouble(v.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(v.GetProperty("at")[1].GetDouble())),
-                    v.TryGetProperty("pool", out var pool) ? pool.GetInt32() : Rts.Sim.Economy.EconomyStore.FieldPool);
-                map.MarkResource(GameMap.CellOf(econ.Veins[^1].Position.X), GameMap.CellOf(econ.Veins[^1].Position.Y)); // T33: no building on ore
-            }
-        // T28: unowned map structures (the oil derrick), after the units and the frozen roster
-        if (scenario.TryGetProperty("structures", out var structEls))
-            foreach (var s in structEls.EnumerateArray())
-                Rts.Sim.Production.ProductionSystem.SpawnStructure(buildingsCat, units, map, world.Ids,
-                    s.GetProperty("building").GetString()!, s.GetProperty("at")[0].GetInt32(), s.GetProperty("at")[1].GetInt32());
-        // T28: a neutral hut at each end of every bridge (engineers sent there repair it)
-        Rts.Sim.Production.ProductionSystem.SpawnBridgeHuts(buildingsCat, units, map, world.Ids, bridges);
-        if (scenario.TryGetProperty("refineries", out var refsEl))
-            foreach (var r in refsEl.EnumerateArray())
-                econ.Refineries.Add(new Rts.Sim.Economy.EconomyStore.Refinery(
-                    r.GetProperty("faction").GetInt32(),
-                    new FixVec2(Fix64.FromDouble(r.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(r.GetProperty("at")[1].GetDouble()))));
-
-        // Canonical tick order (see Wiki/Projects/rts-development.md, 2026-11-02): Power(1)
-        // Income(2) Order(3) Production(4) Navigation(5) Deposit(6) Combat(7) Despawn(8) Match(9).
-        // Economy is split: IncomeStep credits this tick's harvest before OrderSystem/Production
-        // spend; DepositStep credits arrivals after NavigationSystem has moved units, so refinery
-        // proximity reads post-move positions.
-        var power = new PowerStore();
-        world.Systems.Add((w, due) => PowerSystem.Step(power, buildingsCat, units));
-        world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.IncomeStep(econ, units, orders, w.Tick, map, catalog.IsRefinery, due));
-        world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DripStep(econ, units, id => buildingsCat.Get(id).OilIncome, w.Tick)); // T28: owned oil derricks
-        world.Systems.Add((w, due) => OrderSystem.ApplyCommands(orders, due, units.Find, (f, a) => econ.TrySpend(f, a)));
-        world.Systems.Add((w, due) => Rts.Sim.Production.ProductionSystem.Step(
-            buildingsCat, catalog, units, map, w.Ids, due,
-            (f, a) => econ.TrySpend(f, a),
-            (f, a) => { econ.Deposit(f, a); return true; }, power, w.Tick,
-            (id, at) => orders[id] = new MoveOrder(at, new List<FixVec2>(), w.Tick), w));
-        world.Systems.Add((w, due) => NavigationSystem.Step(map, units, orders));
-        world.Systems.Add((w, due) => Rts.Sim.Economy.EconomySystem.DepositStep(econ, units, orders, w.Tick, map, catalog.IsRefinery));
-        world.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick, w));
-        world.Systems.Add((w, due) => BridgeSystem.Step(bridges, map, units, orders, w.Tick, w)); // T26: still step 7
-        world.Systems.Add((w, due) => CaptureSystem.Step(map, units, orders, w.Tick, w, (f, id) => econ.Deposit(f, catalog.Get(id).Cost), bridges)); // T28: still step 7
-        world.Systems.Add((w, due) => units.DespawnDead());
-        var match = new Rts.Sim.Match.MatchState();
-        world.Systems.Add((w, due) => Rts.Sim.Match.MatchSystem.Step(w, units, match));
-        world.HashMixers.Add(units.Hash);
-        world.HashMixers.Add(econ.Hash);
-        world.HashMixers.Add(h => Rts.Sim.Production.ProductionStore.Hash(units, h));
-        world.HashMixers.Add(power.Hash);
-        world.HashMixers.Add(bridges.Hash); // T26: adds nothing until a bridge is hit
-
+        var m = Rts.Sim.Setup.MatchWorld.FromScenario(scenario, repoRoot); // the one tick-order wiring
         return new HostedWorld
         {
-            World = world,
-            Units = units,
-            Econ = econ,
-            Map = map,
-            Match = match,
-            Orders = orders,
-            UnitsCatalog = catalog,
-            BuildingsCatalog = buildingsCat,
-            Power = power,
-            Bridges = bridges,
-            _initialRoster = roster
+            World = m.World,
+            Units = m.Units,
+            Econ = m.Econ,
+            Map = m.Map,
+            Match = m.Match,
+            Orders = m.Orders,
+            UnitsCatalog = m.UnitsCatalog,
+            BuildingsCatalog = m.BuildingsCatalog,
+            Power = m.Power,
+            Bridges = m.Bridges,
+            Setup = m,
+            _initialRoster = m.InitialRoster
         };
     }
 

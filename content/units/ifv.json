@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "ifv",
   "name": "IFV",
-  "description": "APC; hits ground and air",
+  "description": "APC: 6 infantry; hits ground and air",
   "faction": "coalition",
   "role": "apc",
   "tier": 2,
@@ -24,5 +24,9 @@
       "ground",
       "air"
     ]
+  },
+  "verbs": {
+    "capacity": 6,
+    "carries": "infantry"
   }
 }

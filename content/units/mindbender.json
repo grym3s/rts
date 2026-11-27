@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "mindbender",
   "name": "Mindbender",
-  "description": "Mind-controls units; takes buildings",
+  "description": "Mind control; cloaks units near it",
   "faction": "ascendant",
   "role": "infiltrator",
   "tier": 2,
@@ -16,6 +16,7 @@
     "sight": 8.0
   },
   "verbs": {
-    "mindControl": true
+    "mindControl": true,
+    "cloakRadius": 4
   }
 }

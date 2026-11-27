@@ -24,5 +24,8 @@
       "ground",
       "sea"
     ]
+  },
+  "verbs": {
+    "detectRadius": 6
   }
 }
