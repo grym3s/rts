@@ -82,11 +82,13 @@ public static class OrderSystem
                     }
                     break;
                 case CaptureCommand cc:
-                    // T28: engineers only (not the Weaver); CaptureSystem walks them there
+                    // T28: engineers only; CaptureSystem walks them there. The Weaver can't capture,
+                    // but a bridge hut is a repair job, not a capture, so any engineer may take it.
+                    var hutJob = unitOf?.Invoke(cc.Target)?.Building is { BridgeId: >= 0 };
                     foreach (var unit in cc.Units)
                     {
                         if (unitOf == null || unitOf(unit) is not { } u || u.Faction != cc.Faction) continue;
-                        if (!u.Engineer || u.CannotCapture || u.Hp.Raw <= 0) continue;
+                        if (!u.Engineer || (u.CannotCapture && !hutJob) || u.Hp.Raw <= 0) continue;
                         orders.Remove(unit);
                         Disengage(u);
                         u.CaptureTarget = cc.Target;

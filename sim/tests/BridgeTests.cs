@@ -169,6 +169,25 @@ public class BridgeTests
     }
 
     [Fact]
+    public void The_Weaver_cannot_capture_but_repairs_a_bridge_at_its_hut()
+    {
+        var x = World();
+        var cat = BuildingCatalog.LoadFromDirectory(Path.Combine(RepoRoot(), "content", "buildings"));
+        x.Sim.Systems.Insert(x.Sim.Systems.Count - 1, (sw, due) => CaptureSystem.Step(x.Map, x.Units, x.Orders, sw.Tick, sw, null, x.Bridges));
+        Rts.Sim.Production.ProductionSystem.SpawnBridgeHuts(cat, x.Units, x.Map, x.Sim.Ids, x.Bridges);
+        var hut = x.Units.Units.First(u => u.Building?.BridgeId == 0);
+        var tank = Spawn(x, "lancer-mbt", 0, 2, 1);
+        x.Step(Order(x, 0, tank));
+        x.RunUntil(() => x.Bridges.Get(0)!.Broken);
+        var weaver = Spawn(x, "weaver", 0, 2, 2);
+        x.Step(new CaptureCommand(x.Sim.Tick, 0, new[] { weaver.Id }, hut.Id));
+        Assert.Equal(hut.Id, weaver.CaptureTarget);
+        x.RunUntil(() => !x.Bridges.Get(0)!.Damaged, 600);
+        Assert.False(x.Bridges.Get(0)!.Broken);
+        Assert.Equal(Factions.Neutral, hut.Faction);
+    }
+
+    [Fact]
     public void A_unit_walks_over_a_bridge_hut_and_the_hut_stays_put()
     {
         // Play-test: an engineer's path ran through a hut's cell (huts mark no footprint), and the
