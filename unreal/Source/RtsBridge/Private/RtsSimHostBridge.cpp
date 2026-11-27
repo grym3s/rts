@@ -7,6 +7,7 @@
 #include "HAL/PlatformTime.h"
 #include "Misc/Paths.h"
 #include "Misc/Parse.h"
+#include "RtsContentLoader.h"
 
 bool URtsSimHostBridge::StartAndInit(const FString& InitRequestJson, FString& OutError)
 {
@@ -31,6 +32,11 @@ bool URtsSimHostBridge::StartAndInit(const FString& InitRequestJson, FString& Ou
 		OutError = FString::Printf(TEXT("sim host binary not found: %s (set RTS_HOST_BIN or run make host-publish)"), *HostBin);
 		return false;
 	}
+
+	// The host reads content from the same root the game does (T24: a packaged build has no
+	// RTS.sln above the host to find it by); the child inherits this process's environment.
+	if (FPlatformMisc::GetEnvironmentVariable(TEXT("RTS_CONTENT_ROOT")).IsEmpty())
+		FPlatformMisc::SetEnvironmentVar(TEXT("RTS_CONTENT_ROOT"), *RtsContent::ContentRoot());
 
 	// Pipe roles per engine CreateProc semantics (Unix dup2 + Windows STARTUPINFOW agree):
 	// PipeWriteChild -> child STDOUT, PipeReadChild -> child STDIN.

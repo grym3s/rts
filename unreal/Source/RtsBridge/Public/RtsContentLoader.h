@@ -19,7 +19,7 @@ struct RTSBRIDGE_API FRtsMatchSetup
 
 namespace RtsContent
 {
-	/** Repo root holding content/: $RTS_CONTENT_ROOT, else <project>/.. */
+	/** Root holding content/: $RTS_CONTENT_ROOT, else <project>/rts (packaged), else <project>/.. (repo). */
 	RTSBRIDGE_API FString ContentRoot();
 
 	/** Load content/scenarios/<ScenarioId>.json and (if present and the same size)

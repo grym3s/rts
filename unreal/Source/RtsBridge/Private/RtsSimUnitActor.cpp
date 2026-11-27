@@ -2,6 +2,9 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimSequence.h"
 
 // Design scale: 100 UU per map cell (docs/superpowers/specs/2026-09-26-unreal-rts-migration-design.md).
 static constexpr float UnitCellUU = 100.0f;
@@ -98,6 +101,8 @@ void ARtsSimUnitActor::Tick(float DeltaSeconds)
 		return;
 	}
 	InterpElapsed = FMath::Min(InterpElapsed + DeltaSeconds, SimTickSeconds);
+	if (Body)
+		UpdateClip(DeltaSeconds, (InterpTo - InterpFrom).SizeSquared2D() > 1.0);
 	const float Alpha = InterpElapsed / SimTickSeconds;
 	const FRotator Cur = GetActorRotation();
 	const FRotator Want(0.0f, TargetYaw, 0.0f);
@@ -135,6 +140,7 @@ void ARtsSimUnitActor::SetFaction(int32 InFaction)
 			Mesh->SetMaterial(i, Mid);
 	}
 	Mid->SetVectorParameterValue(TEXT("Color"), FactionColor(Faction));
+	TintBody(1.0f);
 }
 
 void ARtsSimUnitActor::SetSelected(bool bSelected)
@@ -154,6 +160,11 @@ void ARtsSimUnitActor::BeginDeath()
 	SetActorEnableCollision(false); // never picked or box-selected again
 	if (Mid)
 		Mid->SetVectorParameterValue(TEXT("Color"), FactionColor(Faction) * 0.25f);
+	if (Body)
+	{
+		Body->Stop(); // freeze the pose as it falls
+		TintBody(0.25f);
+	}
 }
 
 void ARtsSimUnitActor::TickDeath(float DeltaSeconds)
@@ -214,4 +225,83 @@ void ARtsSimUnitActor::SetCargo(float Fraction, bool bCarrying)
 	const float S = 0.3f + 0.5f * F; // relative to the unit cube
 	Cargo->SetRelativeScale3D(FVector(S, S, 0.25f + 0.35f * F));
 	Cargo->SetVisibility(true);
+}
+
+// ---- T17: imported unit models -------------------------------------------------------------
+
+void ARtsSimUnitActor::SetModel(const FString& Type)
+{
+	if (Body || bIsBuilding || Type != TEXT("rifleman"))
+		return; // everything else stays a placeholder cube for now
+	USkeletalMesh* SkMesh = LoadObject<USkeletalMesh>(nullptr, TEXT("/Game/Units/Rifleman/rifleman/SkeletalMeshes/rifleman.rifleman"));
+	if (!SkMesh)
+		return; // not imported (unreal/Scripts/import_rifleman.py): keep the cube
+	IdleClip = LoadObject<UAnimSequence>(nullptr, TEXT("/Game/Units/Rifleman/rifleman/SkeletalMeshes/riflemanidle.riflemanidle"));
+	MoveClip = LoadObject<UAnimSequence>(nullptr, TEXT("/Game/Units/Rifleman/rifleman/SkeletalMeshes/riflemanmove.riflemanmove"));
+	FireClip = LoadObject<UAnimSequence>(nullptr, TEXT("/Game/Units/Rifleman/rifleman/SkeletalMeshes/riflemanfire.riflemanfire"));
+	Body = NewObject<USkeletalMeshComponent>(this, TEXT("Body"));
+	Body->SetupAttachment(RootComponent);
+	Body->SetSkeletalMesh(SkMesh);
+	Body->SetCollisionEnabled(ECollisionEnabled::NoCollision); // the hidden cube stays the pick target
+	Body->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+	// The root cube is scaled 0.6 and centred 50 UU up; the model is 196 UU tall with its feet
+	// at its origin and faces +Y. Half size (~1 cell tall), feet on the ground, facing +X.
+	const float RootScale = Mesh->GetRelativeScale3D().X;
+	Body->SetRelativeScale3D(FVector(0.5f / RootScale));
+	Body->SetRelativeLocation(FVector(0.0f, 0.0f, -50.0f / RootScale));
+	Body->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+	Body->RegisterComponent();
+	// Faction tint on the uniform slots (glTF import: BaseColorFactor on each material instance).
+	for (const TCHAR* Slot : { TEXT("coalition_plate"), TEXT("coalition_armor"), TEXT("coalition_fabric") })
+	{
+		const int32 I = Body->GetMaterialIndex(FName(Slot));
+		if (I == INDEX_NONE)
+			continue;
+		if (UMaterialInstanceDynamic* M = Body->CreateDynamicMaterialInstance(I))
+			BodyMids.Add(M);
+	}
+	Mesh->SetVisibility(false, false); // cube hidden, children (ring, cargo, body) unaffected
+	TintBody(1.0f);
+	Clip = EClip::None;
+	UpdateClip(0.0f, false);
+}
+
+void ARtsSimUnitActor::TintBody(float Shade)
+{
+	const FLinearColor C = FactionColor(Faction);
+	for (int32 i = 0; i < BodyMids.Num(); ++i)
+	{
+		// plate brightest, armour and fabric a little darker, so the uniform still reads as layers
+		const float K = Shade * (i == 0 ? 0.8f : 0.55f);
+		BodyMids[i]->SetVectorParameterValue(TEXT("BaseColorFactor"), FLinearColor(C.R * K, C.G * K, C.B * K, 1.0f));
+	}
+}
+
+void ARtsSimUnitActor::PlayFire()
+{
+	if (!Body || !FireClip || IsDying())
+		return;
+	FireLeft = FireSeconds;
+	Body->PlayAnimation(FireClip, false);
+	Body->SetPlayRate(FireClip->GetPlayLength() / FireSeconds);
+	Clip = EClip::Fire;
+}
+
+void ARtsSimUnitActor::UpdateClip(float DeltaSeconds, bool bMoving)
+{
+	if (Clip == EClip::Fire)
+	{
+		FireLeft -= DeltaSeconds;
+		if (FireLeft > 0.0f && !bMoving)
+			return; // let the shot finish unless it walks off
+	}
+	const EClip Want = bMoving ? EClip::Move : EClip::Idle;
+	if (Want == Clip)
+		return;
+	UAnimSequence* A = Want == EClip::Move ? MoveClip : IdleClip;
+	if (!A)
+		return;
+	Clip = Want;
+	Body->PlayAnimation(A, true);
+	Body->SetPlayRate(1.0f);
 }

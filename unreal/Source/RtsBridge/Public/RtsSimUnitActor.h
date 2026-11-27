@@ -52,7 +52,30 @@ public:
 	static constexpr float AirZ = 300.0f;
 	void SetAirborne(bool bAir);
 
+	/** T17: swap the placeholder cube for the unit's imported model, if it has one (rifleman). */
+	void SetModel(const FString& Type);
+	/** T17: a shot event named this unit as the shooter: play the fire clip once. */
+	void PlayFire();
+	bool HasModel() const { return Body != nullptr; }
+
 private:
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<class USkeletalMeshComponent> Body;
+	UPROPERTY()
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> BodyMids;
+	UPROPERTY()
+	TObjectPtr<class UAnimSequence> IdleClip;
+	UPROPERTY()
+	TObjectPtr<class UAnimSequence> MoveClip;
+	UPROPERTY()
+	TObjectPtr<class UAnimSequence> FireClip;
+	enum class EClip : uint8 { None, Idle, Move, Fire };
+	EClip Clip = EClip::None;
+	float FireLeft = 0.0f; // seconds of the fire clip still to play
+	static constexpr float FireSeconds = 0.5f; // about the sim's shot cadence; the clip is sped up to fit
+	void TintBody(float Shade);
+	void UpdateClip(float DeltaSeconds, bool bMoving);
+
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> Mesh;
 

@@ -9,4 +9,4 @@ public:
 	virtual void ShutdownModule() override {}
 };
 
-IMPLEMENT_MODULE(FRtsBridgeModule, RtsBridge)
+IMPLEMENT_PRIMARY_GAME_MODULE(FRtsBridgeModule, RtsBridge, "RtsBridge")

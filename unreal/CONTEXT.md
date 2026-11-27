@@ -181,6 +181,21 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   by index (an index match would hand a dead unit's actor to another and glide it).
 - `RtsExplosionActor` (T18) - procedural explosion from engine basic shapes: a white-hot fireball that swells, cools to grey smoke and rises, a flat shock ring, a 0.25 s light flash; about 1.1 s (`FrameAt` is the pure timeline, test `RtsBridge.UI.Explosion`). The game mode spawns one per death event of a vehicle or building you could see (infantry just fall; size from footprint, armor from the catalog), and one per superweapon pulse landing (radius = strike radius); at most 24 live. Colours stay off the team hues.
 - `RtsBridge.Build.cs` needs `InputCore` (EKeys) and `RenderCore` (`GWhiteTexture` for the fog overlay).
+- T17: imported unit models live in `Content/Units` (`.uasset` via Git LFS; always cooked, `Config/DefaultGame.ini`).
+  The rifleman comes from the art pipeline's `game/assets/rifleman/rifleman.glb` through
+  `Scripts/import_rifleman.py` (headless: `UnrealEditor-Cmd <uproject> -run=pythonscript -script=<it>
+  -unattended -nullrhi`; needs PythonScriptPlugin, enabled in the uproject). `ARtsSimUnitActor::SetModel`
+  swaps the cube for it (cube stays as the hidden pick target): half size, feet on the ground, yaw -90
+  (the model faces +Y). Clips: idle / move from whether the snapshot glide moves, fire once per `shot`
+  event, sped up to 0.5 s. Faction tint on the `coalition_plate/armor/fabric` slots (`BaseColorFactor`).
+  Every other type is still a cube. Test: `RtsBridge.UI.RiflemanAsset` (mesh, slots, clips present).
+
+## Package (T24)
+`unreal/package.sh [out]` (default `unreal/Build/Package`, gitignored): publishes the self-contained
+host, runs UAT BuildCookRun (Development, pak), then stages `sim-host` into
+`<out>/<Platform>/RtsBridge/dist/<rid>/` and `content/` into `<out>/<Platform>/RtsBridge/rts/content`.
+`RtsContent::ContentRoot` picks `<project>/rts` when it holds `content/`, and the bridge passes that root
+to the host as `RTS_CONTENT_ROOT`, so the package runs with no .NET and no checkout.
 
 ## Build (installed engine at ~/.local/opt/UnrealEngine-5.8.3)
 ```

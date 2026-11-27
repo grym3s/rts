@@ -15,6 +15,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "Engine/DirectionalLight.h"
 #include "Components/DirectionalLightComponent.h"
+#include "Components/LightComponent.h"
 #include "Engine/SkyLight.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -78,8 +79,8 @@ void ARtsBridgeGameMode::StartPlay()
 	// Lights spawned at runtime into an unbuilt level must be Movable to light anything.
 	if (ADirectionalLight* Sun = GetWorld()->SpawnActor<ADirectionalLight>(FVector::ZeroVector, FRotator(-45.0f, 30.0f, 0.0f)))
 	{
-		Sun->GetComponent()->SetMobility(EComponentMobility::Movable);
-		Sun->GetComponent()->SetIntensity(2.5f); // 8 blew out to white with fixed exposure
+		Sun->GetLightComponent()->SetMobility(EComponentMobility::Movable);
+		Sun->GetLightComponent()->SetIntensity(2.5f); // 8 blew out to white with fixed exposure
 	}
 	if (ASkyLight* Sky = GetWorld()->SpawnActor<ASkyLight>(FVector::ZeroVector, FRotator::ZeroRotator))
 		Sky->GetLightComponent()->SetMobility(EComponentMobility::Movable);
@@ -646,6 +647,7 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 			A->SetFaction(S.Faction);
 			A->SetAirborne(S.Domain == TEXT("air")); // T25
 			A->SnapToSimPosition(S.X, S.Y);
+			A->SetModel(S.Type); // T17: imported model where there is one
 			ActorsById.Add(S.Id, A);
 		}
 		else
@@ -672,6 +674,11 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 			A->SetCargo(S.LoadCapacity > 0 ? float(S.Load) / float(S.LoadCapacity) : 0.0f, S.bCarrying);
 		UnitActors.Add(A);
 	}
+	// T17: the shooter plays its fire clip
+	for (const FRtsSimEvent& E : Reply.Events)
+		if (E.Kind == TEXT("shot"))
+			if (ARtsSimUnitActor* Shooter = FindUnitActor(E.Subject))
+				Shooter->PlayFire();
 	// T16: one tracer per shot, read while both actors are still mapped (a killing shot's
 	// target leaves the roster below). Shooter faction colours it.
 	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))

@@ -12,6 +12,10 @@ FString RtsContent::ContentRoot()
 	const FString Env = FPlatformMisc::GetEnvironmentVariable(TEXT("RTS_CONTENT_ROOT"));
 	if (!Env.IsEmpty())
 		return Env;
+	// T24: a packaged build carries the data at <project>/rts/content (unreal/package.sh stages it)
+	const FString Packaged = FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectDir(), TEXT("rts")));
+	if (FPaths::DirectoryExists(FPaths::Combine(Packaged, TEXT("content"))))
+		return Packaged;
 	return FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectDir(), TEXT("..")));
 }
 
