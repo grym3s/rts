@@ -83,14 +83,14 @@ bool FRtsTriPointStepSpeedTest::RunTest(const FString& Parameters)
 		Bridge->Shutdown();
 		return false;
 	}
-	constexpr int32 Steps = 1200; // a minute of game time: march + the whole Seam fight
+	constexpr int32 Steps = 2400; // two minutes of game time (2x map): march + the whole Seam fight
 	double Worst = 0.0, Total = 0.0;
 	FRtsHostReply R;
 	for (int32 T = 0; T < Steps; ++T)
 	{
 		const FString Cmds = T == 1
-			? TEXT("{\"tick\":1,\"faction\":0,\"type\":\"attack-move\",\"target\":[65,101]},")
-			  TEXT("{\"tick\":1,\"faction\":1,\"type\":\"attack-move\",\"target\":[65,101]}")
+			? TEXT("{\"tick\":1,\"faction\":0,\"type\":\"attack-move\",\"target\":[130,202]},")
+			  TEXT("{\"tick\":1,\"faction\":1,\"type\":\"attack-move\",\"target\":[130,202]}")
 			: TEXT("");
 		const FString Req = FString::Printf(
 			TEXT("{\"protocolVersion\":1,\"kind\":\"step\",\"tick\":%d,\"commands\":[%s]}"), T, *Cmds);

@@ -17,17 +17,22 @@ const args = process.argv.slice(2);
 const previewPath = args.includes('--preview') ? args[args.indexOf('--preview') + 1] : null;
 
 // ---- geometry (cells) -------------------------------------------------------------------
-const W = 130, H = 116;
-const C = { x: 65, y: 71 };               // map centre = atoll centre
-const G = {
+// SCALE: every distance, radius and half-width below is multiplied by it (play-test: at 1x the
+// lanes, piers and bases were cramped). The layout, symmetry and design ratios do not change.
+const SCALE = 2;
+const W = 130 * SCALE, H = 116 * SCALE;
+const C = { x: 65 * SCALE, y: 71 * SCALE }; // map centre = atoll centre
+const G = Object.fromEntries(Object.entries({
   atollIn: 4, atollOut: 8,                 // lagoon radius / ring outer radius
   natD: 40, natR: 6,                       // natural: distance from centre, radius
   mainD: 56, mainR: 8, cliff: 2,           // main: distance, radius, cliff band thickness
   seamD: 30, seamR: 6,                     // Seam expansion: distance, radius
-  harbD: 50, harbAng: 15, harbR: 4,        // harbour: distance, angle offset (deg), radius
+  harbD: 50, harbR: 4,                     // harbour: distance, radius
   lane: 2.0, causeway: 1.5, ramp: 1.5, harbPath: 1.5, // capsule half-widths
   strait: 1.5, channel: 1.5,               // water-band half-widths (bridged where land crosses)
-};
+  pier: 0.75,                              // pier half-width: a slanted pier stays 4-connected (no corner-only steps)
+}).map(([k, v]) => [k, v * SCALE]));
+G.harbAng = 15;                            // harbour angle offset (deg): an angle, not scaled
 // Players at the triangle corners (y grows down). Clockwise = +120 deg.
 const PLAYERS = [
   { id: 'ascendant', ang: -90 },
@@ -97,7 +102,7 @@ for (let y = 0; y < H; y++) {
     // Channels: the ring is cut toward each Seam so ships reach the lagoon; bridged for land.
     if (dc > G.atollIn && dc <= G.atollOut) {
       for (const s of seams) {
-        const a = along(p, C, polar(G.atollOut + 2, s.ang));
+        const a = along(p, C, polar(G.atollOut + 2 * SCALE, s.ang));
         if (a.s > 0 && a.perp <= G.channel) t = T.BRIDGE;
       }
     }
@@ -105,7 +110,7 @@ for (let y = 0; y < H; y++) {
     if (dc <= G.atollIn && dc >= 1.0) {
       for (const n of nodes) {
         const a = along(p, C, n.ringLanding);
-        if (a.s > 0 && a.perp <= 0.75) t = T.BRIDGE; // 0.75: wide enough that a slanted pier stays 4-connected (no corner-only steps)
+        if (a.s > 0 && a.perp <= G.pier) t = T.BRIDGE;
       }
     }
     tiles[y][x] = t;
@@ -174,6 +179,17 @@ for (const n of nodes) {
 console.table(report);
 const unreachable = report.some(r => Object.values(r).some(v => String(v).includes('UNREACHABLE')));
 if (unreachable) { console.error('mapgen: a required route is unreachable'); process.exit(1); }
+// T39: every body of water joins the outer sea (ships pass under bridges, so bridges count as water).
+{
+  const edge = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+    if ((x === 0 || y === 0 || x === W - 1 || y === H - 1) && navalWalk(tiles[y][x])) edge.push({ x, y });
+  const D = dijkstra(edge, navalWalk);
+  let cut = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+    if (tiles[y][x] === T.WATER && !Number.isFinite(D[y * W + x])) cut++;
+  if (cut) { console.error(`mapgen: ${cut} water cells are cut off from the outer sea`); process.exit(1); }
+}
 
 // ---- resource fields (T34) -----------------------------------------------------------------
 // One field = a plus of 5 ore cells, FIELD_POOL credits split evenly (canon: 25,000 per field,
@@ -193,12 +209,12 @@ function field(kind, owner, centre) {
 const fields = [];
 for (const n of nodes) {
   const back = unit(n.natural, n.main); // natural -> main, continued behind the main
-  fields.push(field('main', { player: n.id }, { x: n.main.x + back.x * 5, y: n.main.y + back.y * 5 }));
+  fields.push(field('main', { player: n.id }, { x: n.main.x + back.x * 5 * SCALE, y: n.main.y + back.y * 5 * SCALE }));
   fields.push(field('natural', { player: n.id }, n.natural));
 }
 for (const s of seams) {
   const out = unit(C, s.at);
-  fields.push(field('contested', { between: s.between }, { x: s.at.x + out.x * 3.5, y: s.at.y + out.y * 3.5 }));
+  fields.push(field('contested', { between: s.between }, { x: s.at.x + out.x * 3.5 * SCALE, y: s.at.y + out.y * 3.5 * SCALE }));
 }
 
 // ---- map file ----------------------------------------------------------------------------

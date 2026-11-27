@@ -332,8 +332,8 @@ public class ProtocolTests
     [InlineData("chokepoint-30.json", "1727e6d2adb5efb8")]
     // T29 re-pin (Rifleman marks on hit): skirmish-10v10, tri-point-30, counters-6v4, guard-hold, match-end
     [InlineData("skirmish-10v10.json", "b379d768bf134db0")] // re-pinned for T05 guard (idle units hold, chase, return): 0fbba65f760574ce -> e97bc24d4f7fd6c3
-    [InlineData("tri-point-30.json", "a12f5efb7108b369")] // re-pinned for T34 fields (ore pools hashed); T29 Rifleman marking; T28 neutral oil derrick on the rig, then bridge huts; T28 widened piers
-    [InlineData("tri-point-skirmish.json", "3ce5ff7020900add")] // T36 skirmish start (MCV deploy + reactor); T27 re-pin: Ascendant seated, 1v1v1; T28: oil derrick, bridge huts; T28 widened piers
+    [InlineData("tri-point-30.json", "255bc1d1c339b9a5")] // re-pinned for T34 fields (ore pools hashed); T29 Rifleman marking; T28 neutral oil derrick on the rig, then bridge huts; T28 widened piers; T39 map at 2x
+    [InlineData("tri-point-skirmish.json", "2bcbd19720900add")] // T36 skirmish start (MCV deploy + reactor); T27 re-pin: Ascendant seated, 1v1v1; T28: oil derrick, bridge huts; T28 widened piers; T39 map at 2x
     [InlineData("counters-6v4.json", "d2343b13b00b679f")] // re-pinned for T05 guard (idle units hold, chase, return): a418be859c7550c7 -> 39ac951e73e99076
     [InlineData("guard-hold.json", "26db13b0d757bcea")]
     [InlineData("match-end.json", "3c7502ae4d9d4698")]
@@ -595,7 +595,7 @@ public class ProtocolTests
         var scen = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(RepoRoot(), "content", "scenarios", "tri-point-skirmish.json")))!.AsObject();
         scen.Remove("commands");
         scen.Remove("assert");
-        scen["units"]!.AsArray().Add(new System.Text.Json.Nodes.JsonObject { ["unit"] = "engineer", ["at"] = new System.Text.Json.Nodes.JsonArray(64.5, 67.5) });
+        scen["units"]!.AsArray().Add(new System.Text.Json.Nodes.JsonObject { ["unit"] = "engineer", ["at"] = new System.Text.Json.Nodes.JsonArray(129.5, 137.5) });
         var s = new SimHostSession(RepoRoot());
         var init = Resp(s.Handle("{\"protocolVersion\":1,\"kind\":\"init\",\"scenario\":" + scen.ToJsonString() + "}"));
         Assert.True(init.Ok, init.Error);

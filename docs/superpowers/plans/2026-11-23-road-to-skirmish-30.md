@@ -105,6 +105,7 @@ Our rifleman (1.8 cells/s) and 0.3-cell unit radius are close to SC2's own scale
     - A* pathing on the bigger grid with 500 units (`tools/bench` on the new map, under the 50 ms tick budget).
     - Camera zoom limits, edge-scroll speed, minimap texture size and the T32 build radius.
   - **Hashes:** re-pin the Tri-Point golden hashes with a reason comment.
+  - **Status (2026-11-28, built, awaiting play-test):** confirmed scale 2x. `SCALE = 2` in the generator doubles every distance, radius and half-width: grid 260×232, 9,980 walkable cells (4× before), same layout and ratios. The water flood-fill check is in the generator. Hashes are re-pinned. Still open: the land target above (2x reaches about half of it), and the 500-unit bench.
 
 ---
 

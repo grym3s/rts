@@ -4,7 +4,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 
 // Design scale: 100 UU per map cell (docs/superpowers/specs/2026-09-26-unreal-rts-migration-design.md).
-static constexpr float SimCellUU = 100.0f;
+static constexpr float UnitCellUU = 100.0f;
 
 ARtsSimUnitActor::ARtsSimUnitActor()
 {
@@ -61,7 +61,7 @@ ARtsSimUnitActor::ARtsSimUnitActor()
 static FVector SimToWorld(double X, double Y, double Z)
 {
 	// Sim map X -> world X, map Y -> world Y, height stays on the ground plane (slice 4).
-	return FVector(X * SimCellUU, Y * SimCellUU, Z);
+	return FVector(X * UnitCellUU, Y * UnitCellUU, Z);
 }
 
 void ARtsSimUnitActor::SetAirborne(bool bAir)
