@@ -3,15 +3,15 @@
 Two halves and a seam:
 
 ```
-input ──► Commands ──► sim (.NET library, deterministic, fixed-point) ──► SimState / SimEvents ──► game (Godot) / tools (headless)
+input ──► Commands ──► sim (.NET library, deterministic, fixed-point) ──► SimState / SimEvents ──► unreal (presentation) ◄─ sim-host / tools (headless)
 ```
 
 - `sim/` owns all game state and rules and advances by `Tick(commands)` at a fixed rate. It depends on nothing but the .NET BCL.
-- `game/` converts input to Commands, renders SimState, never writes sim state directly.
+- `unreal/` converts input to Commands, sends them to `tools/sim-host` (which owns the world), and draws its snapshots; it never writes sim state. `game/` is the legacy Godot shell (retiring).
 - `tools/` drives the same sim headlessly (scenarios, replays, benches).
 - `content/` is data both sides read.
 
-Working folders (`sim/<system>/`, `game/<area>/`, `tools/<tool>/`) each carry a `CONTEXT.md`: owns / reads / writes / tests / do-not-touch. Read the one for the folder you are editing; do not read them all.
+Working folders (`sim/<system>/`, `tools/<tool>/`, `unreal/`, legacy `game/<area>/`) each carry a `CONTEXT.md`: owns / reads / writes / tests / do-not-touch. Read the one for the folder you are editing; do not read them all.
 
 ## Universes
 
