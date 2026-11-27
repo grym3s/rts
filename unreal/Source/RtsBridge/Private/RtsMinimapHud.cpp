@@ -906,6 +906,7 @@ void ARtsMinimapHud::DrawBuildMenu()
 	}
 
 	const TArray<ARtsBridgeGameMode::FBuildOption>& Opts = N > 0 ? GM->GetBuildOptions() : TArray<ARtsBridgeGameMode::FBuildOption>();
+	FVector2D PowerTip(-1.0f, -1.0f); // set while the mouse is on a low-power bolt
 	for (int32 i = 0; i < L.Entries.Num() && i < Opts.Num(); ++i)
 	{
 		const ARtsBridgeGameMode::FBuildOption& O = Opts[i];
@@ -925,6 +926,18 @@ void ARtsMinimapHud::DrawBuildMenu()
 		GetTextSize(CostText, CW, CH, Font, 1.0f);
 		DrawText(CostText, O.bAffordable ? FLinearColor(1.0f, 0.86f, 0.35f) : FLinearColor(1.0f, 0.4f, 0.3f),
 			R.Max.X - 6.0f - CW, R.Min.Y + 3.0f, Font, 1.0f);
+		if (O.bPrereqOk && O.bPowerWarn)
+		{
+			// low-power warning: an orange bolt left of the cost (hover it for the reason), so
+			// the description line stays readable
+			const float BX = R.Max.X - 6.0f - CW - 14.0f, BY = R.Min.Y + 4.0f;
+			const FLinearColor Bolt(1.0f, 0.62f, 0.12f);
+			DrawLine(BX + 7.0f, BY, BX + 2.0f, BY + 8.0f, Bolt, 2.0f);
+			DrawLine(BX + 2.0f, BY + 8.0f, BX + 8.0f, BY + 8.0f, Bolt, 2.0f);
+			DrawLine(BX + 8.0f, BY + 8.0f, BX + 3.0f, BY + 16.0f, Bolt, 2.0f);
+			if (FBox2D(FVector2D(BX - 3.0f, BY - 2.0f), FVector2D(BX + 12.0f, BY + 18.0f)).IsInside(Mouse))
+				PowerTip = FVector2D(Mouse.X, Mouse.Y);
+		}
 		FString Sub;
 		FLinearColor SubCol(0.7f, 0.7f, 0.7f);
 		if (!O.bPrereqOk)
@@ -932,17 +945,7 @@ void ARtsMinimapHud::DrawBuildMenu()
 			Sub = O.PrereqName.IsEmpty() ? TEXT("needs a prerequisite") : FString::Printf(TEXT("needs %s"), *O.PrereqName);
 			SubCol = FLinearColor(0.8f, 0.55f, 0.35f);
 		}
-		else if (!O.bAffordable)
-		{
-			Sub = TEXT("not enough credits");
-			SubCol = FLinearColor(1.0f, 0.45f, 0.35f);
-		}
-		else if (O.bPowerWarn)
-		{
-			Sub = TEXT("will cause low power");
-			SubCol = FLinearColor(1.0f, 0.7f, 0.2f);
-		}
-		else
+		else // can't afford: the cost is red; low power: the bolt
 		{
 			// what it does (content `description`); naval/offshore in blue: they go on water
 			Sub = !O.Description.IsEmpty() ? O.Description : O.bNeedsWater ? FString(TEXT("builds on water by the shore")) : FString();
@@ -955,6 +958,15 @@ void ARtsMinimapHud::DrawBuildMenu()
 			const float Fit = SW > 0.0f ? FMath::Min(1.0f, (S.X - 12.0f) / SW) : 1.0f; // shrink a long line to the row
 			DrawText(Sub, SubCol, R.Min.X + 6.0f, R.Min.Y + 22.0f, Small, Fit);
 		}
+	}
+	if (PowerTip.X >= 0.0f)
+	{
+		const FString Tip = TEXT("Will cause low power: build a power generator first");
+		float TW = 0.0f, TH = 0.0f;
+		GetTextSize(Tip, TW, TH, Font, 1.0f);
+		const float TX = FMath::Min(PowerTip.X + 16.0f, Canvas->SizeX - TW - 14.0f), TY = PowerTip.Y + 14.0f;
+		DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.85f), TX, TY, TW + 10.0f, TH + 6.0f);
+		DrawText(Tip, FLinearColor(1.0f, 0.7f, 0.2f), TX + 5.0f, TY + 3.0f, Font, 1.0f);
 	}
 }
 

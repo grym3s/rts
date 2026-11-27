@@ -112,7 +112,7 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   economy bar (T35, top centre: your credits with a +/- flash on change, power as used / produced,
   red with LOW POWER when draw > supply; text from static `EconomyBarText`);
   build sidebar (T36, right edge: with no base and an MCV, a hint + Deploy button (E key does the
-  same); with a base, your faction's buildings (and captured trees) except yards from `GetBuildOptions` (naval/offshore listed last with a blue "builds on water by the shore" hint; T25 the sim answers `water` / `shore` when the ghost is on the wrong ground) --
+  same); with a base, your faction's buildings (and captured trees) except yards from `GetBuildOptions` (each row: name, cost, and the content `description` under it, blue for naval/offshore; "needs X" replaces it when a prereq is missing; red cost = can't afford; an orange bolt by the cost = would cause low power, hover it for why; naval/offshore listed last; T25 the sim answers `water` / `shore` when the ghost is on the wrong ground) --
   prereq from the sim's own query (re-asked only when your buildings or their finished state
   change), affordability and a low-power warning from the snapshot; static `BuildMenuLayout`/
   `BuildMenuHit`); placement ghost (footprint cells under the cursor, green/red from
