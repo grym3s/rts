@@ -817,6 +817,7 @@ bool ARtsBridgeGameMode::RestartMatch()
 	bHostAlive = true;
 	bChoosingFaction = CanRestart(); // pick again: Play again is how you switch sides
 	ResetFog();
+	StrikeMemo.Reset(); // ids restart at 0: an old strike must not go off on a new building
 	if (GEngine)
 		GEngine->ClearOnScreenDebugMessages();
 	UE_LOG(LogTemp, Display, TEXT("RTS_MATCH_RESTART: new match from tick 0"));
