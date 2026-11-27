@@ -151,17 +151,17 @@ public class DeployTests
         for (var i = 0; i < 220; i++) x.Step();
         var credits = x.Econ.Credits(0);
 
-        // reactor 2x2 at (19,10) -> origin (18,9): 7 columns from column 11: refused
-        x.Step(new PlaceBuildingCommand(x.Sim.Tick, 0, "coalition-reactor", At(19, 10)));
+        // reactor 2x2 at (25,10) -> origin (24,9): 13 columns from column 11: refused
+        x.Step(new PlaceBuildingCommand(x.Sim.Tick, 0, "coalition-reactor", At(25, 10)));
         Assert.Single(x.Units.Units);
         Assert.Equal(credits, x.Econ.Credits(0));
 
-        // origin (17,9): 6 columns: allowed
-        x.Step(new PlaceBuildingCommand(x.Sim.Tick, 0, "coalition-reactor", At(18, 10)));
+        // origin (23,9): 12 columns: allowed
+        x.Step(new PlaceBuildingCommand(x.Sim.Tick, 0, "coalition-reactor", At(24, 10)));
         Assert.Equal(2, x.Units.Units.Count);
 
-        // a building extends the radius: (25,10) -> origin (24,9), 6 from the reactor's column 18
-        x.Step(new PlaceBuildingCommand(x.Sim.Tick, 0, "coalition-reactor", At(25, 10)));
+        // a building extends the radius: (37,10) -> origin (36,9), 12 from the reactor's column 24
+        x.Step(new PlaceBuildingCommand(x.Sim.Tick, 0, "coalition-reactor", At(37, 10)));
         Assert.Equal(3, x.Units.Units.Count);
     }
 

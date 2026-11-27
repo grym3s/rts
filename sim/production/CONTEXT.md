@@ -28,7 +28,7 @@ Deploy and build radius (T32): `DeployCommand` turns a unit with `DeploysTo` (co
 the MCVs: mobile-command / foundry-crawler / seed-core) into that yard where it stands, free, the
 3x3 centred on its cell (clear but for the MCV itself; no radius); the MCV leaves the roster at
 cleanup with no death event and the yard builds for its BuildTicks. `place` of anything but a
-construction yard must come within `ProductionSystem.BuildRadius` = 6 cells (Chebyshev, 1 =
+construction yard must come within `ProductionSystem.BuildRadius` = 12 cells (6 before T39 doubled Tri-Point) (Chebyshev, 1 =
 touching; our tuning, canon gives no number) of a footprint of the faction's own live
 buildings. A yard by `place` skips the radius: the scenario bootstrap. Tests: `sim/tests/DeployTests.cs`.
 `ProductionSystem.CheckPlace` (T36) is the place rules as one pure check returning a

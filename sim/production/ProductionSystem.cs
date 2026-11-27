@@ -215,8 +215,9 @@ public static class ProductionSystem
 
     /// <summary>Build radius (T32, our tuning const; canon says the yard gives "the base's build
     /// radius" without a number): a new footprint must be within this many cells (Chebyshev, 1 =
-    /// touching) of a footprint of one of the faction's live buildings.</summary>
-    public const int BuildRadius = 6;
+    /// touching) of a footprint of one of the faction's live buildings. 12 since T39 doubled
+    /// Tri-Point (was 6; play-test: half a main plateau was out of reach).</summary>
+    public const int BuildRadius = 12;
 
     public static bool InBuildRadius(UnitStore units, Rts.Sim.World.GameMap map, int faction, int ox, int oy, int w, int h)
     {
