@@ -127,7 +127,7 @@ public static class ProductionSystem
         // T32: build radius. Anything but a construction yard must come within BuildRadius of one
         // of the faction's own live buildings. (A yard by `place` is the scenario bootstrap; in
         // play yards come from deploying the MCV, see Deploy.)
-        if (bp.Category != "construction-yard" && !InBuildRadius(units, map, faction, ox, oy, bp.FootprintW, bp.FootprintH))
+        if (bp.Category != "construction-yard" && !InBuildRadius(units, map, faction, ox, oy, bp.FootprintW, bp.FootprintH, ReachFor(bp.Category)))
             return R(PlaceVerdict.Radius);
         if (credits < bp.Cost) return R(PlaceVerdict.Credits);
         return R(PlaceVerdict.Ok);
@@ -219,7 +219,15 @@ public static class ProductionSystem
     /// Tri-Point (was 6; play-test: half a main plateau was out of reach).</summary>
     public const int BuildRadius = 12;
 
-    public static bool InBuildRadius(UnitStore units, Rts.Sim.World.GameMap map, int faction, int ox, int oy, int w, int h)
+    /// <summary>Longer reach for buildings that must stand where the base isn't: shipyards and
+    /// sea platforms (on water, often past a cliff or a beach) and defenses (turrets thrown
+    /// forward to hold ground). Play-test request.</summary>
+    public const int ForwardBuildRadius = 18;
+
+    public static int ReachFor(string category) =>
+        category is "naval" or "offshore" or "defense" ? ForwardBuildRadius : BuildRadius;
+
+    public static bool InBuildRadius(UnitStore units, Rts.Sim.World.GameMap map, int faction, int ox, int oy, int w, int h, int reach = BuildRadius)
     {
         foreach (var u in units.Units)
         {
@@ -227,7 +235,7 @@ public static class ProductionSystem
             if (!map.TryGetFootprint(u.Id.Value, out var r)) continue;
             var dx = Math.Max(0, Math.Max(r.X - (ox + w - 1), ox - (r.X + r.W - 1)));
             var dy = Math.Max(0, Math.Max(r.Y - (oy + h - 1), oy - (r.Y + r.H - 1)));
-            if (Math.Max(dx, dy) <= BuildRadius) return true;
+            if (Math.Max(dx, dy) <= reach) return true;
         }
         return false;
     }

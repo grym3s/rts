@@ -166,6 +166,31 @@ public class DeployTests
     }
 
     [Fact]
+    public void Turrets_and_shipyards_reach_further_than_other_buildings()
+    {
+        Assert.Equal(ProductionSystem.BuildRadius, ProductionSystem.ReachFor("power"));
+        Assert.Equal(ProductionSystem.ForwardBuildRadius, ProductionSystem.ReachFor("defense"));
+        Assert.Equal(ProductionSystem.ForwardBuildRadius, ProductionSystem.ReachFor("naval"));
+        Assert.Equal(ProductionSystem.ForwardBuildRadius, ProductionSystem.ReachFor("offshore"));
+
+        var x = World();
+        var mcv = Mcv(x, "mobile-command", 5, 10);
+        x.Step(new DeployCommand(x.Sim.Tick, 0, mcv.Id)); // yard cells 4..6
+        for (var i = 0; i < 220; i++) x.Step();
+        x.Step(new PlaceBuildingCommand(x.Sim.Tick, 0, "coalition-barracks", At(5, 13))); // the turret's prereq, columns 4..5
+        for (var i = 0; i < 420; i++) x.Step();
+        Assert.Equal(2, x.Units.Units.Count);
+        // origin column 24 is 18 past the yard's column 6: a reactor is refused, a guard turret is not
+        x.Step(new PlaceBuildingCommand(x.Sim.Tick, 0, "coalition-reactor", At(25, 10)));
+        Assert.Equal(2, x.Units.Units.Count);
+        x.Step(new PlaceBuildingCommand(x.Sim.Tick, 0, "coalition-guard-turret", At(24, 10))); // 1x1: origin is the cell
+        Assert.Equal(3, x.Units.Units.Count);
+        // and no further than 18: row 33 is 20 below the barracks (rows 12..13)
+        Assert.Equal(ProductionSystem.PlaceVerdict.Radius,
+            ProductionSystem.CheckPlace(BuildingsCat, x.Units, x.Map, 0, "coalition-guard-turret", At(5, 33), x.Econ.Credits(0)).Verdict);
+    }
+
+    [Fact]
     public void Build_radius_counts_only_your_own_buildings()
     {
         var x = World();
