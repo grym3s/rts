@@ -52,6 +52,8 @@ public:
 		FBox2D Faction[3];
 	};
 	static FFactionPickLayout FactionPickLayout(const FVector2D& Viewport);
+	/** Canvas size of the last frame drawn: the space every panel layout and the mouse use. */
+	FVector2D GetLastCanvasSize() const { return LastCanvasSize; }
 	/** The faction button under Pos, or -1. */
 	static int32 FactionPickHit(const FVector2D& Viewport, const FVector2D& Pos);
 
@@ -98,6 +100,7 @@ public:
 	static EProductionHit ProductionHit(const FVector2D& Viewport, int32 NumUnits, const FVector2D& Pos, int32& OutIndex);
 
 private:
+	FVector2D LastCanvasSize = FVector2D::ZeroVector;
 	struct FOrderMarker
 	{
 		FVector2D WorldXY = FVector2D::ZeroVector;

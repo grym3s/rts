@@ -43,7 +43,10 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   (`ChooseFaction`). `ARtsBridgeGameMode::PlayerFaction` (static, sim index 0/1/2) then decides
   everything that is "yours": command `faction`, selection, build menu and place queries,
   credits/power, rally markers, tooltips' "Yours", camera start, VICTORY/DEFEAT. Units keep
-  their faction colours. Test: `RtsBridge.UI.FactionPick`.
+  their faction colours. Test: `RtsBridge.UI.FactionPick`. Panel clicks (pick, result screen,
+  build menu, training panel) are hit-tested in the HUD's canvas size (`HudViewport`), the space the
+  panels were laid out in; `GetViewportSize` can differ in PIE, which made pick clicks miss.
+  Each pick click logs `RTS_FACTION_CLICK`.
   T28: unit rows add `bCanCapture`, faction rows `Trees` (`HasTree`). RMB on an enemy or neutral
   building, or an enemy MCV, sends selected capturing engineers to take it and the rest to attack
   it (`RequestCaptureOrAttack`; neutrals can't be attacked, so with no engineer it is a plain move).

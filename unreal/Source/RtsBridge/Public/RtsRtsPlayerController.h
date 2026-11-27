@@ -82,6 +82,8 @@ private:
 	bool IssueOrderAtCursor(bool bAttack);
 	/** T19: true while the match result screen is up (orders are refused). */
 	bool MatchScreenUp() const;
+	/** The HUD's canvas size (what its panels were laid out in); the window size before the first frame. */
+	FVector2D HudViewport() const;
 	/** Left click while the result screen is up: run its button, swallow the click. */
 	bool HandleMatchScreenClick();
 

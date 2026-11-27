@@ -355,6 +355,19 @@ void ARtsRtsPlayerController::OnSelectAll()
 		GM->SelectAll();
 }
 
+FVector2D ARtsRtsPlayerController::HudViewport() const
+{
+	// Hit tests must use the size the HUD laid its panels out with (Canvas), the same space the
+	// mouse position is in. GetViewportSize can differ (PIE window / DPI), which put the click
+	// test for the centred faction-pick panel somewhere else than the drawn buttons.
+	if (const ARtsMinimapHud* Hud = Cast<ARtsMinimapHud>(GetHUD()))
+		if (Hud->GetLastCanvasSize().X > 0.0)
+			return Hud->GetLastCanvasSize();
+	int32 VX = 0, VY = 0;
+	GetViewportSize(VX, VY);
+	return FVector2D(VX, VY);
+}
+
 bool ARtsRtsPlayerController::MatchScreenUp() const
 {
 	const ARtsBridgeGameMode* GM = GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>();
@@ -370,16 +383,17 @@ bool ARtsRtsPlayerController::HandleMatchScreenClick()
 	SetAttackMoveArmed(false);
 	bLeftDownOnView = false;
 	float MX, MY;
-	int32 VX = 0, VY = 0;
-	GetViewportSize(VX, VY);
+	const FVector2D Vp = HudViewport(); // the size the HUD drew at, not the window's
 	if (!GetMousePosition(MX, MY))
 		return true;
 	if (GM->IsFactionPickUp())
 	{
-		GM->ChooseFaction(ARtsMinimapHud::FactionPickHit(FVector2D(VX, VY), FVector2D(MX, MY)));
+		const int32 Pick = ARtsMinimapHud::FactionPickHit(Vp, FVector2D(MX, MY));
+		UE_LOG(LogTemp, Display, TEXT("RTS_FACTION_CLICK: mouse (%.0f, %.0f) in %.0fx%.0f -> %d"), MX, MY, Vp.X, Vp.Y, Pick);
+		GM->ChooseFaction(Pick);
 		return true;
 	}
-	switch (ARtsMinimapHud::MatchScreenHit(FVector2D(VX, VY), FVector2D(MX, MY), GM->CanRestart()))
+	switch (ARtsMinimapHud::MatchScreenHit(Vp, FVector2D(MX, MY), GM->CanRestart()))
 	{
 	case ARtsMinimapHud::EMatchScreenButton::PlayAgain: GM->RestartMatch(); break;
 	case ARtsMinimapHud::EMatchScreenButton::Quit: GM->QuitMatch(); break;
@@ -451,9 +465,8 @@ bool ARtsRtsPlayerController::HandleBuildMenuClick()
 	bool bDeploy = false;
 	if (!ARtsMinimapHud::BuildMenuShape(*GM, N, bDeploy))
 		return false;
-	int32 VX = 0, VY = 0;
-	GetViewportSize(VX, VY);
-	const int32 Hit = ARtsMinimapHud::BuildMenuHit(FVector2D(VX, VY), N, bDeploy, FVector2D(MX, MY));
+	const FVector2D Vp = HudViewport(); // the size the HUD drew at, not the window's
+	const int32 Hit = ARtsMinimapHud::BuildMenuHit(Vp, N, bDeploy, FVector2D(MX, MY));
 	if (Hit == ARtsMinimapHud::BuildMenuNone)
 		return false;
 	bLeftDownOnView = false;
@@ -504,10 +517,9 @@ bool ARtsRtsPlayerController::HandleProductionClick(bool bRight)
 	if (!B)
 		return false;
 	const TArray<FRtsUnitType> Types = GM->TrainableAt(B->BuildingId);
-	int32 VX = 0, VY = 0;
-	GetViewportSize(VX, VY);
+	const FVector2D Vp = HudViewport(); // the size the HUD drew at, not the window's
 	int32 Index = INDEX_NONE;
-	const ARtsMinimapHud::EProductionHit Hit = ARtsMinimapHud::ProductionHit(FVector2D(VX, VY), Types.Num(), FVector2D(MX, MY), Index);
+	const ARtsMinimapHud::EProductionHit Hit = ARtsMinimapHud::ProductionHit(Vp, Types.Num(), FVector2D(MX, MY), Index);
 	if (Hit == ARtsMinimapHud::EProductionHit::None)
 		return false;
 	bLeftDownOnView = false;

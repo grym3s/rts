@@ -223,6 +223,7 @@ void ARtsMinimapHud::DrawHUD()
 	if (!Canvas)
 		return;
 	const FVector2D Vp(Canvas->SizeX, Canvas->SizeY);
+	LastCanvasSize = Vp; // the controller hit-tests clicks against this, not the window size
 	DrawTracers();
 	DrawHealthBars();
 	DrawDebugOverlays();
