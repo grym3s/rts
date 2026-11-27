@@ -31,6 +31,7 @@ static constexpr float SimCellUU = ARtsBridgeGameMode::CellUU;
 
 int32 ARtsBridgeGameMode::MapCellsW = 32;
 int32 ARtsBridgeGameMode::MapCellsH = 24;
+int32 ARtsBridgeGameMode::PlayerFaction = 0;
 
 ARtsBridgeGameMode::ARtsBridgeGameMode()
 {
@@ -109,13 +110,14 @@ void ARtsBridgeGameMode::StartPlay()
 	bHostAlive = true;
 	BuildingTypes = Bridge->GetInitReply().BuildingTypes; // T36 catalogs (static content)
 	UnitTypes = Bridge->GetInitReply().UnitTypes;
+	bChoosingFaction = CanRestart(); // single player: pick a side first (the sim waits)
 	UE_LOG(LogTemp, Display, TEXT("RTS_SESSION: host up, stepping live (select: LMB click/drag, Shift adds, Ctrl+A, groups Ctrl+1-3/1-3, move: RMB (enemy = attack), attack-move: F+LMB, stop: X, minimap: bottom-left)"));
 }
 
 void ARtsBridgeGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	if (bFinished || !Bridge || !bHostAlive)
+	if (bFinished || !Bridge || !bHostAlive || bChoosingFaction)
 		return;
 
 	// Fixed sim cadence: 20 ticks/s (SimWorld.TicksPerSecond). Catch up after a hitch, but
@@ -173,7 +175,7 @@ void ARtsBridgeGameMode::Tick(float DeltaSeconds)
 			MatchWinner = Reply.MatchWinner;
 			MatchEndTick = Reply.Tick;
 			MatchOverRealTime = FPlatformTime::Seconds();
-			const TCHAR* Msg = MatchWinner == 0 ? TEXT("VICTORY") : MatchWinner < 0 ? TEXT("DRAW") : TEXT("DEFEAT");
+			const TCHAR* Msg = MatchWinner == PlayerFaction ? TEXT("VICTORY") : MatchWinner < 0 ? TEXT("DRAW") : TEXT("DEFEAT");
 			UE_LOG(LogTemp, Display, TEXT("RTS_MATCH_OVER: %s (winner %d, tick %lld)"), Msg, MatchWinner, MatchEndTick);
 		}
 	}
@@ -200,7 +202,7 @@ bool ARtsBridgeGameMode::QueueOrderForSelection(const TCHAR* Type, const FString
 	if (Ids.IsEmpty())
 		return false;
 	// Tick-less body; Tick() wraps it as {"tick":N, <body>} when it sends.
-	FString Body = FString::Printf(TEXT("\"faction\":0,\"type\":\"%s\",\"units\":[%s]"), Type, *Ids);
+	FString Body = FString::Printf(TEXT("\"faction\":%d,\"type\":\"%s\",\"units\":[%s]"), PlayerFaction, Type, *Ids);
 	if (!TargetJson.IsEmpty())
 		Body += TEXT(",\"target\":") + TargetJson;
 	PendingCommandBodies.Add(MoveTemp(Body));
@@ -281,9 +283,9 @@ int32 ARtsBridgeGameMode::PickUnitImpl(const FVector2D& ScreenPos, int32 Mode) c
 	{
 		if (!A || A->IsDying())
 			continue;
-		const bool bOwnUnit = A->GetFaction() == 0;
+		const bool bOwnUnit = A->GetFaction() == PlayerFaction;
 		if ((Mode == 0 && !bOwnUnit) || (Mode == 1 && bOwnUnit))
-			continue; // own = faction 0 (you); enemy = any other faction
+			continue; // own = PlayerFaction (you); enemy = any other faction
 		FVector2D Proj;
 		if (PC->ProjectWorldLocationToScreen(A->GetActorLocation(), Proj))
 		{
@@ -308,13 +310,29 @@ int32 ARtsBridgeGameMode::PickUnitImpl(const FVector2D& ScreenPos, int32 Mode) c
 
 FString ARtsBridgeGameMode::OwnerName(int32 Faction)
 {
+	return Faction == PlayerFaction ? FString(TEXT("Yours")) : FactionName(Faction);
+}
+
+FString ARtsBridgeGameMode::FactionName(int32 Faction)
+{
 	switch (Faction)
 	{
-	case 0: return TEXT("Yours");
+	case 0: return TEXT("Coalition");
 	case 1: return TEXT("Hegemony");
 	case 2: return TEXT("Ascendant");
 	default: return TEXT("Neutral");
 	}
+}
+
+void ARtsBridgeGameMode::ChooseFaction(int32 Faction)
+{
+	if (!bChoosingFaction || Faction < 0 || Faction > 2)
+		return;
+	PlayerFaction = Faction;
+	bChoosingFaction = false;
+	bCameraFramedOnPlayer = false; // frame your own start on the first snapshot
+	StepAccum = 0.0;
+	UE_LOG(LogTemp, Display, TEXT("RTS_FACTION: playing %s (faction %d)"), *FactionName(Faction), Faction);
 }
 
 FString ARtsBridgeGameMode::DisplayName(int32 SimUnitId) const
@@ -339,7 +357,7 @@ TArray<FString> ARtsBridgeGameMode::TooltipLines(int32 SimUnitId) const
 		return L;
 	L.Add(DisplayName(SimUnitId));
 	L.Add(FString::Printf(TEXT("%s    HP %.0f / %.0f"), *OwnerName(R->Faction), R->Hp, R->MaxHp));
-	const bool bOwn = R->Faction == 0;
+	const bool bOwn = R->Faction == PlayerFaction;
 	if (R->Bridge >= 0)
 	{
 		const FRtsBridgeSnapshot* B = Bridges.FindByPredicate([R](const FRtsBridgeSnapshot& X) { return X.Id == R->Bridge; });
@@ -421,7 +439,7 @@ void ARtsBridgeGameMode::BoxSelect(const FVector2D& A, const FVector2D& B, bool 
 	for (const ARtsSimUnitActor* U : UnitActors)
 	{
 		FVector2D Proj;
-		if (U && U->GetFaction() == 0 && !IsBuildingId(U->GetSimUnitId()) && PC->ProjectWorldLocationToScreen(U->GetActorLocation(), Proj)
+		if (U && U->GetFaction() == PlayerFaction && !IsBuildingId(U->GetSimUnitId()) && PC->ProjectWorldLocationToScreen(U->GetActorLocation(), Proj)
 			&& Rect.IsInside(Proj))
 			Ids.Add(U->GetSimUnitId());
 	}
@@ -433,7 +451,7 @@ void ARtsBridgeGameMode::SelectAll()
 {
 	TArray<int32> Ids;
 	for (const ARtsSimUnitActor* A : UnitActors)
-		if (A && A->GetFaction() == 0 && !IsBuildingId(A->GetSimUnitId()))
+		if (A && A->GetFaction() == PlayerFaction && !IsBuildingId(A->GetSimUnitId()))
 			Ids.Add(A->GetSimUnitId());
 	Selection.SetAll(Ids);
 	RefreshSelectionRings();
@@ -601,13 +619,13 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 	Selection.Prune([&Alive](int32 Id) { return Alive.Contains(Id); });
 	RefreshSelectionRings();
 
-	// First snapshot: centre the camera on your (faction-0) units, like an RTS start.
+	// First snapshot: centre the camera on your units, like an RTS start.
 	if (!bCameraFramedOnPlayer)
 	{
 		FVector2D Sum(0, 0);
 		int32 N = 0;
 		for (const FRtsUnitSnapshot& S : Reply.Units)
-			if (S.Faction == 0) { Sum += FVector2D(S.X, S.Y) * SimCellUU; ++N; }
+			if (S.Faction == PlayerFaction) { Sum += FVector2D(S.X, S.Y) * SimCellUU; ++N; }
 		if (N > 0)
 			if (ARtsRtsPlayerController* PC = Cast<ARtsRtsPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
 			{
@@ -680,6 +698,7 @@ bool ARtsBridgeGameMode::RestartMatch()
 	Lost = {0, 0, 0};
 	bFinished = false;
 	bHostAlive = true;
+	bChoosingFaction = CanRestart(); // pick again: Play again is how you switch sides
 	if (GEngine)
 		GEngine->ClearOnScreenDebugMessages();
 	UE_LOG(LogTemp, Display, TEXT("RTS_MATCH_RESTART: new match from tick 0"));
@@ -688,7 +707,7 @@ bool ARtsBridgeGameMode::RestartMatch()
 
 bool ARtsBridgeGameMode::IsMatchScreenUp() const
 {
-	return bMatchReported && FPlatformTime::Seconds() - MatchOverRealTime >= MatchScreenDelay;
+	return bChoosingFaction || (bMatchReported && FPlatformTime::Seconds() - MatchOverRealTime >= MatchScreenDelay);
 }
 
 float ARtsBridgeGameMode::MatchScreenAlpha() const
@@ -729,7 +748,7 @@ FString ARtsBridgeGameMode::MatchScenarioId()
 bool ARtsBridgeGameMode::HasOwnBuildings() const
 {
 	for (const TPair<int32, FRtsUnitSnapshot>& P : RowsById)
-		if (P.Value.Faction == 0 && P.Value.IsBuilding())
+		if (P.Value.Faction == PlayerFaction && P.Value.IsBuilding())
 			return true;
 	return false;
 }
@@ -737,7 +756,7 @@ bool ARtsBridgeGameMode::HasOwnBuildings() const
 bool ARtsBridgeGameMode::HasOwnMcv() const
 {
 	for (const TPair<int32, FRtsUnitSnapshot>& P : RowsById)
-		if (P.Value.Faction == 0 && IsMcvRow(P.Value))
+		if (P.Value.Faction == PlayerFaction && IsMcvRow(P.Value))
 			return true;
 	return false;
 }
@@ -757,11 +776,11 @@ const TArray<ARtsBridgeGameMode::FBuildOption>& ARtsBridgeGameMode::GetBuildOpti
 	// power are re-read from the snapshot every call, so income ticks cost no host round trip.
 	TArray<FString> Parts;
 	for (const TPair<int32, FRtsUnitSnapshot>& P : RowsById)
-		if (P.Value.Faction == 0 && P.Value.IsBuilding())
+		if (P.Value.Faction == PlayerFaction && P.Value.IsBuilding())
 			Parts.Add(FString::Printf(TEXT("%d:%s:%d"), P.Key, *P.Value.BuildingId, P.Value.ConstructionRemaining == 0 ? 1 : 0));
 	Parts.Sort();
 	FString Key = FString::Join(Parts, TEXT(","));
-	if (const FRtsFactionSnapshot* Own = GetFactionState(0)) // T28: a captured tree changes the menu too
+	if (const FRtsFactionSnapshot* Own = GetFactionState(PlayerFaction)) // T28: a captured tree changes the menu too
 		for (const int32 T : Own->Trees)
 			Key += FString::Printf(TEXT("|t%d"), T);
 	if (Key != BuildOptionsKey)
@@ -770,7 +789,7 @@ const TArray<ARtsBridgeGameMode::FBuildOption>& ARtsBridgeGameMode::GetBuildOpti
 		RebuildBuildOptions(Parts.Num() > 0);
 	}
 	int32 Supply = 0, Draw = 0, Credits = 0;
-	if (const FRtsFactionSnapshot* F = GetFactionState(0))
+	if (const FRtsFactionSnapshot* F = GetFactionState(PlayerFaction))
 	{
 		Supply = F->PowerSupply;
 		Draw = F->PowerDraw;
@@ -795,8 +814,8 @@ void ARtsBridgeGameMode::RebuildBuildOptions(bool bHaveBase)
 		// Yards come from the MCV. Naval/offshore go on water (T25): the sim's query says
 		// "water" / "shore" when the ghost is on the wrong ground.
 		// T28: a captured yard or MCV opens its tree (the snapshot's `trees`)
-		const FRtsFactionSnapshot* Own = GetFactionState(0);
-		if (!(B.Faction == 0 || (Own && Own->HasTree(B.Faction))) || B.Category == TEXT("construction-yard"))
+		const FRtsFactionSnapshot* Own = GetFactionState(PlayerFaction);
+		if (!(B.Faction == PlayerFaction || (Own && Own->HasTree(B.Faction))) || B.Category == TEXT("construction-yard"))
 			continue;
 		FBuildOption O;
 		O.bNeedsWater = B.Category == TEXT("naval") || B.Category == TEXT("offshore");
@@ -805,7 +824,7 @@ void ARtsBridgeGameMode::RebuildBuildOptions(bool bHaveBase)
 		O.Cost = B.Cost;
 		// Prereq comes before every map check in the sim's verdict, so any cell answers it.
 		FRtsHostReply Q;
-		O.bPrereqOk = Bridge->QueryPlace(0, B.Id, 0, 0, Q) && Q.QueryReason != TEXT("prereq");
+		O.bPrereqOk = Bridge->QueryPlace(PlayerFaction, B.Id, 0, 0, Q) && Q.QueryReason != TEXT("prereq");
 		if (!O.bPrereqOk)
 			if (const FRtsBuildingType* Need = FindBuildingType(B.Prereq))
 				O.PrereqName = Need->Name.IsEmpty() ? Need->Id : Need->Name;
@@ -835,7 +854,7 @@ bool ARtsBridgeGameMode::QueryPlace(const FString& BuildingId, int32 CellX, int3
 		return true;
 	}
 	FRtsHostReply Q;
-	if (!Bridge->QueryPlace(0, BuildingId, CellX, CellY, Q))
+	if (!Bridge->QueryPlace(PlayerFaction, BuildingId, CellX, CellY, Q))
 		return false;
 	PlaceCache.bAllowed = Q.bQueryAllowed;
 	PlaceCache.Reason = Q.QueryReason;
@@ -849,7 +868,7 @@ bool ARtsBridgeGameMode::RequestPlace(const FString& BuildingId, int32 CellX, in
 {
 	if (!bHostAlive || IsMatchScreenUp())
 		return false;
-	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"place\",\"building\":\"%s\",\"at\":[%d,%d]"),
+	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"place\",\"building\":\"%s\",\"at\":[%d,%d]"), PlayerFaction,
 		*BuildingId, CellX, CellY));
 	return true;
 }
@@ -861,9 +880,9 @@ bool ARtsBridgeGameMode::RequestDeploySelected()
 	bool bAny = false;
 	for (const int32 Id : Selection.GetSelected())
 		if (const FRtsUnitSnapshot* R = RowsById.Find(Id))
-			if (R->Faction == 0 && IsMcvRow(*R))
+			if (R->Faction == PlayerFaction && IsMcvRow(*R))
 			{
-				PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"deploy\",\"unit\":%d"), Id));
+				PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"deploy\",\"unit\":%d"), PlayerFaction, Id));
 				bAny = true;
 			}
 	return bAny;
@@ -873,7 +892,7 @@ void ARtsBridgeGameMode::SelectOwnMcvs()
 {
 	TArray<int32> Ids;
 	for (const TPair<int32, FRtsUnitSnapshot>& P : RowsById)
-		if (P.Value.Faction == 0 && IsMcvRow(P.Value))
+		if (P.Value.Faction == PlayerFaction && IsMcvRow(P.Value))
 			Ids.Add(P.Key);
 	Selection.SetAll(Ids);
 	RefreshSelectionRings();
@@ -895,7 +914,7 @@ int32 ARtsBridgeGameMode::GetSelectedProducer() const
 	int32 Best = INDEX_NONE;
 	for (const int32 Id : Selection.GetSelected())
 		if (const FRtsUnitSnapshot* R = RowsById.Find(Id))
-			if (R->Faction == 0 && R->IsBuilding() && (Best == INDEX_NONE || Id < Best)
+			if (R->Faction == PlayerFaction && R->IsBuilding() && (Best == INDEX_NONE || Id < Best)
 				&& UnitTypes.ContainsByPredicate([R](const FRtsUnitType& U) { return U.BuiltFrom == R->BuildingId; }))
 				Best = Id;
 	return Best;
@@ -906,7 +925,7 @@ bool ARtsBridgeGameMode::RequestTrain(int32 BuildingSimId, const FString& UnitId
 	if (!bHostAlive || IsMatchScreenUp() || Count <= 0)
 		return false;
 	for (int32 i = 0; i < Count; ++i)
-		PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"train\",\"building\":%d,\"unit\":\"%s\""),
+		PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"train\",\"building\":%d,\"unit\":\"%s\""), PlayerFaction,
 			BuildingSimId, *UnitId));
 	return true;
 }
@@ -915,7 +934,7 @@ bool ARtsBridgeGameMode::RequestCancel(int32 BuildingSimId, int32 Index)
 {
 	if (!bHostAlive || IsMatchScreenUp() || Index < 0)
 		return false;
-	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"cancel\",\"building\":%d,\"index\":%d"),
+	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"cancel\",\"building\":%d,\"index\":%d"), PlayerFaction,
 		BuildingSimId, Index));
 	return true;
 }
@@ -936,9 +955,9 @@ bool ARtsBridgeGameMode::RequestRallySelected(const FVector& WorldPoint)
 	bool bAny = false;
 	for (const int32 Id : Selection.GetSelected())
 		if (const FRtsUnitSnapshot* R = RowsById.Find(Id))
-			if (R->Faction == 0 && R->IsBuilding() && TrainableAt(R->BuildingId).Num() > 0)
+			if (R->Faction == PlayerFaction && R->IsBuilding() && TrainableAt(R->BuildingId).Num() > 0)
 			{
-				PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"rally\",\"building\":%d,\"at\":%s"),
+				PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"rally\",\"building\":%d,\"at\":%s"), PlayerFaction,
 					Id, *MapPointJson(WorldPoint)));
 				bAny = true;
 			}
@@ -989,7 +1008,7 @@ bool ARtsBridgeGameMode::RequestBridgeAt(const FVector& WorldPoint, bool bAttack
 	for (const int32 Sel : Selection.GetSelected())
 		if (const FRtsUnitSnapshot* R = RowsById.Find(Sel))
 		{
-			if (R->Faction != 0 || R->IsBuilding())
+			if (R->Faction != PlayerFaction || R->IsBuilding())
 				continue;
 			const bool bFix = R->bEngineer && B->IsDamaged();
 			const bool bShoot = bAttack && !R->bEngineer && !B->bBroken;
@@ -998,7 +1017,7 @@ bool ARtsBridgeGameMode::RequestBridgeAt(const FVector& WorldPoint, bool bAttack
 		}
 	if (Ids.IsEmpty())
 		return false; // nobody here can work on it: an ordinary move
-	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"bridge\",\"units\":[%s],\"bridge\":%d"), *Ids, Id));
+	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"bridge\",\"units\":[%s],\"bridge\":%d"), PlayerFaction, *Ids, Id));
 	return true;
 }
 
@@ -1009,12 +1028,12 @@ bool ARtsBridgeGameMode::RequestCaptureOrAttack(int32 TargetSimId)
 	// T28: selected capturing engineers take an enemy or neutral building, or an enemy MCV; the
 	// rest of the selection attacks it (a neutral one can't be shot, so they just don't).
 	const FRtsUnitSnapshot* T = RowsById.Find(TargetSimId);
-	const bool bCapturable = T && T->Faction != 0 && (T->IsBuilding() || IsMcvRow(*T));
+	const bool bCapturable = T && T->Faction != PlayerFaction && (T->IsBuilding() || IsMcvRow(*T));
 	FString Capturers, Attackers;
 	for (const int32 Sel : Selection.GetSelected())
 		if (const FRtsUnitSnapshot* R = RowsById.Find(Sel))
 		{
-			if (R->Faction != 0 || R->IsBuilding())
+			if (R->Faction != PlayerFaction || R->IsBuilding())
 				continue;
 			FString& Into = bCapturable && R->bCanCapture ? Capturers : Attackers;
 			Into += (Into.IsEmpty() ? TEXT("") : TEXT(",")) + FString::FromInt(Sel);
@@ -1022,12 +1041,12 @@ bool ARtsBridgeGameMode::RequestCaptureOrAttack(int32 TargetSimId)
 	bool bQueued = false;
 	if (!Capturers.IsEmpty())
 	{
-		PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"capture\",\"units\":[%s],\"target\":%d"), *Capturers, TargetSimId));
+		PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"capture\",\"units\":[%s],\"target\":%d"), PlayerFaction, *Capturers, TargetSimId));
 		bQueued = true;
 	}
 	if (!Attackers.IsEmpty() && T && T->Faction >= 0)
 	{
-		PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"attack\",\"units\":[%s],\"target\":%d"), *Attackers, TargetSimId));
+		PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"attack\",\"units\":[%s],\"target\":%d"), PlayerFaction, *Attackers, TargetSimId));
 		bQueued = true;
 	}
 	return bQueued;
@@ -1043,11 +1062,11 @@ bool ARtsBridgeGameMode::RequestHarvestAt(const FVector& WorldPoint)
 	FString Ids;
 	for (const int32 Id : Selection.GetSelected())
 		if (const FRtsUnitSnapshot* R = RowsById.Find(Id))
-			if (R->Faction == 0 && R->bHarvester)
+			if (R->Faction == PlayerFaction && R->bHarvester)
 				Ids += (Ids.IsEmpty() ? TEXT("") : TEXT(",")) + FString::FromInt(Id);
 	if (Ids.IsEmpty())
 		return false; // no harvesters: an ordinary move onto the field
-	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":0,\"type\":\"harvest\",\"units\":[%s],\"vein\":%d"), *Ids, Vein));
+	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"harvest\",\"units\":[%s],\"vein\":%d"), PlayerFaction, *Ids, Vein));
 	QueueOrderForSelection(TEXT("move"), MapPointJson(WorldPoint), /*bSkipHarvesters=*/true); // the rest, if any
 	return true;
 }

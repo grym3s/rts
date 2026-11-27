@@ -44,6 +44,17 @@ public:
 	enum class EMatchScreenButton : uint8 { None, PlayAgain, Quit };
 	static EMatchScreenButton MatchScreenHit(const FVector2D& Viewport, const FVector2D& Pos, bool bCanRestart);
 
+	/** Start screen: one button per faction (index = sim faction: 0 Coalition, 1 Hegemony,
+	 *  2 Ascendant), stacked in a centred panel. Static and pure so the hit test is unit-tested. */
+	struct FFactionPickLayout
+	{
+		FBox2D Panel;
+		FBox2D Faction[3];
+	};
+	static FFactionPickLayout FactionPickLayout(const FVector2D& Viewport);
+	/** The faction button under Pos, or -1. */
+	static int32 FactionPickHit(const FVector2D& Viewport, const FVector2D& Pos);
+
 	/** T35 top bar text: credits with thousands separators, power as used / produced, and the
 	 *  low-power flag (draw > supply: the bar turns red). Static and pure for the test. */
 	struct FEconomyBarText
@@ -107,6 +118,7 @@ private:
 	static constexpr int32 MaxTracers = 256; // a 500-unit brawl stays bounded
 	void DrawTracers();
 	void DrawMatchScreen();
+	void DrawFactionPick();
 	/** T20 F1-F4 overlays (reads the game mode's debug rows; draws nothing when off). */
 	void DrawDebugOverlays();
 	double FpsAvg = 0.0;

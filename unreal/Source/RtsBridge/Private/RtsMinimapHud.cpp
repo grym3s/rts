@@ -543,11 +543,66 @@ void ARtsMinimapHud::DrawButton(const FBox2D& R, const FString& Label, bool bHov
 	DrawText(Label, FLinearColor(1, 1, 1, Alpha), R.GetCenter().X - W * 0.5f, R.GetCenter().Y - H * 0.5f, Font, 1.0f);
 }
 
+ARtsMinimapHud::FFactionPickLayout ARtsMinimapHud::FactionPickLayout(const FVector2D& Viewport)
+{
+	FFactionPickLayout L;
+	const FVector2D PanelSize(FMath::Min(460.0, Viewport.X - 32.0), 360.0);
+	const FVector2D C = Viewport * 0.5;
+	L.Panel = FBox2D(C - PanelSize * 0.5, C + PanelSize * 0.5);
+	const FVector2D Btn(FMath::Min(320.0, PanelSize.X - 40.0), 64.0);
+	const double Top = L.Panel.Min.Y + 96.0, Step = Btn.Y + 16.0;
+	for (int32 i = 0; i < 3; ++i)
+		L.Faction[i] = FBox2D(FVector2D(C.X - Btn.X * 0.5, Top + Step * i), FVector2D(C.X + Btn.X * 0.5, Top + Step * i + Btn.Y));
+	return L;
+}
+
+int32 ARtsMinimapHud::FactionPickHit(const FVector2D& Viewport, const FVector2D& Pos)
+{
+	const FFactionPickLayout L = FactionPickLayout(Viewport);
+	for (int32 i = 0; i < 3; ++i)
+		if (L.Faction[i].IsInside(Pos))
+			return i;
+	return -1;
+}
+
+void ARtsMinimapHud::DrawFactionPick()
+{
+	const FVector2D Vp(Canvas->SizeX, Canvas->SizeY);
+	const FFactionPickLayout L = FactionPickLayout(Vp);
+	DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.45f), 0.0f, 0.0f, Vp.X, Vp.Y);
+	const FVector2D PS = L.Panel.GetSize();
+	DrawRect(FLinearColor(0.05f, 0.06f, 0.08f, 0.92f), L.Panel.Min.X, L.Panel.Min.Y, PS.X, PS.Y);
+	UFont* Large = GEngine ? GEngine->GetLargeFont() : nullptr;
+	UFont* Small = GEngine ? GEngine->GetSmallFont() : nullptr;
+	DrawCentredText(TEXT("Choose your faction"), Large, L.Panel.GetCenter().X, L.Panel.Min.Y + 26.0f, 1.6f, FLinearColor::White);
+	// docs/factions/CONTEXT.md: each faction's axis
+	static const TCHAR* Axis[3] = { TEXT("Precision & information"), TEXT("Mass & attrition"), TEXT("Exotic tech & mobility") };
+	FVector2D Mouse(-1, -1);
+	if (PlayerOwner)
+	{
+		float MX, MY;
+		if (PlayerOwner->GetMousePosition(MX, MY))
+			Mouse = FVector2D(MX, MY);
+	}
+	for (int32 i = 0; i < 3; ++i)
+	{
+		const FBox2D& B = L.Faction[i];
+		DrawButton(B, ARtsBridgeGameMode::FactionName(i), B.IsInside(Mouse), 1.0f);
+		DrawRect(ARtsSimUnitActor::FactionColor(i), B.Min.X, B.Min.Y, 6.0f, B.GetSize().Y); // your units' colour
+		DrawCentredText(Axis[i], Small, B.GetCenter().X, B.Max.Y - 18.0f, 1.0f, FLinearColor(0.75f, 0.75f, 0.75f));
+	}
+}
+
 void ARtsMinimapHud::DrawMatchScreen()
 {
 	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
 	if (!GM || !GM->IsMatchScreenUp() || !Canvas)
 		return;
+	if (GM->IsFactionPickUp())
+	{
+		DrawFactionPick();
+		return;
+	}
 	const float A = GM->MatchScreenAlpha();
 	const FVector2D Vp(Canvas->SizeX, Canvas->SizeY);
 	const bool bCanRestart = GM->CanRestart();
@@ -559,8 +614,9 @@ void ARtsMinimapHud::DrawMatchScreen()
 	DrawRect(FLinearColor(0.05f, 0.06f, 0.08f, 0.92f * A), L.Panel.Min.X, L.Panel.Min.Y, PS.X, PS.Y);
 
 	const int32 Winner = GM->GetMatchWinner();
-	const FString Title = Winner == 0 ? TEXT("VICTORY") : Winner < 0 ? TEXT("DRAW") : TEXT("DEFEAT");
-	const FLinearColor TitleColor = Winner == 0 ? FLinearColor(0.35f, 0.95f, 0.45f, A)
+	const int32 Me = ARtsBridgeGameMode::PlayerFaction;
+	const FString Title = Winner == Me ? TEXT("VICTORY") : Winner < 0 ? TEXT("DRAW") : TEXT("DEFEAT");
+	const FLinearColor TitleColor = Winner == Me ? FLinearColor(0.35f, 0.95f, 0.45f, A)
 		: Winner < 0 ? FLinearColor(0.9f, 0.85f, 0.4f, A) : FLinearColor(0.95f, 0.3f, 0.25f, A);
 	DrawRect(FLinearColor(TitleColor.R, TitleColor.G, TitleColor.B, A), L.Panel.Min.X, L.Panel.Min.Y, PS.X, 4.0f);
 	const float Cx = L.Panel.GetCenter().X;
@@ -572,8 +628,10 @@ void ARtsMinimapHud::DrawMatchScreen()
 	const int64 Secs = FMath::Max<int64>(0, GM->GetMatchEndTick()) / 20;
 	const FLinearColor Body(0.85f, 0.85f, 0.85f, A);
 	DrawCentredText(FString::Printf(TEXT("Match time  %lld:%02lld"), Secs / 60, Secs % 60), Medium, Cx, L.Panel.Min.Y + 104.0f, 1.0f, Body);
-	DrawCentredText(FString::Printf(TEXT("Your forces lost  %d of %d"), GM->GetLost(0), GM->GetFielded(0)), Medium, Cx, L.Panel.Min.Y + 134.0f, 1.0f, Body);
-	DrawCentredText(FString::Printf(TEXT("Enemy forces destroyed  %d of %d"), GM->GetLost(1) + GM->GetLost(2), GM->GetFielded(1) + GM->GetFielded(2)), Medium, Cx, L.Panel.Min.Y + 160.0f, 1.0f, Body);
+	const int32 AllLost = GM->GetLost(0) + GM->GetLost(1) + GM->GetLost(2);
+	const int32 AllFielded = GM->GetFielded(0) + GM->GetFielded(1) + GM->GetFielded(2);
+	DrawCentredText(FString::Printf(TEXT("Your forces lost  %d of %d"), GM->GetLost(Me), GM->GetFielded(Me)), Medium, Cx, L.Panel.Min.Y + 134.0f, 1.0f, Body);
+	DrawCentredText(FString::Printf(TEXT("Enemy forces destroyed  %d of %d"), AllLost - GM->GetLost(Me), AllFielded - GM->GetFielded(Me)), Medium, Cx, L.Panel.Min.Y + 160.0f, 1.0f, Body);
 
 	FVector2D Mouse(-1, -1);
 	if (PlayerOwner)
@@ -662,7 +720,8 @@ void ARtsMinimapHud::DrawDebugOverlays()
 		const TArray<FString> Lines = {
 			FString::Printf(TEXT("tick %d   (20 t/s, sim time %.1f s)"), GM->GetSimTick(), GM->GetSimTick() / 20.0),
 			FString::Printf(TEXT("sim step %.3f ms   round trip %.3f ms"), GM->GetStepMs(), GM->GetRoundTripMs()),
-			FString::Printf(TEXT("units %d   (yours %d, enemy %d)"), GM->GetUnitActors().Num(), PerFaction[0], PerFaction[1] + PerFaction[2]),
+			FString::Printf(TEXT("units %d   (yours %d, enemy %d)"), GM->GetUnitActors().Num(), PerFaction[ARtsBridgeGameMode::PlayerFaction],
+				PerFaction[0] + PerFaction[1] + PerFaction[2] - PerFaction[ARtsBridgeGameMode::PlayerFaction]),
 			FString::Printf(TEXT("%.0f fps   selected %d"), FpsAvg, Sel.Num()),
 			TEXT("F4 debug overlays on/off"),
 		};
@@ -710,7 +769,7 @@ void ARtsMinimapHud::DrawEconomyBar()
 {
 	// T35: your (faction 0) credits and power, top centre. Snapshot values only.
 	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
-	const FRtsFactionSnapshot* F = GM ? GM->GetFactionState(0) : nullptr;
+	const FRtsFactionSnapshot* F = GM ? GM->GetFactionState(ARtsBridgeGameMode::PlayerFaction) : nullptr;
 	if (!F || !Canvas)
 		return;
 	const double Now = GetWorld()->GetRealTimeSeconds();
@@ -1042,7 +1101,7 @@ void ARtsMinimapHud::DrawProductionPanel()
 		+ (bBuilding ? TEXT("  (under construction)") : TEXT("  -  LMB train, Shift x5, RMB cancel"));
 	DrawText(Title, FLinearColor(0.9f, 0.9f, 0.9f), L.Panel.Min.X + ProdPad, L.Panel.Min.Y + 4.0f, Small, 1.0f);
 
-	const FRtsFactionSnapshot* F = GM->GetFactionState(0);
+	const FRtsFactionSnapshot* F = GM->GetFactionState(ARtsBridgeGameMode::PlayerFaction);
 	const int32 Credits = F ? F->Credits : 0;
 	const bool bFull = B->ProductionQueue.Num() >= ProductionQueueSlots;
 	float MX = -1.0f, MY = -1.0f;
@@ -1103,7 +1162,7 @@ void ARtsMinimapHud::DrawRallyPoints()
 	for (const int32 Id : GM->GetSelectedIds())
 	{
 		const FRtsUnitSnapshot* R = GM->GetUnitRow(Id);
-		if (!R || !R->bHasRally || R->Faction != 0)
+		if (!R || !R->bHasRally || R->Faction != ARtsBridgeGameMode::PlayerFaction)
 			continue;
 		const FVector From = Project(FVector(R->X * C, R->Y * C, 5.0f));
 		const FVector To = Project(FVector(R->RallyX * C, R->RallyY * C, 5.0f));

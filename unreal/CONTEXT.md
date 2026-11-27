@@ -36,8 +36,14 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   `bridge_hit` events draw tracers. Test: `RtsBridge.Host.Domain` also checks bridge + engineer parse.
   T29: unit rows add `Type`, `bMarked`, `bConscriptable`, `PhaseTicks` (-1 = can't phase) and
   `PhaseCooldown`. The HUD puts a red pip over marked units and a cyan ring under phased ones. No
-  player buttons for Phase / Conscription yet: the player is Coalition (faction 0), whose verb
-  (Marking) is passive.
+  player buttons for Phase / Conscription yet (Hegemony and Ascendant are playable from the
+  faction pick, but their verbs have no buttons; Coalition's Marking is passive).
+  Faction pick: in single player (`CanRestart`) a "Choose your faction" panel shows before the
+  first tick and again after Play again; the sim does not step until a button is clicked
+  (`ChooseFaction`). `ARtsBridgeGameMode::PlayerFaction` (static, sim index 0/1/2) then decides
+  everything that is "yours": command `faction`, selection, build menu and place queries,
+  credits/power, rally markers, tooltips' "Yours", camera start, VICTORY/DEFEAT. Units keep
+  their faction colours. Test: `RtsBridge.UI.FactionPick`.
   T28: unit rows add `bCanCapture`, faction rows `Trees` (`HasTree`). RMB on an enemy or neutral
   building, or an enemy MCV, sends selected capturing engineers to take it and the rest to attack
   it (`RequestCaptureOrAttack`; neutrals can't be attacked, so with no engineer it is a plain move).
@@ -77,7 +83,7 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   `BindKey` — no config mappings. LMB: on minimap jump/drag camera, else click
   (<6 px movement: nearest own unit within 40 px, empty ground clears) or drag box
   (own units whose screen projection is inside); Shift toggles/adds. Ctrl+A = select all
-  faction-0 units (A is scroll); Ctrl+1–3 assign group, 1–3 recall, double-tap
+  your (`PlayerFaction`) units (A is scroll); Ctrl+1–3 assign group, 1–3 recall, double-tap
   centres the camera on it; RMB = enemy under cursor ? `attack` (target = sim id) :
   `move` to the minimap point or ground trace. F arms attack-move (crosshair): next LMB
   issues `attack-move` (or `attack` on an enemy); RMB cancels. X = `stop`. Restart (T07, `RestartMatch`, no hotkey — only the T19 result screen's Play again calls it): host `reset` + `init` on the live process, relaunch if it died; clears actors, selection, groups and the result banner. A/S are
@@ -106,7 +112,7 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   economy bar (T35, top centre: your credits with a +/- flash on change, power as used / produced,
   red with LOW POWER when draw > supply; text from static `EconomyBarText`);
   build sidebar (T36, right edge: with no base and an MCV, a hint + Deploy button (E key does the
-  same); with a base, faction-0 buildings except yards from `GetBuildOptions` (naval/offshore listed last with a blue "builds on water by the shore" hint; T25 the sim answers `water` / `shore` when the ghost is on the wrong ground) --
+  same); with a base, your faction's buildings (and captured trees) except yards from `GetBuildOptions` (naval/offshore listed last with a blue "builds on water by the shore" hint; T25 the sim answers `water` / `shore` when the ghost is on the wrong ground) --
   prereq from the sim's own query (re-asked only when your buildings or their finished state
   change), affordability and a low-power warning from the snapshot; static `BuildMenuLayout`/
   `BuildMenuHit`); placement ghost (footprint cells under the cursor, green/red from

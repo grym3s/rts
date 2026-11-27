@@ -50,7 +50,8 @@ public:
 	bool RestartMatch();
 
 	/** T19: the match result screen is showing (match over + a short beat for the last
-	 *  deaths). While up, orders are refused; only the screen's buttons act. */
+	 *  deaths), or the faction pick is. While up, orders are refused; only the screen's
+	 *  buttons act. */
 	bool IsMatchScreenUp() const;
 	/** 0..1 fade of the result screen (for the HUD). */
 	float MatchScreenAlpha() const;
@@ -61,6 +62,17 @@ public:
 	int32 GetLost(int32 Faction) const { return Lost.IsValidIndex(Faction) ? Lost[Faction] : 0; }
 	/** Restart is single-player only (standalone), from this screen — never a hotkey. */
 	bool CanRestart() const;
+
+	/** The faction you play: 0 Coalition, 1 Hegemony, 2 Ascendant (sim faction index). Chosen
+	 *  on the start screen; everything "yours" (orders, selection, build menu, credits, the
+	 *  result) follows it. Static like the map size: one local player per process. */
+	static int32 PlayerFaction;
+	/** Single player: the faction pick shows before the first tick and again after Play again.
+	 *  The sim does not step and orders are refused until a faction is chosen. */
+	bool IsFactionPickUp() const { return bChoosingFaction; }
+	void ChooseFaction(int32 Faction);
+	/** "Coalition" / "Hegemony" / "Ascendant" / "Neutral". */
+	static FString FactionName(int32 Faction);
 	/** Leave the match (ends PIE in the editor, quits a packaged game). */
 	void QuitMatch();
 
@@ -236,6 +248,7 @@ private:
 	bool bFinished = false;
 	bool bMatchReported = false; // log/show the T06 result once
 	int32 MatchWinner = -1;
+	bool bChoosingFaction = false;
 	int64 MatchEndTick = -1;
 	double MatchOverRealTime = 0.0;
 	static constexpr double MatchScreenDelay = 1.5; // let the last deaths play

@@ -374,6 +374,11 @@ bool ARtsRtsPlayerController::HandleMatchScreenClick()
 	GetViewportSize(VX, VY);
 	if (!GetMousePosition(MX, MY))
 		return true;
+	if (GM->IsFactionPickUp())
+	{
+		GM->ChooseFaction(ARtsMinimapHud::FactionPickHit(FVector2D(VX, VY), FVector2D(MX, MY)));
+		return true;
+	}
 	switch (ARtsMinimapHud::MatchScreenHit(FVector2D(VX, VY), FVector2D(MX, MY), GM->CanRestart()))
 	{
 	case ARtsMinimapHud::EMatchScreenButton::PlayAgain: GM->RestartMatch(); break;
