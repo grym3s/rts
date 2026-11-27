@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-guard-turret",
   "name": "Guard Turret",
-  "description": "Anti-ground turret (not armed yet)",
+  "description": "Anti-ground turret",
   "faction": "coalition",
   "category": "defense",
   "tier": 1,
@@ -15,5 +15,14 @@
   ],
   "stats": {
     "hp": 1000
+  },
+  "weapon": {
+    "damageType": "ap",
+    "damage": 30,
+    "range": 9.0,
+    "cooldownTicks": 36,
+    "targets": [
+      "ground"
+    ]
   }
 }

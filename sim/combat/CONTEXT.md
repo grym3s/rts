@@ -14,6 +14,8 @@ Tick step 4 (see `../CONTEXT.md`). `CombatSystem.Step(units, orders, tick)` per 
 
 Events (T09, when given the world): one `Shot` per hit (subject = shooter, target = victim, amount = damage applied) and one `Death` per kill (subject = dead unit, target = killer, faction = dead unit's).
 Step 6 cleanup: `UnitStore.DespawnDead()`. No RNG, no floats — fights are replays.
+Defense buildings fire too: a building with a `weapon` (content) gets it in its profile with sight = range; once built it shoots the nearest enemy in range, drops a target that leaves range, never moves and never guards/returns (`CombatSystem.Guard`, building branch). Test: `DeployTests.A_built_guard_turret_shoots_enemies_in_range_and_never_moves`.
+
 Guard state is not in the state hash directly; it shows up through positions and HP. Scenario: `content/scenarios/guard-hold.json`.
 Weapon/HP/sight/faction/armor/damageType numbers come from `content/units/*.json` via `UnitProfile` (sim/units).
 `DamageMatrix` cells are design canon (`docs/factions/counter-matrix.md`) — do not tune them here;

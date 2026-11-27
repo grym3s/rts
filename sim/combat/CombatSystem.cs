@@ -17,6 +17,7 @@ public static class CombatSystem
         foreach (var u in units.Units)
         {
             if (u.Hp.Raw <= 0) continue; // killed earlier this tick: no actions
+            if (u.Building is { ConstructionRemaining: > 0 }) continue; // a turret fires once it is built
 
             // auto-acquire for attack-move: nearest living enemy in sight, first wins on ties (store order)
             if (u.AttackMoving && !HasLiveTarget(u, units))
@@ -66,7 +67,8 @@ public static class CombatSystem
             }
             else if (u.Speed.Raw == 0)
             {
-                if (u.Guarding) { u.TargetId = EntityId.None; u.Guarding = false; } // static guard: out of reach
+                // static guard or a defense building: out of reach, look again next tick
+                if (u.Guarding || u.Building != null) { u.TargetId = EntityId.None; u.Guarding = false; }
             }
             else if (!u.AttackMoving)
             {
@@ -95,6 +97,13 @@ public static class CombatSystem
         }
         if (u.AttackMoving) return;
         if (u.BridgeTarget >= 0) return; // T26: a bridge job is a player order: no auto-acquiring
+        if (u.Building != null)
+        {
+            // a defense never moves: it shoots the nearest enemy in range (sight = range) and
+            // looks again once that one dies or leaves
+            if (!HasLiveTarget(u, units)) u.TargetId = Acquire(u, units, tick);
+            return;
+        }
 
         var hasLive = HasLiveTarget(u, units);
         if (u.Guarding)

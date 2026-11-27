@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Rts.Sim.Combat;
 using Rts.Sim.Core;
 
 namespace Rts.Sim.Units;
@@ -11,11 +12,16 @@ public sealed class BuildingCatalog
     public record PlacementParams(string Id, int Faction, string Category, int Cost, int BuildTicks, Fix64 Hp, string? Prereq, int Power,
         int FootprintW = 1, int FootprintH = 1, string Name = "", bool RequiresShore = false,
         Fix64 MarkRadius = default, bool ConscriptionHall = false, int OilIncome = 0, bool Restorable = false,
-        string Description = "")
+        string Description = "", Weapon? Gun = null)
     {
         /// <summary>T25: naval and offshore buildings stand on water (shipyards, sea platforms).</summary>
         public bool OnWater => Category is "naval" or "offshore";
     }
+
+    /// <summary>A defense's gun (content `weapon`, same shape as a unit's). Buildings without
+    /// one never fire.</summary>
+    public sealed record Weapon(Fix64 Damage, Fix64 Range, int CooldownTicks, DamageType DamageType,
+        Rts.Sim.World.TargetMask Targets, bool MarksOnHit);
 
     /// <summary>T31 footprint in cells when a file has no `footprint: [w, h]`. Tuning, not canon
     /// (canon gives no sizes): big production/economy 3x3, support 2x2, defences 1x1.</summary>
@@ -65,7 +71,13 @@ public sealed class BuildingCatalog
                 // T28: an owned oil derrick drips this many credits per second to its owner
                 root.TryGetProperty("verbs", out var vb3) && vb3.TryGetProperty("oilIncome", out var oi) ? oi.GetInt32() : 0,
                 UnitCatalog.Verb(root, "restoredByEngineer"), // T28: destroyed = a wreck an engineer restores
-                UnitCatalog.Text(root, "description"));
+                UnitCatalog.Text(root, "description"),
+                root.TryGetProperty("weapon", out var wp)
+                    ? new Weapon(Fix64.FromDouble(wp.GetProperty("damage").GetDouble()), Fix64.FromDouble(wp.GetProperty("range").GetDouble()),
+                        wp.GetProperty("cooldownTicks").GetInt32(), DamageMatrix.ParseDamageType(wp.GetProperty("damageType").GetString()!),
+                        wp.TryGetProperty("targets", out var tg) ? Rts.Sim.World.Domains.ParseTargets(tg) : Rts.Sim.World.TargetMask.Ground,
+                        UnitCatalog.Verb(root, "marksOnHit"))
+                    : null);
         }
         return cat;
     }

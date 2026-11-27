@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-sam-site",
   "name": "SAM Site",
-  "description": "Anti-air site (not armed yet)",
+  "description": "Anti-air missile site",
   "faction": "coalition",
   "category": "defense",
   "tier": 2,
@@ -15,5 +15,14 @@
   ],
   "stats": {
     "hp": 1000
+  },
+  "weapon": {
+    "damageType": "missile",
+    "damage": 30,
+    "range": 10.0,
+    "cooldownTicks": 30,
+    "targets": [
+      "air"
+    ]
   }
 }

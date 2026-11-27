@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-shore-gun",
   "name": "Shore Gun",
-  "description": "Coastal gun (not armed yet)",
+  "description": "Coastal gun; longest range",
   "faction": "hegemony",
   "category": "defense",
   "tier": 3,
@@ -17,5 +17,15 @@
   "stats": {
     "hp": 3000
   },
-  "requiresShore": true
+  "requiresShore": true,
+  "weapon": {
+    "damageType": "naval-gun",
+    "damage": 80,
+    "range": 30.0,
+    "cooldownTicks": 130,
+    "targets": [
+      "ground",
+      "sea"
+    ]
+  }
 }

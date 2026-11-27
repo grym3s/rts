@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-anchor-spire",
   "name": "Anchor Spire",
-  "description": "Coastal gun (not armed yet)",
+  "description": "Coastal gun; outranges ships",
   "faction": "ascendant",
   "category": "defense",
   "tier": 3,
@@ -17,5 +17,15 @@
   "stats": {
     "hp": 1000
   },
-  "requiresShore": true
+  "requiresShore": true,
+  "weapon": {
+    "damageType": "energy",
+    "damage": 70,
+    "range": 28.0,
+    "cooldownTicks": 120,
+    "targets": [
+      "ground",
+      "sea"
+    ]
+  }
 }

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-precision-turret",
   "name": "Precision Turret",
-  "description": "Long-range turret (not armed yet)",
+  "description": "Long-range turret; marks what it hits",
   "faction": "coalition",
   "category": "defense",
   "tier": 2,
@@ -16,5 +16,17 @@
   ],
   "stats": {
     "hp": 1000
+  },
+  "weapon": {
+    "damageType": "ap",
+    "damage": 40,
+    "range": 14.0,
+    "cooldownTicks": 50,
+    "targets": [
+      "ground"
+    ]
+  },
+  "verbs": {
+    "marksOnHit": true
   }
 }

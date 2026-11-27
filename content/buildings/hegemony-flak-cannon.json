@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-flak-cannon",
   "name": "Flak Cannon",
-  "description": "Anti-air cannon (not armed yet)",
+  "description": "Anti-air flak cannon",
   "faction": "hegemony",
   "category": "defense",
   "tier": 2,
@@ -15,5 +15,14 @@
   ],
   "stats": {
     "hp": 1800
+  },
+  "weapon": {
+    "damageType": "autocannon",
+    "damage": 12,
+    "range": 9.0,
+    "cooldownTicks": 8,
+    "targets": [
+      "air"
+    ]
   }
 }

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-skyward-spire",
   "name": "Skyward Spire",
-  "description": "Anti-air spire (not armed yet)",
+  "description": "Anti-air spire",
   "faction": "ascendant",
   "category": "defense",
   "tier": 2,
@@ -15,5 +15,14 @@
   ],
   "stats": {
     "hp": 500
+  },
+  "weapon": {
+    "damageType": "autocannon",
+    "damage": 12,
+    "range": 9.0,
+    "cooldownTicks": 10,
+    "targets": [
+      "air"
+    ]
   }
 }

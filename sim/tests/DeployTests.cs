@@ -1,3 +1,4 @@
+using Rts.Sim.Combat;
 using Rts.Sim.Core;
 using Rts.Sim.Economy;
 using Rts.Sim.Navigation;
@@ -163,6 +164,46 @@ public class DeployTests
         // a building extends the radius: (37,10) -> origin (36,9), 12 from the reactor's column 24
         x.Step(new PlaceBuildingCommand(x.Sim.Tick, 0, "coalition-reactor", At(37, 10)));
         Assert.Equal(3, x.Units.Units.Count);
+    }
+
+    [Fact]
+    public void A_built_guard_turret_shoots_enemies_in_range_and_never_moves()
+    {
+        var x = World();
+        x.Sim.Systems.Insert(x.Sim.Systems.Count - 1, (sw, due) => CombatSystem.Step(x.Units, x.Orders, sw.Tick, sw));
+        Unit Enemy(string id, int cx, int cy)
+        {
+            var p = UnitsCat.Get(id);
+            return x.Units.Spawn(x.Sim.Ids.Next(), Mid(cx, cy), p.Speed, p.Radius, p.Profile() with { Faction = 1 });
+        }
+        x.Step(new PlaceBuildingCommand(x.Sim.Tick, 0, "coalition-construction-yard", At(5, 5)));
+        for (var i = 0; i < 220; i++) x.Step();
+        x.Step(new PlaceBuildingCommand(x.Sim.Tick, 0, "coalition-barracks", At(9, 5)));
+        for (var i = 0; i < 420; i++) x.Step();
+        x.Step(new PlaceBuildingCommand(x.Sim.Tick, 0, "coalition-guard-turret", At(10, 12)));
+        var turret = x.Units.Units.Single(u => u.Building?.Id == "coalition-guard-turret");
+        var at = turret.Position;
+        Assert.Equal(Fix64.FromInt(9), turret.Range);
+
+        var near = Enemy("engineer", 15, 12); // 5 cells: in range, and unarmed so it can't fight back
+        var far = Enemy("engineer", 30, 12);  // 20 cells: out of range
+        for (var i = 0; i < 60; i++) x.Step();
+        Assert.Equal(near.MaxHp, near.Hp); // still under construction: silent
+
+        for (var i = 0; i < 600 && near.Hp.Raw > 0; i++) x.Step();
+        Assert.True(near.Hp.Raw <= 0, "the turret never killed the engineer in range");
+        Assert.Equal(far.MaxHp, far.Hp);
+        Assert.Equal(at, turret.Position);
+        Assert.False(x.Orders.ContainsKey(turret.Id));
+    }
+
+    [Fact]
+    public void Every_defense_building_is_armed()
+    {
+        foreach (var b in BuildingsCat.All.Where(b => b.Category == "defense"))
+            Assert.True(b.Gun is { Damage.Raw: > 0 }, $"{b.Id} has no weapon");
+        Assert.Equal(Rts.Sim.World.TargetMask.Air, BuildingsCat.Get("coalition-sam-site").Gun!.Targets);
+        Assert.True(BuildingsCat.Get("coalition-precision-turret").Gun!.MarksOnHit);
     }
 
     [Fact]

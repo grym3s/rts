@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-cannon-tower",
   "name": "Cannon Tower",
-  "description": "Heavy turret (not armed yet)",
+  "description": "Heavy anti-ground turret",
   "faction": "hegemony",
   "category": "defense",
   "tier": 2,
@@ -15,5 +15,14 @@
   ],
   "stats": {
     "hp": 3000
+  },
+  "weapon": {
+    "damageType": "ap",
+    "damage": 40,
+    "range": 9.0,
+    "cooldownTicks": 40,
+    "targets": [
+      "ground"
+    ]
   }
 }

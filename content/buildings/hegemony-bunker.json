@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-bunker",
   "name": "Bunker",
-  "description": "Garrison bunker (not armed yet)",
+  "description": "Bunker (garrison not in yet)",
   "faction": "hegemony",
   "category": "defense",
   "tier": 1,
@@ -16,5 +16,14 @@
   "stats": {
     "hp": 3000
   },
-  "garrisonable": true
+  "garrisonable": true,
+  "weapon": {
+    "damageType": "small-arms",
+    "damage": 10,
+    "range": 6.0,
+    "cooldownTicks": 10,
+    "targets": [
+      "ground"
+    ]
+  }
 }

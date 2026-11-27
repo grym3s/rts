@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-spotlight-bunker",
   "name": "Spotlight Bunker",
-  "description": "Reveals stealth (not in yet)",
+  "description": "Bunker (stealth reveal not in yet)",
   "faction": "hegemony",
   "category": "defense",
   "tier": 2,
@@ -16,5 +16,14 @@
   "stats": {
     "hp": 3000
   },
-  "garrisonable": true
+  "garrisonable": true,
+  "weapon": {
+    "damageType": "small-arms",
+    "damage": 8,
+    "range": 6.0,
+    "cooldownTicks": 12,
+    "targets": [
+      "ground"
+    ]
+  }
 }

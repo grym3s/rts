@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-phase-turret",
   "name": "Phase Turret",
-  "description": "Phasing turret (not armed yet)",
+  "description": "Anti-ground turret",
   "faction": "ascendant",
   "category": "defense",
   "tier": 1,
@@ -15,5 +15,14 @@
   ],
   "stats": {
     "hp": 500
+  },
+  "weapon": {
+    "damageType": "energy",
+    "damage": 20,
+    "range": 8.0,
+    "cooldownTicks": 24,
+    "targets": [
+      "ground"
+    ]
   }
 }
