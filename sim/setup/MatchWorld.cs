@@ -126,5 +126,6 @@ public sealed class MatchWorld
         World.HashMixers.Add(h => Production.ProductionStore.Hash(units, h));
         World.HashMixers.Add(power.Hash);
         World.HashMixers.Add(bridges.Hash); // T26: adds nothing until a bridge is hit
+        World.HashMixers.Add(Ai.Hash); // adds nothing without computer players
     }
 }
