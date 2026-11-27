@@ -90,7 +90,7 @@ public sealed class Bridge
 public sealed class BridgeStore
 {
     /// <summary>Hit points per bridge (tuning, not canon: canon only says bridges can be destroyed).</summary>
-    public static readonly Fix64 BridgeHp = Fix64.FromInt(800); // ~80 s for one MBT, ~16 s for five
+    public static readonly Fix64 BridgeHp = Fix64.FromInt(400); // ~40 s for one MBT, ~8 s for five (halved 2026-11-28 after play-test: 800 felt stuck)
 
     private readonly List<Bridge> _bridges = new();
     public IReadOnlyList<Bridge> Bridges => _bridges;
