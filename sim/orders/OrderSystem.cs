@@ -130,5 +130,6 @@ public static class OrderSystem
         u.BridgeTarget = -1;
         u.CaptureTarget = EntityId.None;
         u.ChannelTicks = 0;
+        u.BoardTarget = EntityId.None; // sim/transport: any other order calls off boarding
     }
 }

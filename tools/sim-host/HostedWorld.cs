@@ -103,6 +103,10 @@ public sealed class HostedWorld
                 "bridge" => new BridgeCommand(tick, faction, unitIds, c.GetProperty("bridge").GetInt32()),
                 "capture" => new CaptureCommand(tick, faction, unitIds, DecodeAttackTarget(hasTgt ? target : null)), // T28: target = entity id
                 "phase" => new PhaseCommand(tick, faction, unitIds),
+                "load" => new LoadCommand(tick, faction, unitIds, new EntityId(c.GetProperty("holder").GetInt32())),
+                "unload" => new UnloadCommand(tick, faction, new EntityId(c.GetProperty("holder").GetInt32())),
+                "teleport" => new TeleportCommand(tick, faction, unitIds, new EntityId(c.GetProperty("node").GetInt32())),
+                "fire" => new FireCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()), tgt),
                 "conscript" => new ConscriptCommand(tick, faction, unitIds),
                 "rally" => new RallyCommand(tick, faction, new EntityId(c.GetProperty("building").GetInt32()),
                     new FixVec2(Fix64.FromDouble(c.GetProperty("at")[0].GetDouble()), Fix64.FromDouble(c.GetProperty("at")[1].GetDouble()))),

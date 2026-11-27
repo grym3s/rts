@@ -242,6 +242,7 @@ public static class NavigationSystem
                 // bridge hut marks none: it is a marker units walk over (paths run through its
                 // cell, so pushing them off it would stall them there), and it never moves.
                 if (a.Building is { BridgeId: >= 0 } || b.Building is { BridgeId: >= 0 }) continue;
+                if (a.Inside != EntityId.None || b.Inside != EntityId.None) continue; // passengers ride (sim/transport)
                 var aFixed = a.Building != null;
                 var bFixed = b.Building != null;
                 if (aFixed && bFixed) continue;

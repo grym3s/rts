@@ -63,5 +63,19 @@ public sealed record ConscriptCommand(int Tick, int Faction, EntityId[] Units) :
 /// capture it on touch: it changes owner and the engineer is consumed.</summary>
 public sealed record CaptureCommand(int Tick, int Faction, EntityId[] Units, EntityId Target) : Command(Tick, Faction);
 
+/// <summary>sim/transport: units walk to `Holder` (own transport, bunker or tunnel) and climb in
+/// while it has room and takes their kind.</summary>
+public sealed record LoadCommand(int Tick, int Faction, EntityId[] Units, EntityId Holder) : Command(Tick, Faction);
+
+/// <summary>sim/transport: everyone in `Holder` gets out beside it (a tunnel: everyone in any of
+/// the side's tunnels gets out at this one).</summary>
+public sealed record UnloadCommand(int Tick, int Faction, EntityId Holder) : Command(Tick, Faction);
+
+/// <summary>sim/transport: units near any other own Teleport Node appear beside `Node`.</summary>
+public sealed record TeleportCommand(int Tick, int Faction, EntityId[] Units, EntityId Node) : Command(Tick, Faction);
+
+/// <summary>sim/superweapons: a charged superweapon strikes `Target` after its telegraph delay.</summary>
+public sealed record FireCommand(int Tick, int Faction, EntityId Building, FixVec2 Target) : Command(Tick, Faction);
+
 /// <summary>T26: work on bridge `Bridge` (BridgeStore id): armed units attack it, engineers repair it.</summary>
 public sealed record BridgeCommand(int Tick, int Faction, EntityId[] Units, int Bridge) : Command(Tick, Faction);

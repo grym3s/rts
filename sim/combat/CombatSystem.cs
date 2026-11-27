@@ -26,7 +26,7 @@ public static class CombatSystem
                 u.TargetId = EntityId.None; // offline: no power (or sabotaged)
                 continue;
             }
-            if (u.Inside != EntityId.None) continue; // a passenger: garrisons fire for it (sim/transport)
+            if (u.Inside != EntityId.None) { Garrisoned(u, units, tick, events); continue; } // a passenger (sim/transport)
 
             // auto-acquire for attack-move: nearest living enemy in sight, first wins on ties (store order)
             if (u.AttackMoving && !HasLiveTarget(u, units))
@@ -99,6 +99,38 @@ public static class CombatSystem
         events?.Emit(SimEventKind.Shot, u.Id, target.Id, applied);
         if (wasAlive && target.Hp.Raw <= 0)
             events?.Emit(SimEventKind.Death, target.Id, u.Id, faction: target.Faction);
+    }
+
+    /// <summary>Bunkers: a passenger shoots out with this much extra range, measured from the bunker.</summary>
+    public static readonly Fix64 GarrisonRangeBonus = Fix64.FromInt(2);
+
+    /// <summary>A passenger only fights from inside a garrison (Bunker, Spotlight Bunker): it keeps
+    /// shooting its target, or the nearest visible enemy, within its range plus the bonus from the
+    /// bunker. Anything else it rides in keeps it quiet.</summary>
+    private static void Garrisoned(Unit u, UnitStore units, int tick, SimWorld? events)
+    {
+        if (u.Damage.Raw == 0) return;
+        if (u.CooldownRemaining > 0) u.CooldownRemaining--;
+        if (units.Find(u.Inside) is not { Ability.Garrison: true } h || h.Hp.Raw <= 0 || h.IsSabotaged(tick)) { u.TargetId = EntityId.None; return; }
+        var reach = u.Range + GarrisonRangeBonus + Fix64.One;
+        bool Ok(Unit? e) => e is { Hp.Raw: > 0 } && e.Faction != u.Faction && e.Faction != Factions.Neutral && e.Inside == EntityId.None
+            && CanHit(u, e) && !e.IsPhased(tick) && Support.CanSee(u.Faction, e, tick) && (e.Position - h.Position).Length <= reach + e.Radius;
+        var t = u.TargetId != EntityId.None ? units.Find(u.TargetId) : null;
+        if (!Ok(t))
+        {
+            t = null;
+            var bestD = Fix64.Zero;
+            foreach (var e in units.Units)
+            {
+                if (!Ok(e)) continue;
+                var d = (e.Position - h.Position).LengthSquared;
+                if (t == null || d < bestD) { t = e; bestD = d; }
+            }
+        }
+        u.TargetId = t?.Id ?? EntityId.None;
+        if (t == null || u.CooldownRemaining > 0 || u.IsPhased(tick)) return;
+        Hit(u, t, u.Damage, tick, events);
+        u.CooldownRemaining = u.CooldownTicks;
     }
 
     /// <summary>Line damage: half-width of the line (plus the victim's radius).</summary>
