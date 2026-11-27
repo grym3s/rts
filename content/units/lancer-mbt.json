@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "lancer-mbt",
   "name": "Lancer MBT",
+  "description": "Main battle tank",
   "faction": "coalition",
   "role": "mbt",
   "tier": 1,

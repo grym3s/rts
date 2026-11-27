@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "falcon",
   "name": "Falcon",
+  "description": "Fighter; shoots aircraft",
   "faction": "coalition",
   "role": "interceptor",
   "tier": 2,

@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "marksman",
   "name": "Marksman",
+  "description": "Long-range sniper",
   "faction": "coalition",
   "role": "sniper",
   "tier": 2,

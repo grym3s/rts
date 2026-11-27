@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "rifleman",
   "name": "Rifleman",
+  "description": "Basic infantry; marks what it hits",
   "faction": "coalition",
   "role": "basic-infantry",
   "tier": 1,

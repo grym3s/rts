@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-drift-platform",
   "name": "Drift Platform",
+  "description": "Offshore outpost; goes on water",
   "faction": "ascendant",
   "category": "offshore",
   "tier": 2,

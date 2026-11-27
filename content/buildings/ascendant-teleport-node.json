@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-teleport-node",
   "name": "Teleport Node",
+  "description": "Teleport network (not in yet)",
   "faction": "ascendant",
   "category": "logistics",
   "tier": 1,

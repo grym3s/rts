@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-reactor",
   "name": "Reactor",
+  "description": "Power generator",
   "faction": "coalition",
   "category": "power",
   "tier": 1,

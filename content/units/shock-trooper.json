@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "shock-trooper",
   "name": "Shock Trooper",
+  "description": "Heavy assault infantry",
   "faction": "hegemony",
   "role": "heavy-infantry",
   "tier": 2,

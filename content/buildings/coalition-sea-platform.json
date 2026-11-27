@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-sea-platform",
   "name": "Sea Platform",
+  "description": "Offshore outpost; goes on water",
   "faction": "coalition",
   "category": "offshore",
   "tier": 2,

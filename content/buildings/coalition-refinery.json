@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-refinery",
   "name": "Refinery",
+  "description": "Earns credits; comes with a Collector",
   "faction": "coalition",
   "category": "economy",
   "tier": 1,

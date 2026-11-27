@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "at-squad",
   "name": "AT Squad",
+  "description": "Anti-tank infantry",
   "faction": "hegemony",
   "role": "anti-armor",
   "tier": 2,

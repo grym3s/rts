@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "sam-rover",
   "name": "SAM Rover",
+  "description": "Mobile anti-air",
   "faction": "coalition",
   "role": "anti-air",
   "tier": 2,

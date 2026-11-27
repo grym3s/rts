@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "disruptor",
   "name": "Disruptor",
+  "description": "Anti-tank infantry",
   "faction": "ascendant",
   "role": "anti-armor",
   "tier": 2,

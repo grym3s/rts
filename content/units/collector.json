@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "collector",
   "name": "Collector",
+  "description": "Harvests ore for credits",
   "faction": "coalition",
   "role": "harvester",
   "tier": 1,

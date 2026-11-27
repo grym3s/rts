@@ -166,6 +166,16 @@ public class DeployTests
     }
 
     [Fact]
+    public void Every_unit_and_building_says_what_it_does_in_one_short_line()
+    {
+        // shown under the name in the build menu (one row) and in tooltips
+        foreach (var b in BuildingsCat.All)
+            Assert.True(b.Description.Length is > 0 and <= 42, $"{b.Id}: '{b.Description}'");
+        foreach (var u in UnitsCat.All)
+            Assert.True(u.Description.Length is > 0 and <= 42, $"{u.Id}: '{u.Description}'");
+    }
+
+    [Fact]
     public void Turrets_and_shipyards_reach_further_than_other_buildings()
     {
         Assert.Equal(ProductionSystem.BuildRadius, ProductionSystem.ReachFor("power"));

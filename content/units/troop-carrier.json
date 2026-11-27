@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "troop-carrier",
   "name": "Troop Carrier",
+  "description": "Armoured APC (carrying not in yet)",
   "faction": "hegemony",
   "role": "apc",
   "tier": 2,

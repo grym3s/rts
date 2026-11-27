@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "glaive",
   "name": "Glaive",
+  "description": "Hover tank; hits ground and air",
   "faction": "ascendant",
   "role": "mbt",
   "tier": 1,

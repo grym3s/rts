@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-airbase",
   "name": "Airbase",
+  "description": "Builds aircraft",
   "faction": "coalition",
   "category": "air",
   "tier": 2,

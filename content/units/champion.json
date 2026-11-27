@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "champion",
   "name": "Champion",
+  "description": "Commando",
   "faction": "hegemony",
   "role": "commando",
   "tier": 3,

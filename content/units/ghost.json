@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "ghost",
   "name": "Ghost",
+  "description": "Commando",
   "faction": "coalition",
   "role": "commando",
   "tier": 3,

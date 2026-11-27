@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "skimmer",
   "name": "Skimmer",
+  "description": "Hover scout; crosses water",
   "faction": "ascendant",
   "role": "scout",
   "tier": 1,

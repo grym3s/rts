@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-anchor-spire",
   "name": "Anchor Spire",
+  "description": "Coastal gun (not armed yet)",
   "faction": "ascendant",
   "category": "defense",
   "tier": 3,

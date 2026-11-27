@@ -942,13 +942,19 @@ void ARtsMinimapHud::DrawBuildMenu()
 			Sub = TEXT("will cause low power");
 			SubCol = FLinearColor(1.0f, 0.7f, 0.2f);
 		}
-		else if (O.bNeedsWater)
+		else
 		{
-			Sub = TEXT("builds on water by the shore");
-			SubCol = FLinearColor(0.45f, 0.7f, 1.0f);
+			// what it does (content `description`); naval/offshore in blue: they go on water
+			Sub = !O.Description.IsEmpty() ? O.Description : O.bNeedsWater ? FString(TEXT("builds on water by the shore")) : FString();
+			SubCol = O.bNeedsWater ? FLinearColor(0.45f, 0.7f, 1.0f) : FLinearColor(0.72f, 0.74f, 0.78f);
 		}
 		if (!Sub.IsEmpty())
-			DrawText(Sub, SubCol, R.Min.X + 6.0f, R.Min.Y + 22.0f, Small, 1.0f);
+		{
+			float SW = 0.0f, SH = 0.0f;
+			GetTextSize(Sub, SW, SH, Small, 1.0f);
+			const float Fit = SW > 0.0f ? FMath::Min(1.0f, (S.X - 12.0f) / SW) : 1.0f; // shrink a long line to the row
+			DrawText(Sub, SubCol, R.Min.X + 6.0f, R.Min.Y + 22.0f, Small, Fit);
+		}
 	}
 }
 
@@ -1108,6 +1114,7 @@ void ARtsMinimapHud::DrawProductionPanel()
 	if (PlayerOwner)
 		PlayerOwner->GetMousePosition(MX, MY);
 	const FVector2D Mouse(MX, MY);
+	FString HoverText; // the hovered unit's description, drawn above the panel
 	for (int32 i = 0; i < Types.Num(); ++i)
 	{
 		const FRtsUnitType& U = Types[i];
@@ -1123,6 +1130,8 @@ void ARtsMinimapHud::DrawProductionPanel()
 		DrawText(U.Name.IsEmpty() ? U.Id : U.Name, TextCol, R.Min.X + 4.0f, R.Min.Y + 3.0f, Small, 1.0f);
 		DrawText(FString::Printf(TEXT("$%d"), U.Cost), Credits >= U.Cost ? FLinearColor(1.0f, 0.86f, 0.35f) : FLinearColor(1.0f, 0.4f, 0.3f),
 			R.Min.X + 4.0f, R.Min.Y + 22.0f, Small, 1.0f);
+		if (R.IsInside(Mouse) && !U.Description.IsEmpty())
+			HoverText = FString::Printf(TEXT("%s: %s"), U.Name.IsEmpty() ? *U.Id : *U.Name, *U.Description);
 		if (Queued > 0)
 		{
 			const FString QText = FString::Printf(TEXT("x%d"), Queued);
@@ -1130,6 +1139,14 @@ void ARtsMinimapHud::DrawProductionPanel()
 			GetTextSize(QText, QW, QH, Font, 1.0f);
 			DrawText(QText, FLinearColor(0.4f, 1.0f, 0.45f), R.Max.X - 4.0f - QW, R.Min.Y + 20.0f, Font, 1.0f);
 		}
+	}
+	if (!HoverText.IsEmpty())
+	{
+		float HW = 0.0f, HH = 0.0f;
+		GetTextSize(HoverText, HW, HH, Font, 1.0f);
+		const float HX = L.Panel.Min.X, HY = L.Panel.Min.Y - HH - 10.0f;
+		DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.8f), HX, HY, HW + 12.0f, HH + 6.0f);
+		DrawText(HoverText, FLinearColor::White, HX + 6.0f, HY + 3.0f, Font, 1.0f);
 	}
 	for (int32 i = 0; i < L.Queue.Num(); ++i)
 	{

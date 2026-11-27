@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-conduit",
   "name": "Conduit",
+  "description": "Power generator",
   "faction": "ascendant",
   "category": "power",
   "tier": 1,

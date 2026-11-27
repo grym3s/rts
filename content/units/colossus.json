@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "colossus",
   "name": "Colossus",
+  "description": "Super-heavy tank",
   "faction": "hegemony",
   "role": "superheavy",
   "tier": 3,

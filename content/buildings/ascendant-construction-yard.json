@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-construction-yard",
   "name": "Construction Yard",
+  "description": "Builds your base",
   "faction": "ascendant",
   "category": "construction-yard",
   "tier": 1,

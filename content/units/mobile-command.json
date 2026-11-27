@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "mobile-command",
   "name": "Mobile Command",
+  "description": "Deploys into a Construction Yard",
   "faction": "coalition",
   "role": "mcv",
   "tier": 1,

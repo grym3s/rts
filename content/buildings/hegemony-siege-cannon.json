@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-siege-cannon",
   "name": "Siege Cannon",
+  "description": "Superweapon (not in yet)",
   "faction": "hegemony",
   "category": "superweapon",
   "tier": 3,

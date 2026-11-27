@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "mig",
   "name": "MiG",
+  "description": "Fighter; shoots aircraft",
   "faction": "hegemony",
   "role": "interceptor",
   "tier": 2,

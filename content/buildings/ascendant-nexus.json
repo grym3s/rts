@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-nexus",
   "name": "Nexus",
+  "description": "Unlocks tier 2 and the Aerie",
   "faction": "ascendant",
   "category": "tech",
   "tier": 2,

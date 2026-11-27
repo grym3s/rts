@@ -356,6 +356,14 @@ TArray<FString> ARtsBridgeGameMode::TooltipLines(int32 SimUnitId) const
 	if (!R)
 		return L;
 	L.Add(DisplayName(SimUnitId));
+	// what it is for (content `description`), right under the name
+	if (R->IsBuilding())
+	{
+		if (const FRtsBuildingType* BT = FindBuildingType(R->BuildingId); BT && !BT->Description.IsEmpty())
+			L.Add(BT->Description);
+	}
+	else if (const FRtsUnitType* UT = FindUnitType(R->Type); UT && !UT->Description.IsEmpty())
+		L.Add(UT->Description);
 	L.Add(FString::Printf(TEXT("%s    HP %.0f / %.0f"), *OwnerName(R->Faction), R->Hp, R->MaxHp));
 	const bool bOwn = R->Faction == PlayerFaction;
 	if (R->Bridge >= 0)
@@ -371,8 +379,6 @@ TArray<FString> ARtsBridgeGameMode::TooltipLines(int32 SimUnitId) const
 		L.Add(TEXT("Wrecked: right-click with an engineer to restore it (it becomes yours)"));
 		return L;
 	}
-	if (R->BuildingId == TEXT("neutral-oil-derrick"))
-		L.Add(TEXT("Oil: pays its owner credits every second"));
 	if (!bOwn && (R->IsBuilding() || IsMcvRow(*R)))
 		L.Add(TEXT("Right-click with an engineer to capture it"));
 	if (bOwn && R->IsBuilding())
@@ -819,6 +825,7 @@ void ARtsBridgeGameMode::RebuildBuildOptions(bool bHaveBase)
 			continue;
 		FBuildOption O;
 		O.bNeedsWater = B.Category == TEXT("naval") || B.Category == TEXT("offshore");
+		O.Description = B.Description;
 		O.BuildingId = B.Id;
 		O.Name = B.Name.IsEmpty() ? B.Id : B.Name;
 		O.Cost = B.Cost;
@@ -1035,7 +1042,9 @@ bool ARtsBridgeGameMode::RequestCaptureOrAttack(int32 TargetSimId)
 		{
 			if (R->Faction != PlayerFaction || R->IsBuilding())
 				continue;
-			FString& Into = bCapturable && R->bCanCapture ? Capturers : Attackers;
+			// a bridge hut is a repair job: any engineer, the Weaver too (it can't capture)
+			const bool bTakes = R->bCanCapture || (T && T->Bridge >= 0 && R->bEngineer);
+			FString& Into = bCapturable && bTakes ? Capturers : Attackers;
 			Into += (Into.IsEmpty() ? TEXT("") : TEXT(",")) + FString::FromInt(Sel);
 		}
 	bool bQueued = false;

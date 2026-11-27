@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-vehicle-bay",
   "name": "Vehicle Bay",
+  "description": "Builds ground vehicles",
   "faction": "coalition",
   "category": "production",
   "tier": 1,

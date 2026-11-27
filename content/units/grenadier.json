@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "grenadier",
   "name": "Grenadier",
+  "description": "Splash-damage infantry",
   "faction": "coalition",
   "role": "aoe-infantry",
   "tier": 2,

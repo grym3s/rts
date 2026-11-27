@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-shipyard",
   "name": "Shipyard",
+  "description": "Builds ships; goes on water",
   "faction": "hegemony",
   "category": "naval",
   "tier": 1,

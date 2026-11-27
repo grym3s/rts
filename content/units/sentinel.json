@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "sentinel",
   "name": "Sentinel-class",
+  "description": "Destroyer; hits ships and shore",
   "faction": "coalition",
   "role": "destroyer",
   "tier": 2,

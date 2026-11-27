@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "rift-lance",
   "name": "Rift Lance",
+  "description": "Long-range artillery",
   "faction": "ascendant",
   "role": "artillery",
   "tier": 3,

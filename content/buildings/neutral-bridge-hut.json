@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "neutral-bridge-hut",
   "name": "Bridge Hut",
+  "description": "Send an engineer here to repair the bridge",
   "faction": "neutral",
   "category": "logistics",
   "tier": 0,

@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-orbital-lance",
   "name": "Orbital Lance",
+  "description": "Superweapon (not in yet)",
   "faction": "coalition",
   "category": "superweapon",
   "tier": 3,

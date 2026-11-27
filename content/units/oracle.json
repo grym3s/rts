@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "oracle",
   "name": "Oracle",
+  "description": "Commando",
   "faction": "ascendant",
   "role": "commando",
   "tier": 3,

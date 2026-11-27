@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-aerie",
   "name": "Aerie",
+  "description": "Builds aircraft",
   "faction": "ascendant",
   "category": "air",
   "tier": 2,

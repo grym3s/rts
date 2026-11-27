@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "rocket-barrage",
   "name": "Rocket Barrage",
+  "description": "Long-range rocket artillery",
   "faction": "hegemony",
   "role": "artillery",
   "tier": 2,

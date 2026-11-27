@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "comms-rig",
   "name": "Comms Rig",
+  "description": "Marks enemies around it",
   "faction": "coalition",
   "role": "support",
   "tier": 2,

@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "skylift",
   "name": "Skylift",
+  "description": "Air transport (carrying not in yet)",
   "faction": "coalition",
   "role": "air-transport",
   "tier": 2,

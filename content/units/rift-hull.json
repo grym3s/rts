@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "rift-hull",
   "name": "Rift Hull",
+  "description": "Long-range bombardment ship",
   "faction": "ascendant",
   "role": "bombardment",
   "tier": 3,

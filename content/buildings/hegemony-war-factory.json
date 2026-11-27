@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-war-factory",
   "name": "War Factory",
+  "description": "Builds ground vehicles",
   "faction": "hegemony",
   "category": "production",
   "tier": 1,

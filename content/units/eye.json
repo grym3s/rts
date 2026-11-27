@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "eye",
   "name": "Eye",
+  "description": "Air scout (unarmed)",
   "faction": "ascendant",
   "role": "scout",
   "tier": 2,

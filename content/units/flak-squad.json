@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "flak-squad",
   "name": "Flak Squad",
+  "description": "Anti-air infantry",
   "faction": "hegemony",
   "role": "anti-air",
   "tier": 2,

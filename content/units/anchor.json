@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "anchor",
   "name": "Anchor",
+  "description": "Shields allies (not in yet)",
   "faction": "ascendant",
   "role": "support",
   "tier": 2,

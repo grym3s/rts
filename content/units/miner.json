@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "miner",
   "name": "Miner",
+  "description": "Harvests ore for credits",
   "faction": "hegemony",
   "role": "harvester",
   "tier": 1,

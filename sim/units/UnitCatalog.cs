@@ -14,7 +14,7 @@ public sealed class UnitCatalog
         Rts.Sim.World.MoveDomain Domain = Rts.Sim.World.MoveDomain.Land,
         Rts.Sim.World.TargetMask Targets = Rts.Sim.World.TargetMask.None, bool Engineer = false,
         bool MarksOnHit = false, Fix64 MarkRadius = default, bool Conscriptable = false, bool Detonates = false,
-        bool Phases = false, bool CannotCapture = false)
+        bool Phases = false, bool CannotCapture = false, string Description = "")
     {
         /// <summary>The spawn-time stat block (every spawner builds the same one).</summary>
         public Rts.Sim.World.UnitProfile Profile() => new(Faction, Hp, Sight, Damage, Range, CooldownTicks,
@@ -88,10 +88,15 @@ public sealed class UnitCatalog
                 Verb(root, "conscriptable"),
                 root.TryGetProperty("verbs", out var vb2) && vb2.TryGetProperty("conscriptEffect", out var ce) && ce.GetString() == "detonate",
                 Verb(root, "phases"),
-                Verb(root, "cannotCapture"));
+                Verb(root, "cannotCapture"),
+                Text(root, "description"));
         }
         return cat;
     }
+
+    /// <summary>An optional top-level string (absent = "").</summary>
+    internal static string Text(JsonElement root, string name) =>
+        root.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString()! : "";
 
     /// <summary>T29: a boolean owned-verb flag under `verbs` (absent = false).</summary>
     internal static bool Verb(JsonElement root, string name) =>

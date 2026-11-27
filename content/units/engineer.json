@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "engineer",
   "name": "Engineer",
+  "description": "Captures buildings; repairs bridges",
   "faction": "coalition",
   "role": "engineer",
   "tier": 1,

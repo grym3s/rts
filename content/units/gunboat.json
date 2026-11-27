@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "gunboat",
   "name": "Gunboat",
+  "description": "Cheap corvette; hits ships and shore",
   "faction": "hegemony",
   "role": "corvette",
   "tier": 1,

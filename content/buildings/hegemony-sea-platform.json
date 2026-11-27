@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-sea-platform",
   "name": "Sea Platform",
+  "description": "Offshore outpost; goes on water",
   "faction": "hegemony",
   "category": "offshore",
   "tier": 2,

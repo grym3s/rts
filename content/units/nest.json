@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "nest",
   "name": "Nest",
+  "description": "Carrier (aircraft not in yet)",
   "faction": "ascendant",
   "role": "carrier",
   "tier": 3,

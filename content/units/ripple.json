@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "ripple",
   "name": "Ripple",
+  "description": "Hover corvette; hits ships and shore",
   "faction": "ascendant",
   "role": "corvette",
   "tier": 1,

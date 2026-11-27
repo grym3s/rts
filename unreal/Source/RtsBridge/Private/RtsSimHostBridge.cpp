@@ -381,6 +381,7 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				BO->TryGetNumberField(TEXT("power"), B.Power);
 				BO->TryGetNumberField(TEXT("footprintW"), B.FootprintW);
 				BO->TryGetNumberField(TEXT("footprintH"), B.FootprintH);
+				BO->TryGetStringField(TEXT("description"), B.Description);
 				OutReply.BuildingTypes.Add(MoveTemp(B));
 			}
 		const TArray<TSharedPtr<FJsonValue>>* Us = nullptr;
@@ -400,6 +401,7 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				UO->TryGetStringField(TEXT("deploysTo"), U.DeploysTo);
 				UO->TryGetBoolField(TEXT("harvest"), U.bHarvest);
 				UO->TryGetStringField(TEXT("domain"), U.Domain);
+				UO->TryGetStringField(TEXT("description"), U.Description);
 				OutReply.UnitTypes.Add(MoveTemp(U));
 			}
 	}

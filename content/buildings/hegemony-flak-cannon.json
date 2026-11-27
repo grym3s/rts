@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-flak-cannon",
   "name": "Flak Cannon",
+  "description": "Anti-air cannon (not armed yet)",
   "faction": "hegemony",
   "category": "defense",
   "tier": 2,

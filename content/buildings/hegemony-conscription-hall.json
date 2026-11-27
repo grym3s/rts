@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-conscription-hall",
   "name": "Conscription Hall",
+  "description": "Trains infantry; conscription site",
   "faction": "hegemony",
   "category": "production",
   "footprint": [2, 2],

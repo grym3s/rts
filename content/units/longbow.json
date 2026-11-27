@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "longbow",
   "name": "Longbow-class",
+  "description": "Long-range bombardment ship",
   "faction": "coalition",
   "role": "bombardment",
   "tier": 3,

@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "conscript",
   "name": "Conscript",
+  "description": "Cheap basic infantry",
   "faction": "hegemony",
   "role": "basic-infantry",
   "tier": 1,

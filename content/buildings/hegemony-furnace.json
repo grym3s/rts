@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-furnace",
   "name": "Furnace",
+  "description": "Power generator",
   "faction": "hegemony",
   "category": "power",
   "tier": 1,

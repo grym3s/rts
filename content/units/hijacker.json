@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "hijacker",
   "name": "Hijacker",
+  "description": "Steals vehicles (not in yet)",
   "faction": "hegemony",
   "role": "infiltrator",
   "tier": 2,

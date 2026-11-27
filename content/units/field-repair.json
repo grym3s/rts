@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "field-repair",
   "name": "Field Repair",
+  "description": "Repairs nearby units (not in yet)",
   "faction": "hegemony",
   "role": "support",
   "tier": 2,

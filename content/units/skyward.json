@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "skyward",
   "name": "Skyward",
+  "description": "Anti-air infantry; also hits ground",
   "faction": "ascendant",
   "role": "anti-air",
   "tier": 2,

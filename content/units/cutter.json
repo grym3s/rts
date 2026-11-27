@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "cutter",
   "name": "Cutter",
+  "description": "Fast corvette; hits ships and shore",
   "faction": "coalition",
   "role": "corvette",
   "tier": 1,

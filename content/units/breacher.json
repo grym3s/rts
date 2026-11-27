@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "breacher",
   "name": "Breacher",
+  "description": "Heavy assault infantry",
   "faction": "coalition",
   "role": "heavy-infantry",
   "tier": 2,

@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "resonator",
   "name": "Resonator",
+  "description": "Splash-damage infantry",
   "faction": "ascendant",
   "role": "aoe-infantry",
   "tier": 2,

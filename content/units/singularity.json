@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "singularity",
   "name": "Singularity",
+  "description": "Bomber; attacks ground",
   "faction": "ascendant",
   "role": "bomber",
   "tier": 3,

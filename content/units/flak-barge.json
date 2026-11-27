@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "flak-barge",
   "name": "Flak Barge",
+  "description": "Anti-air ship",
   "faction": "hegemony",
   "role": "aa-cruiser",
   "tier": 2,

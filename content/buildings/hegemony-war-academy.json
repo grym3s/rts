@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-war-academy",
   "name": "War Academy",
+  "description": "Unlocks tier 3",
   "faction": "hegemony",
   "category": "tech",
   "tier": 3,

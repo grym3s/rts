@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "hind",
   "name": "Hind",
+  "description": "Gunship; attacks ground",
   "faction": "hegemony",
   "role": "gunship",
   "tier": 2,

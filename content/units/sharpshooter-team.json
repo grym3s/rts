@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "sharpshooter-team",
   "name": "Sharpshooter Team",
+  "description": "Long-range sniper team",
   "faction": "hegemony",
   "role": "sniper",
   "tier": 2,

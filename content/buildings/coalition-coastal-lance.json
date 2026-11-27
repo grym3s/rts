@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-coastal-lance",
   "name": "Coastal Lance",
+  "description": "Coastal gun (not armed yet)",
   "faction": "coalition",
   "category": "defense",
   "tier": 3,

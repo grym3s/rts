@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "pike",
   "name": "Pike-class",
+  "description": "Submarine; hits ships and shore",
   "faction": "hegemony",
   "role": "submarine",
   "tier": 2,

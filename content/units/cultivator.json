@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "cultivator",
   "name": "Cultivator",
+  "description": "Harvests ore for credits",
   "faction": "ascendant",
   "role": "harvester",
   "tier": 1,

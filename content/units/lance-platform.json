@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "lance-platform",
   "name": "Lance Platform",
+  "description": "Light anti-tank vehicle",
   "faction": "ascendant",
   "role": "light-at",
   "tier": 2,

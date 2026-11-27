@@ -148,6 +148,7 @@ public:
 		bool bPowerWarn = false;
 		FString PrereqName; // what is missing, when !bPrereqOk
 		bool bNeedsWater = false; // naval/offshore: placed on water next to the shore (T25)
+		FString Description;      // what it does (content `description`)
 		bool IsEnabled() const { return bPrereqOk && bAffordable; }
 	};
 	/** Faction-0 build options (refreshed when your buildings change); empty without a base. */

@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "landing-ship",
   "name": "Landing Ship",
+  "description": "Sea transport (carrying not in yet)",
   "faction": "coalition",
   "role": "sea-transport",
   "tier": 2,

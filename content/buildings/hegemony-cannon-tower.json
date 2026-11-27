@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-cannon-tower",
   "name": "Cannon Tower",
+  "description": "Heavy turret (not armed yet)",
   "faction": "hegemony",
   "category": "defense",
   "tier": 2,

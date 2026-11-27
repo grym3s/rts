@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "recon-buggy",
   "name": "Recon Buggy",
+  "description": "Fast scout vehicle",
   "faction": "coalition",
   "role": "scout",
   "tier": 1,

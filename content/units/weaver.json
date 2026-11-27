@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "weaver",
   "name": "Weaver",
+  "description": "Repairs bridges; cannot capture",
   "faction": "ascendant",
   "role": "engineer",
   "tier": 1,

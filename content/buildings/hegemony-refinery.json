@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-refinery",
   "name": "Refinery",
+  "description": "Earns credits; comes with a Miner",
   "faction": "hegemony",
   "category": "economy",
   "tier": 1,

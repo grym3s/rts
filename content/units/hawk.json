@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "hawk",
   "name": "Hawk",
+  "description": "Gunship; attacks ground",
   "faction": "coalition",
   "role": "gunship",
   "tier": 2,

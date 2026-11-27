@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-aerospace-command",
   "name": "Aerospace Command",
+  "description": "Unlocks tier 3",
   "faction": "coalition",
   "category": "tech",
   "tier": 3,

@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "foundry-crawler",
   "name": "Foundry Crawler",
+  "description": "Deploys into a Construction Yard",
   "faction": "hegemony",
   "role": "mcv",
   "tier": 1,

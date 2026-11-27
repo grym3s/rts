@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "siege-barge",
   "name": "Siege Barge",
+  "description": "Long-range bombardment ship",
   "faction": "hegemony",
   "role": "bombardment",
   "tier": 3,

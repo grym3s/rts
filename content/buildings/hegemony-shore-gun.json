@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-shore-gun",
   "name": "Shore Gun",
+  "description": "Coastal gun (not armed yet)",
   "faction": "hegemony",
   "category": "defense",
   "tier": 3,

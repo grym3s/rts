@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "operative",
   "name": "Operative",
+  "description": "Infiltrator (not in yet)",
   "faction": "coalition",
   "role": "infiltrator",
   "tier": 2,

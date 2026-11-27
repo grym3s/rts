@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "warden",
   "name": "Warden",
+  "description": "Shields the fleet (not in yet)",
   "faction": "ascendant",
   "role": "aa-cruiser",
   "tier": 2,

@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-bunker",
   "name": "Bunker",
+  "description": "Garrison bunker (not armed yet)",
   "faction": "hegemony",
   "category": "defense",
   "tier": 1,

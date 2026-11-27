@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-guard-turret",
   "name": "Guard Turret",
+  "description": "Anti-ground turret (not armed yet)",
   "faction": "coalition",
   "category": "defense",
   "tier": 1,

@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "bulwark",
   "name": "Bulwark",
+  "description": "Main battle tank",
   "faction": "hegemony",
   "role": "mbt",
   "tier": 1,

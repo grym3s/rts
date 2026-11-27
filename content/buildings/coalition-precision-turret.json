@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-precision-turret",
   "name": "Precision Turret",
+  "description": "Long-range turret (not armed yet)",
   "faction": "coalition",
   "category": "defense",
   "tier": 2,

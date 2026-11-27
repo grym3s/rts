@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "scout-halftrack",
   "name": "Scout Halftrack",
+  "description": "Fast scout vehicle",
   "faction": "hegemony",
   "role": "scout",
   "tier": 1,

@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "mindbender",
   "name": "Mindbender",
+  "description": "Mind control (not in yet)",
   "faction": "ascendant",
   "role": "infiltrator",
   "tier": 2,

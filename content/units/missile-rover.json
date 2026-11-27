@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "missile-rover",
   "name": "Missile Rover",
+  "description": "Light anti-tank vehicle",
   "faction": "coalition",
   "role": "light-at",
   "tier": 2,

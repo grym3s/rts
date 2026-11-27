@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "wraith",
   "name": "Wraith",
+  "description": "Gunship; attacks ground",
   "faction": "ascendant",
   "role": "gunship",
   "tier": 2,

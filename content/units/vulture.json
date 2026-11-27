@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "vulture",
   "name": "Vulture",
+  "description": "Bomber; attacks ground",
   "faction": "coalition",
   "role": "bomber",
   "tier": 3,

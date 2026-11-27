@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-construction-yard",
   "name": "Construction Yard",
+  "description": "Builds your base",
   "faction": "hegemony",
   "category": "construction-yard",
   "tier": 1,

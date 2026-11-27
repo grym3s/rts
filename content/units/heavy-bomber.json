@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "heavy-bomber",
   "name": "Heavy Bomber",
+  "description": "Bomber; attacks ground",
   "faction": "hegemony",
   "role": "bomber",
   "tier": 3,

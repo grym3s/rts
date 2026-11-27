@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "incendiary",
   "name": "Incendiary",
+  "description": "Splash-damage infantry",
   "faction": "hegemony",
   "role": "aoe-infantry",
   "tier": 2,

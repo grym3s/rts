@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-helipad",
   "name": "Helipad",
+  "description": "Builds aircraft",
   "faction": "hegemony",
   "category": "air",
   "tier": 2,

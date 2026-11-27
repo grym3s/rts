@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "lancer",
   "name": "Lancer",
+  "description": "Rocket infantry; hits ground and air",
   "faction": "coalition",
   "role": "anti-armor",
   "tier": 2,

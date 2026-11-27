@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-rift",
   "name": "Rift",
+  "description": "Superweapon (not in yet)",
   "faction": "ascendant",
   "category": "superweapon",
   "tier": 3,

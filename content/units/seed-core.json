@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "seed-core",
   "name": "Seed Core",
+  "description": "Deploys into a Construction Yard",
   "faction": "ascendant",
   "role": "mcv",
   "tier": 1,

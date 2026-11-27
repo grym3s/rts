@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-tunnel-network",
   "name": "Tunnel Network",
+  "description": "Underground travel (not in yet)",
   "faction": "hegemony",
   "category": "logistics",
   "tier": 2,

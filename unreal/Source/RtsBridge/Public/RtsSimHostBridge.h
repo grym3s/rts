@@ -229,6 +229,8 @@ public:
 	UPROPERTY(BlueprintReadOnly) int32 Power = 0;
 	UPROPERTY(BlueprintReadOnly) int32 FootprintW = 1;
 	UPROPERTY(BlueprintReadOnly) int32 FootprintH = 1;
+	/** One line on what it does (content `description`), shown under the name in menus. */
+	UPROPERTY(BlueprintReadOnly) FString Description;
 };
 
 /** T36: a unit type from the init catalog (production menus, T37). */
@@ -248,6 +250,8 @@ public:
 	UPROPERTY(BlueprintReadOnly) bool bHarvest = false;
 	/** T25: land / naval / hover / air. */
 	UPROPERTY(BlueprintReadOnly) FString Domain = TEXT("land");
+	/** One line on what it does (content `description`). */
+	UPROPERTY(BlueprintReadOnly) FString Description;
 };
 
 /** One sim event from a step reply (T09 contract): shot (Amount = damage), death

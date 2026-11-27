@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "adept",
   "name": "Adept",
+  "description": "Basic infantry",
   "faction": "ascendant",
   "role": "basic-infantry",
   "tier": 1,

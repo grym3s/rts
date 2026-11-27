@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "precision-battery",
   "name": "Precision Battery",
+  "description": "Long-range artillery",
   "faction": "coalition",
   "role": "artillery",
   "tier": 3,

@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-construction-yard",
   "name": "Construction Yard",
+  "description": "Builds your base",
   "faction": "coalition",
   "category": "construction-yard",
   "tier": 1,

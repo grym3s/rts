@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-ascendancy",
   "name": "Ascendancy",
+  "description": "Unlocks tier 3",
   "faction": "ascendant",
   "category": "tech",
   "tier": 3,

@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-sensor-command",
   "name": "Sensor Command",
+  "description": "Unlocks tier 2; marks enemies nearby",
   "faction": "coalition",
   "category": "tech",
   "tier": 2,

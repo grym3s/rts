@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "sapper",
   "name": "Sapper",
+  "description": "Captures buildings; repairs bridges",
   "faction": "hegemony",
   "role": "engineer",
   "tier": 1,

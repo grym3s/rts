@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-skyward-spire",
   "name": "Skyward Spire",
+  "description": "Anti-air spire (not armed yet)",
   "faction": "ascendant",
   "category": "defense",
   "tier": 2,

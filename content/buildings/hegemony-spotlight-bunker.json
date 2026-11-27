@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-spotlight-bunker",
   "name": "Spotlight Bunker",
+  "description": "Reveals stealth (not in yet)",
   "faction": "hegemony",
   "category": "defense",
   "tier": 2,

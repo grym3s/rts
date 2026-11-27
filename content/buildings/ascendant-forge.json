@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-forge",
   "name": "Forge",
+  "description": "Builds ground vehicles",
   "faction": "ascendant",
   "category": "production",
   "tier": 1,

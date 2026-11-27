@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-shipyard",
   "name": "Shipyard",
+  "description": "Builds ships; goes on water",
   "faction": "coalition",
   "category": "naval",
   "tier": 1,

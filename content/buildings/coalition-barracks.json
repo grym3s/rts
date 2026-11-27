@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-barracks",
   "name": "Barracks",
+  "description": "Trains infantry",
   "faction": "coalition",
   "category": "production",
   "footprint": [2, 2],

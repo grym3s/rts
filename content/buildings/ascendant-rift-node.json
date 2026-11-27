@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-rift-node",
   "name": "Rift Node",
+  "description": "Long-range turret (not armed yet)",
   "faction": "ascendant",
   "category": "defense",
   "tier": 2,

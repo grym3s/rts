@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-manifold",
   "name": "Manifold",
+  "description": "Trains infantry",
   "faction": "ascendant",
   "category": "production",
   "tier": 1,

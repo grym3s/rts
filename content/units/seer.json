@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "seer",
   "name": "Seer",
+  "description": "Sniper",
   "faction": "ascendant",
   "role": "sniper",
   "tier": 2,

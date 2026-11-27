@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "flak-track",
   "name": "Flak Track",
+  "description": "Mobile anti-air",
   "faction": "hegemony",
   "role": "anti-air",
   "tier": 2,

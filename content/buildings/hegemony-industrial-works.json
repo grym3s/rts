@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "hegemony-industrial-works",
   "name": "Industrial Works",
+  "description": "Unlocks tier 2 and the Helipad",
   "faction": "hegemony",
   "category": "tech",
   "tier": 2,

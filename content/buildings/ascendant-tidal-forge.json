@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "ascendant-tidal-forge",
   "name": "Tidal Forge",
+  "description": "Builds ships; goes on water",
   "faction": "ascendant",
   "category": "naval",
   "tier": 1,

@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "monolith",
   "name": "Monolith",
+  "description": "Super-heavy unit",
   "faction": "ascendant",
   "role": "superheavy",
   "tier": 3,

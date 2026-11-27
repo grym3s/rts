@@ -202,11 +202,11 @@ public sealed class HostedWorld
     /// <summary>T36: both catalogs for the build menus (init only). Ordinal id order.</summary>
     public HostCatalog CatalogBlock() => new(
         BuildingsCatalog.All.OrderBy(b => b.Id, StringComparer.Ordinal)
-            .Select(b => new HostBuildingType(b.Id, b.Name, b.Faction, b.Category, b.Cost, b.BuildTicks, b.Prereq, b.Power, b.FootprintW, b.FootprintH))
+            .Select(b => new HostBuildingType(b.Id, b.Name, b.Faction, b.Category, b.Cost, b.BuildTicks, b.Prereq, b.Power, b.FootprintW, b.FootprintH, b.Description))
             .ToList(),
         UnitsCatalog.All
             .Select(u => new HostUnitType(u.Id, u.Name, u.Faction, u.Cost, u.BuildTicks, u.BuiltFrom, u.DeploysTo, u.Harvest,
-                Rts.Sim.World.Domains.Name(u.Domain)))
+                Rts.Sim.World.Domains.Name(u.Domain), u.Description))
             .ToList());
 
     /// <summary>T36: would `place` of this building at `at` be accepted right now? The sim's own

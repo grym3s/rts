@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "neutral-oil-derrick",
   "name": "Oil Derrick",
+  "description": "Capture with an engineer: 5 credits/s",
   "faction": "neutral",
   "category": "offshore",
   "tier": 0,

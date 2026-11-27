@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "coalition-sam-site",
   "name": "SAM Site",
+  "description": "Anti-air site (not armed yet)",
   "faction": "coalition",
   "category": "defense",
   "tier": 2,

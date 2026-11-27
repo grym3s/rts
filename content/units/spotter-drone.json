@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "spotter-drone",
   "name": "Spotter Drone",
+  "description": "Air drone; marks enemies near it",
   "faction": "coalition",
   "role": "scout",
   "tier": 2,

@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "heavy-lifter",
   "name": "Heavy Lifter",
+  "description": "Air transport (carrying not in yet)",
   "faction": "hegemony",
   "role": "air-transport",
   "tier": 2,

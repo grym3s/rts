@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "sever",
   "name": "Sever-class",
+  "description": "Amphibious destroyer; ships and shore",
   "faction": "ascendant",
   "role": "destroyer",
   "tier": 2,

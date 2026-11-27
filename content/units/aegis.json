@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "aegis",
   "name": "Aegis-class",
+  "description": "Anti-air cruiser",
   "faction": "coalition",
   "role": "aa-cruiser",
   "tier": 2,
