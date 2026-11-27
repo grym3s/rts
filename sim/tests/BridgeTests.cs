@@ -169,6 +169,25 @@ public class BridgeTests
     }
 
     [Fact]
+    public void A_unit_walks_over_a_bridge_hut_and_the_hut_stays_put()
+    {
+        // Play-test: an engineer's path ran through a hut's cell (huts mark no footprint), and the
+        // hut pushed it straight back every tick, so it never got past.
+        var x = World();
+        var cat = BuildingCatalog.LoadFromDirectory(Path.Combine(RepoRoot(), "content", "buildings"));
+        Rts.Sim.Production.ProductionSystem.SpawnBridgeHuts(cat, x.Units, x.Map, x.Sim.Ids, x.Bridges);
+        var hut = x.Units.Units.First(u => u.Building?.BridgeId >= 0);
+        var at = hut.Position;
+        Assert.Equal((8, 3), (GameMap.CellOf(at.X), GameMap.CellOf(at.Y)));
+        var eng = Spawn(x, "engineer", 0, 8, 0);
+        var dest = GameMap.CellCenter(8, 6);
+        x.Step(new MoveCommand(x.Sim.Tick, 0, new[] { eng.Id }, dest, false));
+        x.RunUntil(() => (eng.Position - dest).Length < Fix64.Half, 400);
+        Assert.True((eng.Position - dest).Length < Fix64.Half, $"stuck at {eng.Position}");
+        Assert.Equal(at, hut.Position);
+    }
+
+    [Fact]
     public void Each_bridge_gets_a_neutral_hut_at_both_ends_and_an_engineer_sent_there_mends_it()
     {
         var x = World();

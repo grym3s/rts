@@ -238,8 +238,10 @@ public static class NavigationSystem
                 var b = list[j];
                 // T25: aircraft fly over surface units; only like layers push each other
                 if ((a.Domain == MoveDomain.Air) != (b.Domain == MoveDomain.Air)) continue;
-                // T28: structures never move. A footprint keeps units out of a building anyway; a
-                // bridge hut marks none, so a unit brushing it takes the whole push itself.
+                // T28: structures never move. A footprint keeps units out of a building anyway. A
+                // bridge hut marks none: it is a marker units walk over (paths run through its
+                // cell, so pushing them off it would stall them there), and it never moves.
+                if (a.Building is { BridgeId: >= 0 } || b.Building is { BridgeId: >= 0 }) continue;
                 var aFixed = a.Building != null;
                 var bFixed = b.Building != null;
                 if (aFixed && bFixed) continue;

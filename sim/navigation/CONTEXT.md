@@ -9,7 +9,7 @@ Domains (T25): every walkability check is the unit's `Domain`'s (`GameMap.IsWalk
 land on land and bridges, naval on water and under bridges, hover on both, air anywhere in bounds
 (over cliffs and buildings). A goal on terrain the domain can't stand on (a ship sent at a tank on
 the beach) is swapped for the nearest cell it can, like a footprint goal. Aircraft and surface
-units never push each other apart (separation is per layer). T28: structures (units with a `Building`) never move in separation; the other unit takes the whole push (bridge huts mark no footprint, so this is what keeps them in place).
+units never push each other apart (separation is per layer). T28: structures (units with a `Building`) never move in separation; the other unit takes the whole push. Bridge huts mark no footprint and take no part in separation at all: units walk over them (paths run through their cell), and they never move.
 Reads: world grid (../world), unit positions (../world), orders (../orders).
 Writes: unit positions/velocities only. Never health, never orders (order removal on arrival/unreachable is the one exception, by contract).
 Runs at: tick step 3 (see ../CONTEXT.md). Plan budget: ≤25 A* runs/tick, spawn order.
