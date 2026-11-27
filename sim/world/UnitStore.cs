@@ -52,6 +52,7 @@ public sealed class UnitStore
             if (u.CarrierId != EntityId.None) h = (h ^ (ulong)(uint)u.CarrierId.Value ^ 0xCA22UL) * 1099511628211UL;
             if (u.RebuildLeft != 0) h = (h ^ (ulong)(uint)u.RebuildLeft ^ 0x2EB1UL) * 1099511628211UL;
             if (u.ChargeLeft != 0) h = (h ^ (ulong)(uint)u.ChargeLeft ^ 0xC4A2UL) * 1099511628211UL;
+            if (u.HoldProgress != 0) h = (h ^ (ulong)(uint)u.HoldProgress ^ ((ulong)(uint)u.HoldFaction << 32) ^ 0x401DUL) * 1099511628211UL;
             if (u.StrikeTick != 0)
             {
                 h = (h ^ (ulong)(uint)u.StrikeTick ^ 0x5721UL) * 1099511628211UL;
@@ -151,6 +152,9 @@ public sealed class Unit
     public FixVec2 StrikeAt { get; set; }
     public int StrikeTick { get; set; }
     public int PulsesLeft { get; set; }
+    /// <summary>Hold-to-capture (sim/combat Control): the side taking it and its ticks of holding (0 = none).</summary>
+    public int HoldFaction { get; set; }
+    public int HoldProgress { get; set; }
     /// <summary>Derived each combat step (sim/combat Support), never hashed: the shield on it,
     /// whether it is cloaked, and the factions (bit per faction) that detect it.</summary>
     public int ShieldPercentNow { get; set; }

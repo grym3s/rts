@@ -4015,6 +4015,27 @@
     130,
     142
    ]
+  },
+  {
+   "building": "neutral-seam-radar",
+   "at": [
+    181,
+    112
+   ]
+  },
+  {
+   "building": "neutral-seam-radar",
+   "at": [
+    130,
+    202
+   ]
+  },
+  {
+   "building": "neutral-seam-radar",
+   "at": [
+    78,
+    112
+   ]
   }
  ],
  "veins": [

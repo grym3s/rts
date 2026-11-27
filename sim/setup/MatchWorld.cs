@@ -116,7 +116,7 @@ public sealed class MatchWorld
         World.Systems.Add((w, due) => CombatSystem.Step(units, orders, w.Tick, w, power.IsLowPower));
         World.Systems.Add((w, due) => BridgeSystem.Step(bridges, map, units, orders, w.Tick, w)); // T26
         World.Systems.Add((w, due) => CaptureSystem.Step(map, units, orders, w.Tick, w, (f, id) => econ.Deposit(f, catalog.Get(id).Cost), bridges)); // T28
-        World.Systems.Add((w, due) => Control.Step(units, w.Tick, w)); // Tri-Point rig hold-to-capture
+        World.Systems.Add((w, due) => Control.Step(units, orders, w.Tick, w)); // Tri-Point rig hold-to-capture
         World.Systems.Add((w, due) => Carriers.Step(units, orders, catalog, map, w.Ids, w.Tick, w));
         World.Systems.Add((w, due) => Superweapons.SuperweaponSystem.Step(units, due, w.Tick, power.IsLowPower, w));
         World.Systems.Add((w, due) => units.DespawnDead());

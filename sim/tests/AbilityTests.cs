@@ -218,4 +218,64 @@ public class AbilityTests
         a.Run(2);
         Assert.DoesNotContain(a.M.Units.Units, u => u.CarrierId == vg.Id && u.Hp.Raw > 0);
     }
+
+    // ---- the rig's control states
+
+    [Fact]
+    public void A_side_holding_the_rig_takes_it_and_a_tie_freezes_the_count()
+    {
+        var a = new Arena();
+        var rig = a.Building("neutral-oil-derrick", -1, 20, 20);
+        Assert.Equal(Rts.Sim.Combat.Control.State.Neutral, Rts.Sim.Combat.Control.StateOf(rig, a.M.Units));
+        var mine = Enumerable.Range(0, 2).Select(i => a.Unit("engineer", 0, 17.5, 18.5 + i)).ToArray();
+        a.Run(100);
+        Assert.Equal(Rts.Sim.Combat.Control.State.Occupied, Rts.Sim.Combat.Control.StateOf(rig, a.M.Units));
+        var theirs = Enumerable.Range(0, 2).Select(i => a.Unit("engineer", 1, 23.5, 18.5 + i)).ToArray();
+        var frozen = rig.HoldProgress;
+        a.Run(200);
+        Assert.Equal(Rts.Sim.Combat.Control.State.Contested, Rts.Sim.Combat.Control.StateOf(rig, a.M.Units));
+        Assert.Equal(frozen, rig.HoldProgress);
+        foreach (var t in theirs) t.Hp = Fix64.Zero;
+        a.RunUntil(() => rig.Faction == 0, Rts.Sim.Combat.Control.HoldTicks);
+        Assert.Equal(0, rig.Faction);
+        Assert.Equal(Rts.Sim.Combat.Control.State.Fortified, Rts.Sim.Combat.Control.StateOf(rig, a.M.Units));
+        foreach (var m in mine) m.Hp = Fix64.Zero;
+        a.Run(2);
+        Assert.Equal(Rts.Sim.Combat.Control.State.Held, Rts.Sim.Combat.Control.StateOf(rig, a.M.Units));
+    }
+
+    // ---- stealth and detection
+
+    [Fact]
+    public void A_cloaked_unit_is_not_shot_until_a_detector_is_near()
+    {
+        var a = new Arena();
+        a.Building("coalition-guard-turret", 0, 20, 20);
+        a.Building("coalition-reactor", 0, 6, 6);
+        var op = a.Unit("operative", 2, 25.5, 20.5);
+        op.Hp = Fix64.FromInt(10000);
+        a.Run(60);
+        Assert.DoesNotContain(a.Seen, e => e.Kind == SimEventKind.Shot && e.Target == op.Id);
+        a.Unit("spotter-drone", 0, 25.5, 24.5); // detectRadius 9
+        a.Run(60);
+        Assert.Contains(a.Seen, e => e.Kind == SimEventKind.Shot && e.Target == op.Id);
+    }
+
+    [Fact]
+    public void The_mindbender_hides_units_near_it_but_firing_gives_one_away()
+    {
+        var a = new Arena();
+        var mb = a.Unit("mindbender", 2, 20.5, 20.5);
+        var adept = a.Unit("adept", 2, 21.5, 20.5);
+        var far = a.Unit("adept", 2, 35.5, 35.5);
+        a.Run(1);
+        Assert.True(mb.Cloaked);
+        Assert.True(adept.Cloaked);
+        Assert.False(far.Cloaked);
+        var foe = a.Unit("rifleman", 1, 25.5, 20.5);
+        foe.Hp = Fix64.FromInt(10000);
+        a.RunUntil(() => a.Seen.Any(e => e.Kind == SimEventKind.Shot && e.Subject == adept.Id), 200);
+        Assert.True(adept.RevealedUntilTick > a.W.Tick - 1);
+        Assert.True(Rts.Sim.Combat.Support.CanSee(1, adept, a.W.Tick - 1));
+    }
 }

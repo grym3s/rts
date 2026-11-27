@@ -251,7 +251,15 @@ writeFileSync(join(repo, 'content', 'maps', 'tri-point.json'), JSON.stringify(ma
 const simMap = { width: W, height: H, terrain: map.rows, causeways: nodes.map(n => causewayCells[n.id] ?? []).filter(c => c.length) };
 // T28: the central rig is a neutral oil derrick (2x2 on the lagoon, touched by the piers);
 // an engineer captures it and it drips credits to its owner.
+// Each Seam's centre holds a neutral Seam Radar (2x2): an engineer captures it and its owner
+// sees far around it. The rig can also be taken by holding it (sim/combat Control).
 const structures = [{ building: 'neutral-oil-derrick', at: [rigCell.x, rigCell.y] }];
+for (const s of seams) {
+  const c = cell(s.at);
+  for (const [dx, dy] of [[-1, -1], [0, -1], [-1, 0], [0, 0]])
+    if (tiles[c.y + dy]?.[c.x + dx] !== T.LAND) { console.error(`mapgen: seam radar off land at ${c.x},${c.y}`); process.exit(1); }
+  structures.push({ building: 'neutral-seam-radar', at: [c.x, c.y] });
+}
 
 // ---- 30v30 roster: T1 combined arms (24 line infantry + 6 MBT per side) ------------------
 function formation(n, infantry, tank) {

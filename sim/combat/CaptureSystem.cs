@@ -293,7 +293,7 @@ public static class CaptureSystem
     /// <summary>Hand `t` to `faction`: a building's queue is refunded to the old owner and cleared,
     /// its rally dropped; an MCV stops where it is. The new owner's units stop shooting it; the
     /// old owner's units are now its enemies and acquire it like any other.</summary>
-    private static void Take(Unit t, int faction, UnitStore units, Dictionary<EntityId, MoveOrder> orders,
+    internal static void Take(Unit t, int faction, UnitStore units, Dictionary<EntityId, MoveOrder> orders,
         Action<int, string>? refundQueued)
     {
         if (t.Building is { } b)
