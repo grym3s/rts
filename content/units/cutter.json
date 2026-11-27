@@ -20,6 +20,7 @@
     "range": 8.0,
     "cooldownTicks": 8,
     "targets": [
+      "ground",
       "sea"
     ]
   }

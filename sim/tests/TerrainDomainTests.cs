@@ -133,6 +133,30 @@ public class TerrainDomainTests
         Assert.Equal(TargetMask.Sea | TargetMask.Ground, UnitsCat.Get("pike").Targets);
     }
 
+    [Theory]
+    // surface combatants shoot ship-to-ship and at the shore (design reference: "Surface
+    // combatant"); subs surface to hit land; bombardment ships are built for it
+    [InlineData("cutter", true)]
+    [InlineData("gunboat", true)]
+    [InlineData("ripple", true)]
+    [InlineData("sentinel", true)]
+    [InlineData("bastion", true)]
+    [InlineData("sever", true)]
+    [InlineData("silent", true)]
+    [InlineData("pike", true)]
+    [InlineData("longbow", true)]
+    [InlineData("siege-barge", true)]
+    [InlineData("rift-hull", true)]
+    // AA cruisers are the fleet's air umbrella and nothing else
+    [InlineData("aegis", false)]
+    [InlineData("flak-barge", false)]
+    public void Armed_ships_hit_land_by_their_type(string ship, bool hitsLand)
+    {
+        var p = UnitsCat.Get(ship);
+        Assert.True((p.Targets & TargetMask.Sea) != 0 || !hitsLand, $"{ship} cannot hit ships");
+        Assert.Equal(hitsLand, (p.Targets & TargetMask.Ground) != 0);
+    }
+
     private static Unit Spawn(UnitStore units, EntityIdAllocator ids, string id, int faction, int cx, int cy)
     {
         var p = UnitsCat.Get(id);

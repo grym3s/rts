@@ -45,7 +45,7 @@ A unit file has three parts, and the split is the point: **identity is canon** (
 | `damage` | number | — | **base** damage, pre-matrix; final = `damage × matrix_cell` (`counter-matrix.md`). Provisional |
 | `range` | number | unit table where stated | cells (e.g. Coalition MBT 12); provisional otherwise |
 | `cooldownTicks` | int | — | ticks between shots; provisional |
-| `targets` | string[] | `counter-matrix.md` (targeting) | subset of `["ground","air","sea"]` — which domains the weapon can engage *at all*, separate from the multiplier |
+| `targets` | string[] | `counter-matrix.md` (targeting) | subset of `["ground","air","sea"]` — which domains the weapon can engage *at all*, separate from the multiplier. Ships by type: corvettes, destroyers, subs and bombardment ships include `ground` (they hit the shore); AA cruisers are `air` only |
 
 ### `verbs` — optional flags (owned-verb applicability, `owned-verbs.md`)
 
