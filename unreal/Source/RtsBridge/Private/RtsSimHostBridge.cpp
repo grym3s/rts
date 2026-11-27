@@ -442,6 +442,7 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				UO->TryGetBoolField(TEXT("harvest"), U.bHarvest);
 				UO->TryGetStringField(TEXT("domain"), U.Domain);
 				UO->TryGetStringField(TEXT("description"), U.Description);
+				UO->TryGetStringField(TEXT("armor"), U.Armor);
 				OutReply.UnitTypes.Add(MoveTemp(U));
 			}
 	}

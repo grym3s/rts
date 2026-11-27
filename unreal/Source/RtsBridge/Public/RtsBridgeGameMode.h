@@ -321,6 +321,12 @@ private:
 	void SyncActorsFromReply(FRtsHostReply& Reply);
 	void UpdateFog();
 	void ResetFog();
+	/** T18: explosions for deaths (vehicles, buildings) and superweapon strikes, capped. */
+	void SpawnExplosion(const FVector& Where, float SizeUU);
+	static constexpr int32 MaxExplosions = 24;
+	TArray<TWeakObjectPtr<class ARtsExplosionActor>> Explosions;
+	struct FStrikeMemo { bool bStrike = false; int32 StrikeIn = 0; double X = 0, Y = 0, R = 0; };
+	TMap<int32, FStrikeMemo> StrikeMemo;
 	TArray<uint8> Fog;
 	int32 FogW = 0, FogH = 0;
 	TSet<int32> SeenBuildings;

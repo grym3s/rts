@@ -10,6 +10,7 @@
 #include "RtsContentLoader.h"
 #include "RtsTerrainActor.h"
 #include "RtsVeinActor.h"
+#include "RtsExplosionActor.h"
 #include "Engine/World.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/DirectionalLight.h"
@@ -576,6 +577,16 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 			Killed.Add(E.Subject);
 			if (Lost.IsValidIndex(E.Faction))
 				++Lost[E.Faction];
+			// T18: vehicles and buildings blow up where you last saw them (infantry just fall)
+			if (const FRtsUnitSnapshot* Was = RowsById.Find(E.Subject))
+				if (IsRowVisible(*Was))
+				{
+					const FRtsUnitType* T = UnitTypes.FindByPredicate([Was](const FRtsUnitType& U) { return U.Id == Was->Type; });
+					const float Size = Was->IsBuilding() ? FMath::Max(Was->FootprintW, Was->FootprintH) * SimCellUU * 0.6f
+						: (T && T->Armor == TEXT("infantry")) ? 0.0f : 90.0f;
+					if (Size > 0.0f)
+						SpawnExplosion(FVector(Was->X * SimCellUU, Was->Y * SimCellUU, 0.0), Size);
+				}
 		}
 
 	// T35: economy rows are read straight from the snapshot (presentation only).
@@ -607,6 +618,16 @@ void ARtsBridgeGameMode::SyncActorsFromReply(FRtsHostReply& Reply)
 	for (const FRtsUnitSnapshot& S : Reply.Units)
 		RowsById.Add(S.Id, S);
 	UpdateFog();
+	// T18: a superweapon pulse landed when its strike ends or the next pulse is scheduled
+	for (const FRtsUnitSnapshot& S : Reply.Units)
+	{
+		if (!S.IsSuperweapon())
+			continue;
+		FStrikeMemo& M = StrikeMemo.FindOrAdd(S.Id);
+		if (M.bStrike && (!S.bStrike || S.StrikeIn > M.StrikeIn))
+			SpawnExplosion(FVector(M.X * SimCellUU, M.Y * SimCellUU, 0.0), float(FMath::Max(1.0, M.R)) * SimCellUU);
+		M = { S.bStrike, S.StrikeIn, S.StrikeX, S.StrikeY, S.StrikeRadius };
+	}
 
 	TSet<int32> Alive;
 	UnitActors.Reset(Reply.Units.Num());
@@ -1382,4 +1403,18 @@ bool ARtsBridgeGameMode::IsRowVisible(const FRtsUnitSnapshot& R) const
 	if (R.IsBuilding() && SeenBuildings.Contains(R.Id))
 		return true;
 	return FogAt(FMath::FloorToInt(R.X / FogCell), FMath::FloorToInt(R.Y / FogCell)) == 2;
+}
+
+// ---- T18: explosions -------------------------------------------------------------------------
+
+void ARtsBridgeGameMode::SpawnExplosion(const FVector& Where, float SizeUU)
+{
+	Explosions.RemoveAll([](const TWeakObjectPtr<ARtsExplosionActor>& E) { return !E.IsValid(); });
+	if (Explosions.Num() >= MaxExplosions || !GetWorld())
+		return; // a dense brawl stays readable (and cheap)
+	if (ARtsExplosionActor* E = GetWorld()->SpawnActor<ARtsExplosionActor>(Where, FRotator::ZeroRotator))
+	{
+		E->Ignite(SizeUU);
+		Explosions.Add(E);
+	}
 }

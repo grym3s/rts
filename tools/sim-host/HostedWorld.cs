@@ -142,7 +142,7 @@ public sealed class HostedWorld
             .ToList(),
         UnitsCatalog.All
             .Select(u => new HostUnitType(u.Id, u.Name, u.Faction, u.Cost, u.BuildTicks, u.BuiltFrom, u.DeploysTo, u.Harvest,
-                Rts.Sim.World.Domains.Name(u.Domain), u.Description))
+                Rts.Sim.World.Domains.Name(u.Domain), u.Description, u.Armor.ToString().ToLowerInvariant()))
             .ToList());
 
     /// <summary>T36: would `place` of this building at `at` be accepted right now? The sim's own

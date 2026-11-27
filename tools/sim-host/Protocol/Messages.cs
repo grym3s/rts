@@ -164,7 +164,8 @@ public sealed record HostCatalog(IReadOnlyList<HostBuildingType> Buildings, IRea
 public sealed record HostBuildingType(string Id, string Name, int Faction, string Category, int Cost, int BuildTicks,
     string? Prereq, int Power, int FootprintW, int FootprintH, string Description = "");
 public sealed record HostUnitType(string Id, string Name, int Faction, int Cost, int BuildTicks, string BuiltFrom,
-    string? DeploysTo, bool Harvest, string Domain = "land", string Description = ""); // T25: land / naval / hover / air
+    string? DeploysTo, bool Harvest, string Domain = "land", string Description = "", // T25: land / naval / hover / air
+    string Armor = ""); // infantry / light / heavy / building / aircraft (presentation: how big its death looks)
 
 /// <summary>T36 `place` query answer: allowed, else reason (wrong_faction, prereq, blocked,
 /// occupied, radius, credits; T25 water = a naval/offshore footprint not wholly on water, shore =

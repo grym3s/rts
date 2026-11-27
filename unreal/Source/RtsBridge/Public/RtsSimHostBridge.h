@@ -307,6 +307,8 @@ public:
 	UPROPERTY(BlueprintReadOnly) FString Domain = TEXT("land");
 	/** One line on what it does (content `description`). */
 	UPROPERTY(BlueprintReadOnly) FString Description;
+	/** Armor class (infantry / light / heavy / ...): presentation only (death effects). */
+	UPROPERTY(BlueprintReadOnly) FString Armor;
 };
 
 /** One sim event from a step reply (T09 contract): shot (Amount = damage), death

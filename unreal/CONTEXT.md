@@ -179,6 +179,7 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   motion. New ids snap (`SnapToSimPosition`).
 - Game mode keeps actors in `ActorsById`: snapshot rows match actors by sim id, never
   by index (an index match would hand a dead unit's actor to another and glide it).
+- `RtsExplosionActor` (T18) - procedural explosion from engine basic shapes: a white-hot fireball that swells, cools to grey smoke and rises, a flat shock ring, a 0.25 s light flash; about 1.1 s (`FrameAt` is the pure timeline, test `RtsBridge.UI.Explosion`). The game mode spawns one per death event of a vehicle or building you could see (infantry just fall; size from footprint, armor from the catalog), and one per superweapon pulse landing (radius = strike radius); at most 24 live. Colours stay off the team hues.
 - `RtsBridge.Build.cs` needs `InputCore` (EKeys) and `RenderCore` (`GWhiteTexture` for the fog overlay).
 
 ## Build (installed engine at ~/.local/opt/UnrealEngine-5.8.3)
