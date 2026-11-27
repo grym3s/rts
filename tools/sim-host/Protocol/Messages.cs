@@ -108,7 +108,13 @@ public sealed record HostUnit(
     int? PhaseCooldown = null, // T29: phase-capable: ticks until it may phase again (0 = ready)
     bool? CanCapture = null, // T28: an engineer that may capture (not the Weaver)
     bool? Wrecked = null, // T28: a destroyed derrick waiting for an engineer (neutral, 1 hp)
-    int? Bridge = null); // T28: a bridge hut: the bridge id an engineer sent here repairs
+    int? Bridge = null, // T28: a bridge hut: the bridge id an engineer sent here repairs
+    bool? MindControl = null, // Mindbender: capture is a channel (not consumed)
+    bool? Repairs = null, // Weaver: capture on its own damaged building repairs it
+    int? ChannelTarget = null, // Mindbender: entity it is channelling on (absent = none)
+    int? Channel = null, // ticks channelled so far
+    int? ChannelNeed = null, // ticks the channel takes in all
+    int? ControlledBy = null); // mind-controlled by this Mindbender id
 
 /// <summary>T30: credits and the power ledger (net = supply − draw; low power when net &lt; 0).</summary>
 public sealed record HostFaction(int Faction, int Credits, int PowerSupply = 0, int PowerDraw = 0,

@@ -32,6 +32,10 @@ public:
 	bool RequestStop();                                    // stop selected
 	/** Sim id of a non-own unit within click tolerance of ScreenPos, or INDEX_NONE. */
 	int32 PickEnemyUnitAt(const FVector2D& ScreenPos) const;
+	/** Weaver: selected repairers mend your own damaged building `TargetSimId`; false = nothing queued. */
+	bool RequestRepair(int32 TargetSimId);
+	/** Sim id of the player's own unit within click tolerance of ScreenPos, or INDEX_NONE. */
+	int32 PickOwnUnitAt(const FVector2D& ScreenPos) const;
 	bool HasSelection() const { return Selection.GetSelected().Num() > 0; }
 	/** Click-select the own unit nearest ScreenPos (empty ground clears; shift toggles). */
 	void ClickSelect(const FVector2D& ScreenPos, bool bShift);
@@ -277,8 +281,6 @@ private:
 	double StepAccum = 0.0; // per match (a function static leaked across PIE sessions)
 
 	void SyncActorsFromReply(FRtsHostReply& Reply);
-	/** Sim id of the own (faction 0) unit within click tolerance of ScreenPos, or INDEX_NONE. */
-	int32 PickOwnUnitAt(const FVector2D& ScreenPos) const;
 	int32 PickUnitAt(const FVector2D& ScreenPos, bool bOwn) const;
 	/** Mode 0 own, 1 not own, 2 any. A unit within 40 px of the cursor wins; else a building
 	 *  whose footprint the cursor is over (big buildings are clickable anywhere on them). */

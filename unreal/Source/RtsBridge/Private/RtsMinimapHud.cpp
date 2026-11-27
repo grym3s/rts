@@ -228,6 +228,7 @@ void ARtsMinimapHud::DrawHUD()
 	DrawHealthBars();
 	DrawDebugOverlays();
 	DrawConstructionBars();
+	DrawChannelBars();
 	DrawRallyPoints();
 	DrawPlacementGhost();
 	DrawEconomyBar();
@@ -1042,6 +1043,60 @@ void ARtsMinimapHud::DrawConstructionBars()
 		const float X = S.X - W * 0.5f, Y = S.Y - H * 0.5f;
 		DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.75f), X - 1.0f, Y - 1.0f, W + 2.0f, H + 2.0f);
 		DrawRect(FLinearColor(0.35f, 0.75f, 1.0f), X, Y, W * F, H);
+	}
+}
+
+void ARtsMinimapHud::DrawChannelBars()
+{
+	// Mindbender: a purple line to what it is channelling on, a filling bar with the seconds
+	// left over both ends, and a faint line to each unit it holds.
+	const ARtsBridgeGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<ARtsBridgeGameMode>() : nullptr;
+	if (!GM)
+		return;
+	TMap<int32, const ARtsSimUnitActor*> ById;
+	for (const ARtsSimUnitActor* U : GM->GetUnitActors())
+		if (U && !U->IsDying())
+			ById.Add(U->GetSimUnitId(), U);
+	static constexpr float W = 56.0f, H = 6.0f, AboveUU = 170.0f;
+	const FLinearColor Purple(0.75f, 0.35f, 1.0f);
+	auto Bar = [&](const ARtsSimUnitActor* A, float F, const FString& Label)
+	{
+		FVector L = A->GetActorLocation();
+		L.Z += AboveUU;
+		const FVector S = Project(L);
+		if (S.Z <= 0.0)
+			return;
+		const float X = S.X - W * 0.5f, Y = S.Y - H * 0.5f;
+		DrawRect(FLinearColor(0.0f, 0.0f, 0.0f, 0.75f), X - 1.0f, Y - 1.0f, W + 2.0f, H + 2.0f);
+		DrawRect(Purple, X, Y, W * F, H);
+		DrawCentredText(Label, GEngine->GetSmallFont(), S.X, Y - 14.0f, 1.0f, Purple);
+	};
+	for (const TPair<int32, const ARtsSimUnitActor*>& P : ById)
+	{
+		const FRtsUnitSnapshot* R = GM->GetUnitRow(P.Key);
+		if (!R)
+			continue;
+		if (R->ControlledBy >= 0)
+			if (const ARtsSimUnitActor* const* M = ById.Find(R->ControlledBy))
+			{
+				const FVector A = Project((*M)->GetActorLocation() + FVector(0, 0, 40.0));
+				const FVector B = Project(P.Value->GetActorLocation() + FVector(0, 0, 40.0));
+				if (A.Z > 0.0 && B.Z > 0.0)
+					DrawLine(A.X, A.Y, B.X, B.Y, FLinearColor(0.75f, 0.35f, 1.0f, 0.35f), 1.0f);
+			}
+		if (R->ChannelTarget < 0 || R->ChannelNeed <= 0)
+			continue;
+		const float F = FMath::Clamp(float(R->Channel) / float(R->ChannelNeed), 0.0f, 1.0f);
+		const FString Label = FString::Printf(TEXT("%.1fs"), (R->ChannelNeed - R->Channel) / 20.0f);
+		Bar(P.Value, F, Label);
+		if (const ARtsSimUnitActor* const* T = ById.Find(R->ChannelTarget))
+		{
+			Bar(*T, F, Label);
+			const FVector A = Project(P.Value->GetActorLocation() + FVector(0, 0, 40.0));
+			const FVector B = Project((*T)->GetActorLocation() + FVector(0, 0, 40.0));
+			if (A.Z > 0.0 && B.Z > 0.0)
+				DrawLine(A.X, A.Y, B.X, B.Y, Purple, 2.0f);
+		}
 	}
 }
 

@@ -13,12 +13,29 @@ namespace Rts.Sim.Combat;
 /// of another tree opens that tree's buildings (`ProductionSystem.HasTree`); an owned oil
 /// derrick drips credits (`EconomySystem.DripStep`). A destroyed derrick is a neutral wreck
 /// until an engineer restores it (full hp, the restorer owns it). Bridges are not captured: an engineer
-/// repairs them (BridgeSystem). Deterministic: store order, no RNG, no floats.</summary>
+/// repairs them (BridgeSystem). The Weaver repairs its own side's damaged buildings instead of
+/// capturing (RepairPerTick while touching, not consumed). The Mindbender channels from range
+/// instead of touching and is not consumed: a building is taken for good after ChannelBuildingTicks;
+/// an enemy unit is controlled after ChannelUnitTicks (MaxControlled at a time) and goes back to its
+/// owner when the Mindbender dies, changes sides or walks beyond Leash of it. Deterministic: store
+/// order, no RNG, no floats.</summary>
 public static class CaptureSystem
 {
     /// <summary>How close an engineer must get to an MCV (centre distance, plus both radii).
     /// A building is touched from any cell next to its footprint (diagonals count).</summary>
     public static readonly Fix64 Reach = Fix64.Ratio(3, 2);
+
+    /// <summary>Weaver repair: hp per tick while touching its own damaged building (25 hp/s).</summary>
+    public static readonly Fix64 RepairPerTick = Fix64.Ratio(5, 4);
+    /// <summary>Mindbender: channel length on a building (6 s) and on a unit (3 s).</summary>
+    public const int ChannelBuildingTicks = 6 * SimWorld.TicksPerSecond;
+    public const int ChannelUnitTicks = 3 * SimWorld.TicksPerSecond;
+    /// <summary>Mindbender: how far it channels from (to a unit's edge, or a footprint's nearest cell).</summary>
+    public static readonly Fix64 ChannelRange = Fix64.FromInt(5);
+    /// <summary>Mindbender: controlled units further than this go back to their owner.</summary>
+    public static readonly Fix64 Leash = Fix64.FromInt(12);
+    /// <summary>Mindbender: units it holds at once; a new one frees the one held longest.</summary>
+    public const int MaxControlled = 3;
 
     /// <summary>What an engineer may take: a live building, or a live MCV that isn't a building.</summary>
     public static bool Capturable(Unit t) => t.Hp.Raw > 0 && (t.Building != null || t.DeploysTo != null);
@@ -41,10 +58,25 @@ public static class CaptureSystem
                 w.Faction = Factions.Neutral;
             }
 
+        // Mind control holds only while its Mindbender lives, stays on the same side and is near.
+        foreach (var c in units.Units)
+        {
+            if (c.ControlledBy == EntityId.None || c.Hp.Raw <= 0) continue;
+            var m = units.Find(c.ControlledBy);
+            if (m is null || m.Hp.Raw <= 0 || m.Faction != c.Faction || (m.Position - c.Position).Length > Leash)
+                Release(c, m?.Id ?? EntityId.None, units, orders, refundQueued, events);
+        }
+
         foreach (var u in units.Units)
         {
-            if (u.CaptureTarget == EntityId.None || u.Hp.Raw <= 0) continue;
+            if (u.CaptureTarget == EntityId.None || u.Hp.Raw <= 0) { u.ChannelTicks = 0; continue; }
             var t = units.Find(u.CaptureTarget);
+            if (u.MindControl) { Channel(u, t, map, units, orders, tick, events, refundQueued); continue; }
+            if (u.RepairsStructures && t is { Building: { BridgeId: < 0, Wrecked: false } } && t.Faction == u.Faction)
+            {
+                Mend(u, t, map, orders, tick);
+                continue;
+            }
             if (t is null || !Capturable(t) || t.Faction == u.Faction) { Drop(u, orders); continue; }
             // T28: a bridge hut is never taken: an engineer entering it repairs its bridge, and
             // one sent while the bridge is whole has nothing to do
@@ -79,16 +111,106 @@ public static class CaptureSystem
                     orders[u.Id] = new MoveOrder(t.Position, new List<FixVec2>(), tick);
                 continue;
             }
-            // A building: walk to a cell touching its footprint that a path actually reaches
-            // (the centre is blocked, and the open cell nearest it can be an island: the derrick's
-            // one-cell bridge stubs on Tri-Point). Planned once; kept while it still touches.
-            if (orders.TryGetValue(u.Id, out var cur) && Touches(GameMap.CellOf(cur.Target.X), GameMap.CellOf(cur.Target.Y), fp))
-                continue;
-            if (Approach(u, fp, map) is { } cell)
-                orders[u.Id] = new MoveOrder(GameMap.CellCenter(cell.X, cell.Y), new List<FixVec2>(), tick);
-            else
-                Drop(u, orders); // nowhere beside it can be reached
+            WalkBeside(u, fp, map, orders, tick);
         }
+    }
+
+    /// <summary>A building: walk to a cell touching its footprint that a path actually reaches
+    /// (the centre is blocked, and the open cell nearest it can be an island: the derrick's
+    /// one-cell bridge stubs on Tri-Point). Planned once; kept while it still touches.</summary>
+    private static void WalkBeside(Unit u, (int X, int Y, int W, int H) fp, GameMap map,
+        Dictionary<EntityId, MoveOrder> orders, int tick)
+    {
+        if (orders.TryGetValue(u.Id, out var cur) && Touches(GameMap.CellOf(cur.Target.X), GameMap.CellOf(cur.Target.Y), fp))
+            return;
+        if (Approach(u, fp, map) is { } cell)
+            orders[u.Id] = new MoveOrder(GameMap.CellCenter(cell.X, cell.Y), new List<FixVec2>(), tick);
+        else
+            Drop(u, orders); // nowhere beside it can be reached
+    }
+
+    /// <summary>Weaver: walk beside its own damaged, finished building and repair it to full.</summary>
+    private static void Mend(Unit u, Unit t, GameMap map, Dictionary<EntityId, MoveOrder> orders, int tick)
+    {
+        if (t.Hp.Raw <= 0 || t.Hp >= t.MaxHp || t.Building!.ConstructionRemaining > 0
+            || !map.TryGetFootprint(t.Id.Value, out var fp)) { Drop(u, orders); return; }
+        if (!Touching(u, t, map)) { WalkBeside(u, fp, map, orders, tick); return; }
+        orders.Remove(u.Id);
+        t.Hp = Fix64.Min(t.MaxHp, t.Hp + RepairPerTick);
+        if (t.Hp >= t.MaxHp) Drop(u, orders);
+    }
+
+    /// <summary>Mindbender: what it may channel on: a live enemy or neutral unit or building, not a
+    /// bridge hut, a wreck or a phased unit.</summary>
+    public static bool Channelable(Unit u, Unit? t, int tick) =>
+        t is { Hp.Raw: > 0 } && t.Faction != u.Faction && !t.IsPhased(tick)
+        && t.Building is not ({ BridgeId: >= 0 } or { Wrecked: true });
+
+    private static void Channel(Unit u, Unit? t, GameMap map, UnitStore units, Dictionary<EntityId, MoveOrder> orders,
+        int tick, SimWorld? events, Action<int, string>? refundQueued)
+    {
+        if (!Channelable(u, t, tick)) { u.ChannelTicks = 0; Drop(u, orders); return; }
+        var fp = (X: 0, Y: 0, W: 0, H: 0);
+        var isBuilding = t!.Building != null && map.TryGetFootprint(t.Id.Value, out fp);
+        u.ChannelNeed = t.Building != null ? ChannelBuildingTicks : ChannelUnitTicks;
+        if (!InChannelRange(u, t, isBuilding, fp))
+        {
+            u.ChannelTicks = 0; // walked or pushed out of range: start over
+            if (isBuilding) WalkBeside(u, fp, map, orders, tick);
+            else if (!orders.TryGetValue(u.Id, out var o) || o.Target != t.Position)
+                orders[u.Id] = new MoveOrder(t.Position, new List<FixVec2>(), tick);
+            return;
+        }
+        orders.Remove(u.Id); // stand still and channel
+        if (++u.ChannelTicks < u.ChannelNeed) return;
+        u.ChannelTicks = 0;
+        u.CaptureTarget = EntityId.None;
+        if (t.Building != null) Take(t, u.Faction, units, orders, refundQueued); // for good
+        else if (t.ControlledBy != EntityId.None && t.OriginalFaction == u.Faction)
+        {
+            Release(t, u.Id, units, orders, refundQueued, events); // its own side takes it back
+            return;
+        }
+        else
+        {
+            Unit? oldest = null;
+            var held = 0;
+            foreach (var c in units.Units)
+                if (c.ControlledBy == u.Id && c.Hp.Raw > 0)
+                {
+                    held++;
+                    if (oldest is null || c.ControlledSinceTick < oldest.ControlledSinceTick) oldest = c;
+                }
+            if (held >= MaxControlled) Release(oldest!, u.Id, units, orders, refundQueued, events);
+            if (t.ControlledBy == EntityId.None) t.OriginalFaction = t.Faction;
+            Take(t, u.Faction, units, orders, refundQueued);
+            t.ControlledBy = u.Id;
+            t.ControlledSinceTick = tick;
+        }
+        events?.Emit(SimEventKind.Captured, t.Id, u.Id, faction: u.Faction);
+    }
+
+    private static bool InChannelRange(Unit u, Unit t, bool isBuilding, (int X, int Y, int W, int H) fp)
+    {
+        if (!isBuilding) return (t.Position - u.Position).Length <= ChannelRange + t.Radius;
+        var cx = GameMap.CellOf(u.Position.X);
+        var cy = GameMap.CellOf(u.Position.Y);
+        var dx = Math.Max(0, Math.Max(fp.X - cx, cx - (fp.X + fp.W - 1)));
+        var dy = Math.Max(0, Math.Max(fp.Y - cy, cy - (fp.Y + fp.H - 1)));
+        var r = ChannelRange.ToIntFloor();
+        return dx * dx + dy * dy <= r * r;
+    }
+
+    /// <summary>A mind-controlled unit goes back to the side it was taken from.</summary>
+    private static void Release(Unit c, EntityId by, UnitStore units, Dictionary<EntityId, MoveOrder> orders,
+        Action<int, string>? refundQueued, SimWorld? events)
+    {
+        c.ControlledBy = EntityId.None;
+        c.ControlledSinceTick = 0;
+        var to = c.OriginalFaction;
+        c.OriginalFaction = 0;
+        Take(c, to, units, orders, refundQueued);
+        events?.Emit(SimEventKind.Captured, c.Id, by, faction: to);
     }
 
     private static bool Touches(int cx, int cy, (int X, int Y, int W, int H) r) =>

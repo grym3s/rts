@@ -129,6 +129,8 @@ private:
 	void DrawBuildMenu();
 	void DrawPlacementGhost();
 	void DrawConstructionBars();
+	/** Mindbender channel progress (bar + seconds left) and lines to what it holds. */
+	void DrawChannelBars();
 	void DrawProductionPanel();
 	void DrawRallyPoints();
 	/** T28: name / owner / hp / what you can do, for whatever is under the cursor. */

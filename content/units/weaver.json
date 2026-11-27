@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "weaver",
   "name": "Weaver",
-  "description": "Repairs bridges; cannot capture",
+  "description": "Repairs your buildings and bridges",
   "faction": "ascendant",
   "role": "engineer",
   "tier": 1,
@@ -16,6 +16,7 @@
     "sight": 6.0
   },
   "verbs": {
-    "cannotCapture": true
+    "cannotCapture": true,
+    "repairsStructures": true
   }
 }

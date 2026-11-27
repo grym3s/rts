@@ -83,12 +83,16 @@ public static class OrderSystem
                     break;
                 case CaptureCommand cc:
                     // T28: engineers only; CaptureSystem walks them there. The Weaver can't capture,
-                    // but a bridge hut is a repair job, not a capture, so any engineer may take it.
-                    var hutJob = unitOf?.Invoke(cc.Target)?.Building is { BridgeId: >= 0 };
+                    // but a bridge hut is a repair job, not a capture, so any engineer may take it,
+                    // and the Weaver repairs its own side's buildings. A Mindbender channels instead.
+                    var capTarget = unitOf?.Invoke(cc.Target);
+                    var hutJob = capTarget?.Building is { BridgeId: >= 0 };
                     foreach (var unit in cc.Units)
                     {
                         if (unitOf == null || unitOf(unit) is not { } u || u.Faction != cc.Faction) continue;
-                        if (!u.Engineer || (u.CannotCapture && !hutJob) || u.Hp.Raw <= 0) continue;
+                        var repairJob = u.RepairsStructures && capTarget?.Faction == u.Faction;
+                        var can = u.MindControl || (u.Engineer && (!u.CannotCapture || hutJob || repairJob));
+                        if (!can || u.Hp.Raw <= 0) continue;
                         orders.Remove(unit);
                         Disengage(u);
                         u.CaptureTarget = cc.Target;
@@ -124,5 +128,6 @@ public static class OrderSystem
         u.Returning = false;
         u.BridgeTarget = -1;
         u.CaptureTarget = EntityId.None;
+        u.ChannelTicks = 0;
     }
 }

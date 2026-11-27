@@ -280,7 +280,13 @@ public sealed class HostedWorld
                 u.Phases ? Math.Max(0, u.PhaseReadyTick - World.Tick) : null,
                 u.Engineer && !u.CannotCapture ? true : null,
                 u.Building is { Wrecked: true } ? true : null,
-                u.Building is { BridgeId: >= 0 } hb2 ? hb2.BridgeId : null));
+                u.Building is { BridgeId: >= 0 } hb2 ? hb2.BridgeId : null,
+                u.MindControl ? true : null,
+                u.RepairsStructures ? true : null,
+                u.ChannelTicks > 0 ? u.CaptureTarget.Value : null,
+                u.ChannelTicks > 0 ? u.ChannelTicks : null,
+                u.ChannelTicks > 0 ? u.ChannelNeed : null,
+                u.ControlledBy != EntityId.None ? u.ControlledBy.Value : null));
         }
 
         var factions = new List<HostFaction>(2);

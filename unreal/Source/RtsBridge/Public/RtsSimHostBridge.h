@@ -99,6 +99,28 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	bool bCanCapture = false;
 
+	/** Mindbender: right-click channels (units: mind control; buildings: taken for good). */
+	UPROPERTY(BlueprintReadOnly)
+	bool bMindControl = false;
+
+	/** Weaver: right-click on its own damaged building repairs it. */
+	UPROPERTY(BlueprintReadOnly)
+	bool bRepairs = false;
+
+	/** Mindbender channel: target sim id (-1 = not channelling), ticks done and ticks needed. */
+	UPROPERTY(BlueprintReadOnly)
+	int32 ChannelTarget = -1;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Channel = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 ChannelNeed = 0;
+
+	/** Mind-controlled by this Mindbender's sim id; -1 = not controlled. */
+	UPROPERTY(BlueprintReadOnly)
+	int32 ControlledBy = -1;
+
 	/** T28: a destroyed oil derrick: a neutral wreck until an engineer restores it. */
 	UPROPERTY(BlueprintReadOnly)
 	bool bWrecked = false;

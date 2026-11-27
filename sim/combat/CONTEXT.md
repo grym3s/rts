@@ -57,6 +57,17 @@ faction = new owner). Neutrals (`Factions.Neutral` = -1, the oil derrick) are ne
 A destroyed restorable building (the derrick, `BuildingState.Restorable`) is not removed: at the
 start of the capture step it becomes a wreck (`Wrecked`, 1 hp, neutral, queue cleared), so it is
 untargetable and pays nobody; capturing the wreck restores it to full hp for the engineer's side.
+Weaver (`RepairsStructures`): a `CaptureCommand` on its own side's damaged, finished building walks
+it beside the footprint and heals `RepairPerTick` (25 hp/s) until full; not consumed. Mindbender
+(`MindControl`, not an engineer): a `CaptureCommand` on any live enemy or neutral unit or building
+(not a hut, a wreck or a phased unit) walks it to within `ChannelRange` (5: a unit's edge, a
+footprint's nearest cell), then it stands and channels (`ChannelTicks`, reset when out of range).
+A building is taken for good after `ChannelBuildingTicks` (6 s); a unit after `ChannelUnitTicks`
+(3 s) is controlled (`ControlledBy`, `OriginalFaction`, `ControlledSinceTick`; `MaxControlled` 3,
+a fourth frees the one held longest). At the start of each step a controlled unit goes back to
+`OriginalFaction` when its Mindbender is dead, on another side or beyond `Leash` (12); its owner's
+Mindbender channelling it takes it back. Not consumed. `Captured` is emitted for each change
+(faction = new owner). Hash mixes channel and control state only while set.
 Bridge huts: `ProductionSystem.SpawnBridgeHuts` puts a neutral `neutral-bridge-hut` on each
 landing of every bridge and causeway (`Bridge.Landings`: open land touching it, one per 8-connected
 end, its first cell row-major). A hut marks no footprint (units walk past) and is never a target; an

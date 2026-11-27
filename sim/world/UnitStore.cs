@@ -36,6 +36,14 @@ public sealed class UnitStore
             h = (h ^ (ulong)u.Hp.Raw) * 1099511628211UL;
             // T28: ownership mixes in only once it changed hands, so uncaptured worlds hash as before
             if (u.Faction != u.SpawnFaction) h = (h ^ (ulong)(uint)u.Faction ^ 0xC0FFEEUL) * 1099511628211UL;
+            // Mindbender: channel progress and control mix in only while set
+            if (u.ChannelTicks != 0) h = (h ^ (ulong)(uint)u.ChannelTicks ^ 0xC4A7UL) * 1099511628211UL;
+            if (u.ControlledBy != EntityId.None)
+            {
+                h = (h ^ (ulong)(uint)u.ControlledBy.Value ^ 0xB3D0UL) * 1099511628211UL;
+                h = (h ^ (ulong)(uint)u.OriginalFaction) * 1099511628211UL;
+                h = (h ^ (ulong)(uint)u.ControlledSinceTick) * 1099511628211UL;
+            }
         }
         return h;
     }
@@ -49,7 +57,8 @@ public sealed record UnitProfile(int Faction, Fix64 Hp, Fix64 Sight,
     bool Harvest = false, string? DeploysTo = null,
     MoveDomain Domain = MoveDomain.Land, TargetMask Targets = TargetMask.All, bool Engineer = false,
     string? TypeId = null, bool MarksOnHit = false, Fix64 MarkRadius = default,
-    bool Conscriptable = false, bool Detonates = false, bool Phases = false, bool CannotCapture = false);
+    bool Conscriptable = false, bool Detonates = false, bool Phases = false, bool CannotCapture = false,
+    bool MindControl = false, bool RepairsStructures = false);
 
 /// <summary>T28: faction index of unowned map structures (the oil derrick). Nobody's enemy:
 /// never targeted, never counted by the match, captured by an engineer touch.</summary>
@@ -99,6 +108,19 @@ public sealed class Unit
     /// <summary>T28: building or MCV this engineer is walking to capture; None = no job.
     /// Set by a `capture` command, cleared by any other order (sim/combat owns it after that).</summary>
     public EntityId CaptureTarget { get; set; } = EntityId.None;
+    /// <summary>Mindbender: its capture job is a channel (CaptureSystem), not a touch; not consumed.</summary>
+    public bool MindControl { get; }
+    /// <summary>Weaver: a capture job on its own damaged building repairs it over time.</summary>
+    public bool RepairsStructures { get; }
+    /// <summary>Mindbender: ticks channelled so far on CaptureTarget (0 = not channelling), and
+    /// how many it needs (set each tick it channels; not state, so not hashed).</summary>
+    public int ChannelTicks { get; set; }
+    public int ChannelNeed { get; set; }
+    /// <summary>Mind-controlled by this Mindbender (None = not controlled). It goes back to
+    /// OriginalFaction when the Mindbender dies, changes sides or leaves the leash.</summary>
+    public EntityId ControlledBy { get; set; } = EntityId.None;
+    public int OriginalFaction { get; set; }
+    public int ControlledSinceTick { get; set; }
 
     // T29 owned verbs (docs/factions/owned-verbs.md; rules in sim/combat/OwnedVerbs.cs)
     /// <summary>Catalog id (unit or building) it was spawned from; null for hand-built test units.</summary>
@@ -167,5 +189,7 @@ public sealed class Unit
         Detonates = profile?.Detonates ?? false;
         Phases = profile?.Phases ?? false;
         CannotCapture = profile?.CannotCapture ?? false;
+        MindControl = profile?.MindControl ?? false;
+        RepairsStructures = profile?.RepairsStructures ?? false;
     }
 }

@@ -14,12 +14,14 @@ public sealed class UnitCatalog
         Rts.Sim.World.MoveDomain Domain = Rts.Sim.World.MoveDomain.Land,
         Rts.Sim.World.TargetMask Targets = Rts.Sim.World.TargetMask.None, bool Engineer = false,
         bool MarksOnHit = false, Fix64 MarkRadius = default, bool Conscriptable = false, bool Detonates = false,
-        bool Phases = false, bool CannotCapture = false, string Description = "")
+        bool Phases = false, bool CannotCapture = false, string Description = "",
+        bool MindControl = false, bool RepairsStructures = false)
     {
         /// <summary>The spawn-time stat block (every spawner builds the same one).</summary>
         public Rts.Sim.World.UnitProfile Profile() => new(Faction, Hp, Sight, Damage, Range, CooldownTicks,
             Armor, DamageType, Harvest, DeploysTo, Domain, Targets, Engineer,
-            Id, MarksOnHit, MarkRadius, Conscriptable, Detonates, Phases, CannotCapture);
+            Id, MarksOnHit, MarkRadius, Conscriptable, Detonates, Phases, CannotCapture,
+            MindControl, RepairsStructures);
     }
 
     /// <summary>True when unitId names a unit this building (catalog id) fields:
@@ -89,7 +91,9 @@ public sealed class UnitCatalog
                 root.TryGetProperty("verbs", out var vb2) && vb2.TryGetProperty("conscriptEffect", out var ce) && ce.GetString() == "detonate",
                 Verb(root, "phases"),
                 Verb(root, "cannotCapture"),
-                Text(root, "description"));
+                Text(root, "description"),
+                Verb(root, "mindControl"),
+                Verb(root, "repairsStructures"));
         }
         return cat;
     }

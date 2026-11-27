@@ -249,6 +249,14 @@ bool ARtsRtsPlayerController::IssueOrderAtCursor(bool bAttack)
 				return true;
 			// nothing here can act on it (a neutral derrick with no engineer): an ordinary move
 		}
+		// a Weaver right-clicking your own damaged building repairs it
+		const int32 Own = GM->PickOwnUnitAt(FVector2D(MX, MY));
+		if (Own != INDEX_NONE && GM->RequestRepair(Own))
+		{
+			if (Hud)
+				Hud->AddUnitMarker(Own, EMarker::Move);
+			return true;
+		}
 	}
 	FHitResult Hit;
 	if (!GetHitResultUnderCursor(ECC_Visibility, false, Hit))

@@ -398,8 +398,19 @@ TArray<FString> ARtsBridgeGameMode::TooltipLines(int32 SimUnitId) const
 			L.Add(FString::Printf(TEXT("Deploys into a %s"), *(Y->Name.IsEmpty() ? Y->Id : Y->Name)));
 	if (bOwn && R->bCanCapture)
 		L.Add(TEXT("Right-click: captures enemy buildings, MCVs and the oil derrick; repairs bridges at their huts"));
+	else if (bOwn && R->bRepairs)
+		L.Add(TEXT("Right-click your damaged building to repair it, or a damaged bridge or its hut"));
 	else if (bOwn && R->bEngineer)
 		L.Add(TEXT("Right-click a damaged bridge or its hut to repair it"));
+	if (bOwn && R->bMindControl)
+	{
+		L.Add(TEXT("Right-click an enemy unit: controls it after 3 s (up to 3; they go home if it dies or strays 12 cells)"));
+		L.Add(TEXT("Right-click an enemy building: takes it for good after 6 s"));
+	}
+	if (R->ChannelTarget >= 0 && R->ChannelNeed > 0)
+		L.Add(FString::Printf(TEXT("Channelling: %.1f s left"), (R->ChannelNeed - R->Channel) / 20.0f));
+	if (R->ControlledBy >= 0)
+		L.Add(TEXT("Mind-controlled: goes home if its Mindbender dies or strays"));
 	if (R->bMarked)
 		L.Add(TEXT("Marked: takes extra damage from the marking side"));
 	if (R->IsPhased())
@@ -1028,6 +1039,25 @@ bool ARtsBridgeGameMode::RequestBridgeAt(const FVector& WorldPoint, bool bAttack
 	return true;
 }
 
+bool ARtsBridgeGameMode::RequestRepair(int32 TargetSimId)
+{
+	if (!bHostAlive || IsMatchScreenUp())
+		return false;
+	// Weaver: selected repairers mend your own damaged, finished building
+	const FRtsUnitSnapshot* T = RowsById.Find(TargetSimId);
+	if (!T || T->Faction != PlayerFaction || !T->IsBuilding() || T->Bridge >= 0 || T->ConstructionRemaining > 0 || T->Hp >= T->MaxHp)
+		return false;
+	FString Ids;
+	for (const int32 Sel : Selection.GetSelected())
+		if (const FRtsUnitSnapshot* R = RowsById.Find(Sel))
+			if (R->Faction == PlayerFaction && R->bRepairs)
+				Ids += (Ids.IsEmpty() ? TEXT("") : TEXT(",")) + FString::FromInt(Sel);
+	if (Ids.IsEmpty())
+		return false;
+	PendingCommandBodies.Add(FString::Printf(TEXT("\"faction\":%d,\"type\":\"capture\",\"units\":[%s],\"target\":%d"), PlayerFaction, *Ids, TargetSimId));
+	return true;
+}
+
 bool ARtsBridgeGameMode::RequestCaptureOrAttack(int32 TargetSimId)
 {
 	if (!bHostAlive || IsMatchScreenUp())
@@ -1036,6 +1066,8 @@ bool ARtsBridgeGameMode::RequestCaptureOrAttack(int32 TargetSimId)
 	// rest of the selection attacks it (a neutral one can't be shot, so they just don't).
 	const FRtsUnitSnapshot* T = RowsById.Find(TargetSimId);
 	const bool bCapturable = T && T->Faction != PlayerFaction && (T->IsBuilding() || IsMcvRow(*T));
+	// a Mindbender channels on any enemy or neutral unit or building but a hut or a wreck
+	const bool bChannelable = T && T->Faction != PlayerFaction && T->Bridge < 0 && !T->bWrecked && !T->IsPhased();
 	FString Capturers, Attackers;
 	for (const int32 Sel : Selection.GetSelected())
 		if (const FRtsUnitSnapshot* R = RowsById.Find(Sel))
@@ -1044,7 +1076,7 @@ bool ARtsBridgeGameMode::RequestCaptureOrAttack(int32 TargetSimId)
 				continue;
 			// a bridge hut is a repair job: any engineer, the Weaver too (it can't capture)
 			const bool bTakes = R->bCanCapture || (T && T->Bridge >= 0 && R->bEngineer);
-			FString& Into = bCapturable && bTakes ? Capturers : Attackers;
+			FString& Into = (bCapturable && bTakes) || (R->bMindControl && bChannelable) ? Capturers : Attackers;
 			Into += (Into.IsEmpty() ? TEXT("") : TEXT(",")) + FString::FromInt(Sel);
 		}
 	bool bQueued = false;

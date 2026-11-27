@@ -57,6 +57,11 @@ simulation authority. See `docs/superpowers/specs/2026-09-26-unreal-rts-migratio
   its bridge. Buildings are picked anywhere on their footprint (`PickUnitImpl`), not only near
   their centre. F4 labels carry the display name; hovering anything (unit, building, bridge) shows
   a tooltip: name, owner and hp, and what you can do with it (`TooltipLines`, `BridgeTooltipLines`).
+  Mindbender / Weaver: rows add `bMindControl`, `bRepairs`, `ChannelTarget` / `Channel` /
+  `ChannelNeed`, `ControlledBy`. RMB on an enemy with a Mindbender selected sends `capture`; RMB on
+  your own damaged building with a Weaver sends `capture` (`RequestRepair`). The HUD draws a purple
+  channel bar with seconds left over the Mindbender and its target, joined by a line, and a faint
+  line to each unit it holds (`DrawChannelBars`).
   Test: `RtsBridge.Host.Capture`.
 - `Source/RtsBridge/Private/RtsBridgeRoundTripTest.cpp` — editor automation test
   `RtsBridge.Host.RoundTrip` (real host launch, init, tick-0 move, 120 steps).

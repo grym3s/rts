@@ -259,6 +259,12 @@ bool URtsSimHostBridge::Step(const FString& RequestJson, double TimeoutSeconds, 
 				UO->TryGetBoolField(TEXT("engineer"), U.bEngineer); // T26: absent = no
 				UO->TryGetBoolField(TEXT("canCapture"), U.bCanCapture); // T28: absent = no
 				UO->TryGetBoolField(TEXT("wrecked"), U.bWrecked);
+				UO->TryGetBoolField(TEXT("mindControl"), U.bMindControl); // all optional
+				UO->TryGetBoolField(TEXT("repairs"), U.bRepairs);
+				UO->TryGetNumberField(TEXT("channelTarget"), U.ChannelTarget);
+				UO->TryGetNumberField(TEXT("channel"), U.Channel);
+				UO->TryGetNumberField(TEXT("channelNeed"), U.ChannelNeed);
+				UO->TryGetNumberField(TEXT("controlledBy"), U.ControlledBy);
 				UO->TryGetNumberField(TEXT("bridge"), U.Bridge); // T28: bridge huts only
 				UO->TryGetStringField(TEXT("type"), U.Type); // T29 owned verbs (all optional)
 				UO->TryGetBoolField(TEXT("marked"), U.bMarked);

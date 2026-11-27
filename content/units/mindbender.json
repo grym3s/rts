@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "mindbender",
   "name": "Mindbender",
-  "description": "Mind control (not in yet)",
+  "description": "Mind-controls units; takes buildings",
   "faction": "ascendant",
   "role": "infiltrator",
   "tier": 2,
@@ -14,5 +14,8 @@
     "hp": 44,
     "speed": 2.2,
     "sight": 8.0
+  },
+  "verbs": {
+    "mindControl": true
   }
 }

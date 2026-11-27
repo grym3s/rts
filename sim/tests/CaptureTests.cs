@@ -288,4 +288,114 @@ public class CaptureTests
         Assert.Equal(0, x.Match.Winner);
         Assert.NotNull(a);
     }
+    // ---- Weaver repair and Mindbender mind control
+
+    [Fact]
+    public void The_weaver_repairs_its_own_damaged_building_and_is_not_used_up()
+    {
+        var x = World();
+        var forge = Building(x, "ascendant-forge", 2, 20, 20);
+        forge.Hp = forge.MaxHp - Fix64.FromInt(200);
+        var weaver = Spawn(x, "weaver", 2, 5, 20);
+        x.Step(Capture(x, forge, weaver));
+        Assert.Equal(forge.Id, weaver.CaptureTarget);
+        x.RunUntil(() => forge.Hp >= forge.MaxHp);
+        Assert.Equal(forge.MaxHp, forge.Hp);
+        x.Step();
+        Assert.NotNull(x.Units.Find(weaver.Id));                 // not consumed
+        Assert.Equal(EntityId.None, weaver.CaptureTarget);       // job done
+        // 200 hp at 25 hp/s is 8 s of work, plus the walk
+        Assert.InRange(x.Sim.Tick, 8 * SimWorld.TicksPerSecond, 30 * SimWorld.TicksPerSecond);
+    }
+
+    [Fact]
+    public void The_weaver_still_cannot_capture_an_enemy_building()
+    {
+        var x = World();
+        var hall = Building(x, "hegemony-conscription-hall", 1, 20, 20);
+        var weaver = Spawn(x, "weaver", 2, 17, 20);
+        x.Step(Capture(x, hall, weaver));
+        Assert.Equal(EntityId.None, weaver.CaptureTarget);
+    }
+
+    [Fact]
+    public void A_mindbender_channels_a_building_from_range_and_keeps_it_after_walking_away()
+    {
+        var x = World();
+        var hall = Building(x, "hegemony-conscription-hall", 1, 20, 20);
+        var mb = Spawn(x, "mindbender", 2, 4, 20);
+        x.Step(Capture(x, hall, mb));
+        x.RunUntil(() => mb.ChannelTicks > 0);
+        Assert.True(mb.Position.X < Fix64.FromInt(18));          // channelling from range, not touching
+        var start = x.Sim.Tick;
+        x.RunUntil(() => hall.Faction == 2);
+        Assert.Equal(2, hall.Faction);
+        Assert.InRange(x.Sim.Tick - start, CaptureSystem.ChannelBuildingTicks - 1, CaptureSystem.ChannelBuildingTicks + 1);
+        x.Step(new MoveCommand(x.Sim.Tick, 2, new[] { mb.Id }, GameMap.CellCenter(2, 2), false));
+        x.RunUntil(() => mb.Position.Y < Fix64.FromInt(4));
+        Assert.Equal(2, hall.Faction);                           // permanent
+        Assert.NotNull(x.Units.Find(mb.Id));                     // not consumed
+    }
+
+    [Fact]
+    public void A_mind_controlled_unit_goes_home_when_the_mindbender_dies()
+    {
+        var x = World();
+        var mb = Spawn(x, "mindbender", 2, 10, 20);
+        var eng = Spawn(x, "engineer", 0, 13, 20);
+        x.Step(Capture(x, eng, mb));
+        x.RunUntil(() => eng.Faction == 2, 200);
+        Assert.Equal(2, eng.Faction);
+        Assert.Equal(mb.Id, eng.ControlledBy);
+        Assert.InRange(x.Sim.Tick, CaptureSystem.ChannelUnitTicks, CaptureSystem.ChannelUnitTicks + 3);
+        mb.Hp = Fix64.Zero;
+        x.Step();
+        Assert.Equal(0, eng.Faction);
+        Assert.Equal(EntityId.None, eng.ControlledBy);
+    }
+
+    [Fact]
+    public void A_mind_controlled_unit_goes_home_when_the_mindbender_walks_off_the_leash()
+    {
+        var x = World();
+        var mb = Spawn(x, "mindbender", 2, 10, 20);
+        var eng = Spawn(x, "engineer", 0, 13, 20);
+        x.Step(Capture(x, eng, mb));
+        x.RunUntil(() => eng.Faction == 2, 200);
+        x.Step(new MoveCommand(x.Sim.Tick, 2, new[] { mb.Id }, GameMap.CellCenter(10, 38), false));
+        x.RunUntil(() => eng.Faction == 0, 600);
+        Assert.Equal(0, eng.Faction);
+        Assert.True((mb.Position - eng.Position).Length > CaptureSystem.Leash);
+    }
+
+    [Fact]
+    public void A_mindbender_holds_three_units_and_a_fourth_frees_the_first()
+    {
+        var x = World();
+        var mb = Spawn(x, "mindbender", 2, 10, 20);
+        var engs = Enumerable.Range(0, 4).Select(i => Spawn(x, "engineer", 0, 12, 17 + 2 * i)).ToArray();
+        foreach (var e in engs)
+        {
+            x.Step(Capture(x, e, mb));
+            x.RunUntil(() => e.Faction == 2, 300);
+            Assert.Equal(2, e.Faction);
+        }
+        Assert.Equal(0, engs[0].Faction);                        // the one held longest went home
+        Assert.All(engs.Skip(1), e => Assert.Equal(mb.Id, e.ControlledBy));
+    }
+
+    [Fact]
+    public void Channelling_starts_over_when_the_target_leaves_range()
+    {
+        var x = World();
+        var mb = Spawn(x, "mindbender", 2, 10, 20);
+        var eng = Spawn(x, "engineer", 0, 13, 20);
+        x.Step(Capture(x, eng, mb));
+        for (var i = 0; i < 20; i++) x.Step();
+        Assert.True(mb.ChannelTicks > 0);
+        eng.Position = GameMap.CellCenter(10, 38);             // yanked far away
+        x.Step();
+        Assert.Equal(0, mb.ChannelTicks);
+        Assert.Equal(0, eng.Faction);
+    }
 }

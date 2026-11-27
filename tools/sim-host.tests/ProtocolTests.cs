@@ -564,6 +564,35 @@ public class ProtocolTests
         Assert.True(a.PhaseCooldown > a.PhaseTicks);
     }
 
+    // ---------- Mindbender and Weaver ----------
+
+    [Fact]
+    public void Mindbender_rows_show_the_channel_and_then_the_controlled_unit()
+    {
+        var s = new SimHostSession(RepoRoot());
+        var init = Resp(s.Handle("""{"protocolVersion":1,"kind":"init","scenario":{"schemaVersion":2,"seed":1,"map":{"width":24,"height":24,"blocked":[]},"units":[{"unit":"mindbender","at":[10.5,12.5]},{"unit":"engineer","at":[13.5,12.5]},{"unit":"weaver","at":[3.5,3.5]}]}}"""));
+        Assert.True(init.Ok, init.Error);
+        var (mb, eng, weaver) = (init.State!.Units[0], init.State.Units[1], init.State.Units[2]);
+        Assert.Equal((true, (bool?)null), (mb.MindControl, mb.Repairs));
+        Assert.Equal((true, (bool?)null), (weaver.Repairs, weaver.CanCapture));
+        HostState? st = null;
+        for (var t = 0; t < 10; t++)
+        {
+            var cmds = t == 0 ? $$"""[{"tick":0,"faction":2,"type":"capture","units":[{{mb.Id}}],"target":{{eng.Id}}}]""" : "[]";
+            var r = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":{{t}},"commands":{{cmds}}}"""));
+            Assert.True(r.Ok, r.Error);
+            st = r.State;
+        }
+        var m = st!.Units.Single(u => u.Id == mb.Id);
+        Assert.Equal(eng.Id, m.ChannelTarget);
+        Assert.True(m.Channel > 0);
+        Assert.Equal(60, m.ChannelNeed);
+        for (var t = 10; t < 70; t++) st = Resp(s.Handle($$"""{"protocolVersion":1,"kind":"step","tick":{{t}},"commands":[]}""")).State;
+        var e = st!.Units.Single(u => u.Id == eng.Id);
+        Assert.Equal((2, (int?)mb.Id), (e.Faction, e.ControlledBy));
+        Assert.Null(st.Units.Single(u => u.Id == mb.Id).ChannelTarget);
+    }
+
     // ---------- captures (T28) ----------
 
     [Fact]
